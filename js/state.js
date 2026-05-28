@@ -4,7 +4,8 @@ export const defaultState = {
   bank: 0,
   incomeDay: 26,
   categories: [],
-  savings: []
+  savings: [],
+  updatedAt: null
 }
 
 export function loadState() {
@@ -27,8 +28,33 @@ export function loadState() {
 export const state = {}
 Object.assign(state, loadState())
 
+const changeListeners = []
+export function onStateChange(fn) {
+  changeListeners.push(fn)
+}
+
+let suppressNotify = false
+
 export function saveState() {
+  state.updatedAt = new Date().toISOString()
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  if (!suppressNotify) {
+    changeListeners.forEach(fn => fn())
+  }
+}
+
+// Replace state from a remote source (Dropbox pull / Import) without
+// bumping updatedAt and without firing change listeners — the remote's
+// own updatedAt is preserved, and listeners (sync push) shouldn't react.
+export function replaceState(next) {
+  suppressNotify = true
+  Object.keys(state).forEach(k => delete state[k])
+  Object.assign(state, structuredClone(defaultState), next, {
+    categories: next.categories || [],
+    savings: next.savings || []
+  })
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  suppressNotify = false
 }
 
 export function exportData() {
@@ -49,11 +75,9 @@ export function importData(event, onSuccess) {
     try {
       const data = JSON.parse(e.target.result)
       if (!confirm('Import will overwrite current data. Continue?')) return
-      Object.keys(state).forEach(k => delete state[k])
-      Object.assign(state, structuredClone(defaultState), data, {
-        categories: data.categories || [],
-        savings: data.savings || []
-      })
+      replaceState(data)
+      // After manual import we DO want the change to be pushed to Dropbox,
+      // so bump updatedAt and notify listeners.
       saveState()
       onSuccess?.()
     } catch (err) {
