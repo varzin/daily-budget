@@ -4,6 +4,25 @@ import { uid, fmt, escapeHtml, currentMonthKey, round2 } from './utils.js'
 import { renderDashboard } from './dashboard.js'
 import { drawChart } from './chart.js'
 
+const INDICATOR_TIERS = [
+  { tier: 'blue',   label: '€500+' },
+  { tier: 'green',  label: '€200+' },
+  { tier: 'yellow', label: '€1+' },
+  { tier: 'red',    label: '< €1' }
+]
+
+function indicatorCell(tier) {
+  const legend = INDICATOR_TIERS.map(t =>
+    `<span class="legend-row"><span class="indicator ind-${t.tier}"></span>${t.label}</span>`
+  ).join('')
+  return `
+    <span class="indicator-wrap">
+      <span class="indicator ind-${tier}"></span>
+      <span class="indicator-tooltip" role="tooltip">${legend}</span>
+    </span>
+  `
+}
+
 export function renderSavings() {
   const body = document.getElementById('savingsBody')
   body.innerHTML = ''
@@ -23,8 +42,8 @@ export function renderSavings() {
     tr.dataset.id = row.id
     const ind = savedIndicator(row.saved)
     tr.innerHTML = `
-      <td><span class="indicator ind-${ind}"></span></td>
-      <td><input class="savings-input" type="text" value="${escapeHtml(row.month)}" data-id="${row.id}" data-field="month" placeholder="MM.YYYY"></td>
+      <td>${indicatorCell(ind)}</td>
+      <td><input class="savings-input" type="month" value="${escapeHtml(row.month)}" data-id="${row.id}" data-field="month"></td>
       <td><input class="savings-input" type="number" step="0.01" value="${row.saved}" data-id="${row.id}" data-field="saved"></td>
       <td class="savings-bank-cell">€${fmt(balances[i])}</td>
       <td><button class="row-del" data-id="${row.id}">×</button></td>
@@ -47,7 +66,7 @@ export function renderSavings() {
           const bankCell = tr.querySelector('.savings-bank-cell')
           if (bankCell) bankCell.textContent = '€' + fmt(fresh[idx])
         })
-        const indEl = e.target.closest('tr').querySelector('.indicator')
+        const indEl = e.target.closest('tr').querySelector('.indicator-wrap > .indicator')
         indEl.className = 'indicator ind-' + savedIndicator(row.saved)
       }
       saveState()
@@ -73,23 +92,32 @@ function finalizeMonth() {
   const oblig = obligatoryTotal(state.categories)
   const prevPool = currentSavingsTotal(state.savings)
 
-  const saved = bank - oblig - prevPool
-
+  const saved = round2(bank - oblig - prevPool)
   const month = currentMonthKey()
 
   const existingIdx = state.savings.findIndex(r => r.month === month)
+  const existingNote = existingIdx >= 0
+    ? `\n⚠ An entry for ${month} already exists — its "Saved this month" will be overwritten.\n`
+    : ''
+
+  const message =
+    `Finalize ${month}?\n` +
+    existingNote +
+    `\nThis will add a new row to the Savings table with:\n\n` +
+    `  • Saved this month = current balance − fixed expenses − prior savings\n` +
+    `      €${fmt(bank)} − €${fmt(oblig)} − €${fmt(prevPool)} = €${fmt(saved)}\n\n` +
+    `  • Balance at end is auto-derived as previous row's balance + this value.\n\n` +
+    `Tip: update "Current balance" on the Dashboard first if you've made any payments since.`
+
+  if (!confirm(message)) return
+
   if (existingIdx >= 0) {
-    if (!confirm(`Entry for ${month} already exists. Overwrite?`)) return
     state.savings[existingIdx] = {
       ...state.savings[existingIdx],
-      saved: round2(saved)
+      saved
     }
   } else {
-    state.savings.push({
-      id: uid(),
-      month,
-      saved: round2(saved)
-    })
+    state.savings.push({ id: uid(), month, saved })
   }
 
   saveState()

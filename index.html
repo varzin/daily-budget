@@ -171,10 +171,6 @@
     <section class="section" id="tab-savings" role="tabpanel" aria-labelledby="tab-btn-savings" tabindex="0">
       <div class="section-head">
         <h2>Savings</h2>
-        <div class="savings-actions">
-          <button class="btn" id="savings-add-row">+ Row</button>
-          <button class="btn primary" id="savings-finalize">Finalize month</button>
-        </div>
       </div>
 
       <div class="chart-toggle">
@@ -187,7 +183,7 @@
           <thead>
             <tr>
               <th></th>
-              <th>Month (MM.YYYY)</th>
+              <th>Month</th>
               <th>Saved this month</th>
               <th>Balance at end</th>
               <th></th>
@@ -216,14 +212,9 @@
         </div>
       </div>
 
-      <div class="hint">
-        <strong>Finalize month:</strong> adds a new row — takes today's balance after fixed expenses (excluding prior savings) and the previous balance, computes the change. <strong>Balance at end</strong> is auto-derived: previous row's balance + this row's <strong>Saved this month</strong> (starting from 0).
-        <br><br>
-        <strong>Indicators:</strong>
-        <span class="indicator ind-blue"></span> €500+ ·
-        <span class="indicator ind-green"></span> €200+ ·
-        <span class="indicator ind-yellow"></span> €1+ ·
-        <span class="indicator ind-red"></span> &lt; €1
+      <div class="savings-actions savings-actions-bottom">
+        <button class="btn" id="savings-add-row">+ Row</button>
+        <button class="btn primary" id="savings-finalize">Finalize month</button>
       </div>
     </section>
 

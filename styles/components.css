@@ -261,6 +261,12 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.savings-actions-bottom {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+}
 
 .savings-table {
   width: 100%;
@@ -298,6 +304,61 @@
 .ind-yellow { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); }
 .ind-red { background: var(--red); box-shadow: 0 0 12px var(--red); }
 
+/* Indicator with hover-legend tooltip */
+.indicator-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  margin: -4px;
+}
+.indicator-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 20;
+}
+.indicator-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--border-strong);
+}
+.indicator-wrap:hover .indicator-tooltip,
+.indicator-wrap:focus-within .indicator-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.indicator-tooltip .legend-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.indicator-tooltip .legend-row .indicator {
+  margin: 0;
+  width: 7px;
+  height: 7px;
+}
+
 .savings-input {
   background: transparent;
   border: 1px solid transparent;
@@ -309,6 +370,11 @@
   padding: 4px 8px;
   width: 110px;
   transition: border-color 0.15s;
+}
+.savings-input[type=month] {
+  width: 160px;
+  font-family: var(--body);
+  color-scheme: dark;
 }
 .savings-input:hover, .savings-input:focus { border-color: var(--border-strong); }
 .savings-bank { color: var(--accent); font-weight: 500; }
