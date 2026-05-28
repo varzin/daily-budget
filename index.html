@@ -78,12 +78,17 @@
 
       <div class="inputs">
         <div class="field">
-          <label>Current balance (€)</label>
-          <input type="number" id="bank" step="0.01" placeholder="0.00">
+          <label for="bank">Current balance</label>
+          <div class="field-input">
+            <span class="field-prefix" aria-hidden="true">€</span>
+            <input type="number" id="bank" step="0.01" placeholder="0.00">
+          </div>
         </div>
         <div class="field">
-          <label>Next income day</label>
-          <input type="number" id="incomeDay" min="1" max="31" placeholder="26">
+          <label for="incomeDay">Next income day</label>
+          <div class="field-input">
+            <input type="number" id="incomeDay" min="1" max="31" placeholder="26">
+          </div>
         </div>
       </div>
 
