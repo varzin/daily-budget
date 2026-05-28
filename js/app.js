@@ -14,9 +14,13 @@ export function renderAll() {
   renderSavings()
 }
 
-export function setTab(name) {
+export function setTab(name, { focus = false } = {}) {
   document.querySelectorAll('.tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.tab === name)
+    const active = t.dataset.tab === name
+    t.classList.toggle('active', active)
+    t.setAttribute('aria-selected', active ? 'true' : 'false')
+    t.setAttribute('tabindex', active ? '0' : '-1')
+    if (active && focus) t.focus()
   })
   document.querySelectorAll('.section').forEach(s => {
     s.classList.toggle('active', s.id === 'tab-' + name)
@@ -24,8 +28,24 @@ export function setTab(name) {
   if (name === 'savings') drawChart()
 }
 
-document.querySelectorAll('.tab').forEach(t => {
+const tabButtons = [...document.querySelectorAll('.tab')]
+tabButtons.forEach(t => {
   t.addEventListener('click', () => setTab(t.dataset.tab))
+})
+
+// Keyboard nav per WAI-ARIA tablist pattern
+document.querySelector('.tabs').addEventListener('keydown', e => {
+  const i = tabButtons.indexOf(document.activeElement)
+  if (i === -1) return
+  let next = null
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % tabButtons.length
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + tabButtons.length) % tabButtons.length
+  else if (e.key === 'Home') next = 0
+  else if (e.key === 'End') next = tabButtons.length - 1
+  if (next !== null) {
+    e.preventDefault()
+    setTab(tabButtons[next].dataset.tab, { focus: true })
+  }
 })
 
 document.getElementById('bank').addEventListener('input', e => {

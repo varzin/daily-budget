@@ -1,5 +1,11 @@
 @media (max-width: 768px) {
-  .app { padding: 18px 14px 60px; }
+  .app { padding: 18px 14px 110px; }
+  .tabs {
+    --tab-icon: 20px;
+    --tab-padding: 10px;
+    --nav-radius: 22px;
+  }
+  .tab-label { font-size: 13px; }
   header.top { flex-direction: column; gap: 16px; align-items: flex-start; margin-bottom: 28px; }
   .brand { font-size: 26px; }
   .inputs { grid-template-columns: 1fr; gap: 12px; }
