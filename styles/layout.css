@@ -1,7 +1,15 @@
 .app {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 32px 40px 140px;
+  /* iOS PWA safe areas: notch / Dynamic Island top, home-indicator bottom,
+     and the rounded-corner / camera-cutout left/right in landscape. The
+     floating nav's `bottom` already respects safe-area-inset-bottom, so we
+     add the inset to the page bottom padding (not replace) to keep the same
+     visual clearance from the nav. */
+  padding-top: max(32px, env(safe-area-inset-top));
+  padding-right: max(40px, env(safe-area-inset-right));
+  padding-bottom: calc(140px + env(safe-area-inset-bottom));
+  padding-left: max(40px, env(safe-area-inset-left));
 }
 
 header.top {
