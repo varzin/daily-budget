@@ -1,0 +1,19 @@
+:root {
+  --bg: #0d0e0c;
+  --bg-elev: #16181580;
+  --bg-card: #1a1c19;
+  --border: #2a2d29;
+  --border-strong: #3a3d39;
+  --text: #e8e6df;
+  --text-dim: #8a8e85;
+  --text-faint: #5a5e55;
+  --accent: #b4f06a;
+  --accent-dim: #b4f06a40;
+  --blue: #6aa3f0;
+  --green: #6af0a3;
+  --yellow: #f0d76a;
+  --red: #f06a6a;
+  --display: 'Fraunces', serif;
+  --body: 'Inter Tight', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
