@@ -27,12 +27,14 @@ header.top {
   gap: 8px;
 }
 
-/* Floating bottom navigation */
+/* Floating bottom navigation — sizing matches the source prototype so the
+   pill grows naturally to whatever the active label needs, no artificial
+   width cap. */
 .tabs {
   --nav-padding: 4px;
   --nav-radius: 24px;
-  --tab-icon: 22px;
-  --tab-padding: 12px;
+  --tab-icon: 24px;
+  --tab-padding: 8px;
   --tab-duration: 0.5s;
   --tab-easing: cubic-bezier(.6, .04, .35, 1.22);
 

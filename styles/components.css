@@ -383,66 +383,68 @@
 .chart-range-labels .chart-range-sep { color: var(--text-faint); }
 
 .range-slider {
+  --thumb-size: 16px;
+  --track-height: 3px;
+  --slider-height: 22px;
   position: relative;
-  height: 22px;
+  height: var(--slider-height);
 }
-.range-slider-track {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--border-strong);
-  transform: translateY(-50%);
-  border-radius: 2px;
-  pointer-events: none;
-}
+.range-slider-track,
 .range-slider-progress {
   position: absolute;
-  top: 50%;
-  height: 3px;
-  background: var(--accent);
-  transform: translateY(-50%);
+  top: calc((var(--slider-height) - var(--track-height)) / 2);
+  height: var(--track-height);
   border-radius: 2px;
   pointer-events: none;
 }
+.range-slider-track {
+  left: 0;
+  right: 0;
+  background: var(--border-strong);
+}
+.range-slider-progress { background: var(--accent); }
+
 .range-slider input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  height: 22px;
+  height: var(--slider-height);
   margin: 0;
-  background: none;
+  background: transparent;
   pointer-events: none;
-  -webkit-appearance: none;
-  appearance: none;
 }
+/* Make the runnable track the same height as the slider so the thumb can be
+   centred predictably by tuning margin-top. */
 .range-slider input[type=range]::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  height: var(--slider-height);
   background: transparent;
-  height: 22px;
-}
-.range-slider input[type=range]::-moz-range-track {
-  background: transparent;
-  height: 22px;
 }
 .range-slider input[type=range]::-webkit-slider-thumb {
-  pointer-events: auto;
   -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
+  pointer-events: auto;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  margin-top: calc((var(--slider-height) - var(--thumb-size)) / 2);
   border-radius: 50%;
   background: var(--accent);
   border: 2px solid var(--bg-card);
   cursor: grab;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  margin-top: 0;
+}
+/* Firefox auto-centres the thumb on the track, so no margin tuning needed. */
+.range-slider input[type=range]::-moz-range-track {
+  height: var(--slider-height);
+  background: transparent;
+  border: none;
 }
 .range-slider input[type=range]::-moz-range-thumb {
   pointer-events: auto;
-  width: 16px;
-  height: 16px;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
   border-radius: 50%;
   background: var(--accent);
   border: 2px solid var(--bg-card);
@@ -600,3 +602,48 @@
 
 /* Mono utility class used inline */
 .mono { font-family: var(--mono); }
+
+/* ============ Update banner (PWA refresh) ============ */
+.update-banner {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  animation: bannerIn 0.3s ease;
+}
+.update-banner[hidden] { display: none; }
+@keyframes bannerIn {
+  from { transform: translate(-50%, -12px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+.update-reload {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 13px;
+  padding: 4px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+}
+.update-reload:hover { background: var(--accent); color: var(--bg); }
+.update-dismiss {
+  color: var(--text-faint);
+  font-size: 18px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+}
+.update-dismiss:hover { color: var(--text); }

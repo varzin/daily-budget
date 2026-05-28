@@ -2,7 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Budget">
+  <meta name="theme-color" content="#0d0e0c">
+  <link rel="manifest" href="manifest.webmanifest">
   <title>Budget</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +23,12 @@
   <link rel="stylesheet" href="styles/responsive.css">
 </head>
 <body>
+
+  <div class="update-banner" id="update-banner" hidden role="status" aria-live="polite">
+    <span>New version available</span>
+    <button type="button" id="update-reload" class="update-reload">Reload</button>
+    <button type="button" id="update-dismiss" class="update-dismiss" aria-label="Dismiss">×</button>
+  </div>
 
   <div class="app">
 

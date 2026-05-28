@@ -187,3 +187,44 @@ renderAll()
 
 // Kick off Dropbox sync (handles OAuth callback if present, then initial pull)
 initSync()
+
+// ---------- Service worker: keeps the PWA up-to-date ----------
+function showUpdateBanner() {
+  document.getElementById('update-banner').hidden = false
+}
+
+document.getElementById('update-reload')?.addEventListener('click', () => {
+  window.location.reload()
+})
+document.getElementById('update-dismiss')?.addEventListener('click', () => {
+  document.getElementById('update-banner').hidden = true
+})
+
+if ('serviceWorker' in navigator) {
+  // Only register on http(s) origins — file:// blows up.
+  if (location.protocol === 'http:' || location.protocol === 'https:') {
+    const hadInitialController = !!navigator.serviceWorker.controller
+
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // If a freshly-installed SW is already waiting/active on page open,
+      // surface the banner right away (covers the case where the page loaded
+      // from cache after a deploy).
+      if (reg.waiting && hadInitialController) showUpdateBanner()
+
+      reg.addEventListener('updatefound', () => {
+        const next = reg.installing
+        next?.addEventListener('statechange', () => {
+          if (next.state === 'installed' && hadInitialController) {
+            showUpdateBanner()
+          }
+        })
+      })
+    }).catch(err => console.warn('SW registration failed:', err))
+
+    // The SW uses skipWaiting() + clients.claim(), so it takes control of
+    // this page once activated. controllerchange fires at that point.
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadInitialController) showUpdateBanner()
+    })
+  }
+}
