@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Budget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@300;400;500;600&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0e0c;
+    --bg-elev: #16181580;
+    --bg-card: #1a1c19;
+    --border: #2a2d29;
+    --border-strong: #3a3d39;
+    --text: #e8e6df;
+    --text-dim: #8a8e85;
+    --text-faint: #5a5e55;
+    --accent: #b4f06a;
+    --accent-dim: #b4f06a40;
+    --blue: #6aa3f0;
+    --green: #6af0a3;
+    --yellow: #f0d76a;
+    --red: #f06a6a;
+    --display: 'Fraunces', serif;
+    --body: 'Inter Tight', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, #b4f06a08, transparent),
+      radial-gradient(ellipse 60% 40% at 90% 100%, #6aa3f005, transparent);
+  }
+
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input { font-family: inherit; color: inherit; }
+
+  /* ===== Layout ===== */
+  .app {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 40px 80px;
+  }
+
+  header.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    font-family: var(--display);
+    font-size: 32px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    font-style: italic;
+  }
+  .brand .dot { color: var(--accent); }
+
+  .top-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 8px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: all 0.15s;
+    background: var(--bg-elev);
+  }
+  .btn:hover { color: var(--text); border-color: var(--accent); }
+  .btn.primary {
+    background: var(--accent);
+    color: #0d0e0c;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+  .btn.primary:hover { background: #c6ff7a; }
+  .btn.danger:hover { color: var(--red); border-color: var(--red); }
+
+  /* ===== Tabs ===== */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    padding: 12px 20px;
+    font-size: 14px;
+    color: var(--text-dim);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .tab:hover { color: var(--text); }
+
+  /* ===== Sections ===== */
+  .section { display: none; }
+  .section.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== Inputs panel ===== */
+  .inputs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .field {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    transition: border-color 0.15s;
+  }
+  .field:focus-within { border-color: var(--accent); }
+  .field label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .field input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  /* ===== Dashboard metrics ===== */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+  .metric {
+    background: var(--bg-card);
+    padding: 24px 22px;
+  }
+  .metric .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .metric .value {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .metric .value .sym {
+    color: var(--text-faint);
+    margin-right: 2px;
+    font-weight: 300;
+  }
+  .metric .sub {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .metric.featured {
+    grid-column: span 2;
+    background: linear-gradient(135deg, #1a1c19 0%, #14171280 100%);
+  }
+  .metric.featured .value { font-size: 38px; color: var(--accent); }
+  .metric.green .value { color: var(--green); }
+  .metric.yellow .value { color: var(--yellow); }
+  .metric.blue .value { color: var(--blue); }
+
+  /* Deficit state: when you've overspent the target zone */
+  .metric.deficit {
+    background: linear-gradient(135deg, #1a1412 0%, #14101080 100%);
+    border-color: var(--red);
+  }
+  .metric.deficit .value,
+  .metric.deficit .sym { color: var(--red); }
+  .metric.deficit .sub { color: var(--red); opacity: 0.85; }
+  .metric.deficit .label::before {
+    content: '⚠ ';
+    color: var(--red);
+  }
+
+  /* ===== Section heading ===== */
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-head h2 {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    font-style: italic;
+  }
+  .section-head .meta {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* ===== Categories list ===== */
+  .cats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .cat {
+    display: grid;
+    grid-template-columns: 28px 1fr auto 28px;
+    gap: 14px;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: opacity 0.15s, border-color 0.15s;
+  }
+  .cat.done { opacity: 0.55; border-color: var(--accent-dim); }
+
+  .nums-row {
+    display: flex;
+    gap: 14px;
+    align-items: flex-end;
+  }
+
+  .check {
+    width: 22px;
+    height: 22px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .check:hover { border-color: var(--accent); }
+  .check.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .check.checked::after {
+    content: '✓';
+    color: #0d0e0c;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .cat-name {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    color: var(--text);
+    width: 100%;
+    min-width: 0;
+  }
+
+  .num-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .num-field label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    font-weight: 500;
+  }
+  .cat-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    outline: none;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text);
+    padding: 6px 8px;
+    text-align: right;
+    width: 90px;
+    transition: border-color 0.15s;
+  }
+  .cat-input:focus { border-color: var(--accent); }
+  .cat-input.spent { color: var(--text-dim); }
+  .cat-remaining {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent);
+    text-align: right;
+    padding: 6px 0;
+    min-width: 70px;
+    font-weight: 500;
+  }
+  .cat.done .cat-remaining { color: var(--text-faint); text-decoration: line-through; }
+
+  .cat-del {
+    color: var(--text-faint);
+    font-size: 20px;
+    transition: color 0.15s;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .cat-del:hover { color: var(--red); background: #f06a6a15; }
+
+  /* "New" row variant — same layout, dashed border */
+  .cat.cat-new {
+    border-style: dashed;
+    border-color: var(--border-strong);
+    margin-top: 4px;
+  }
+  .cat.cat-new:focus-within {
+    border-color: var(--accent);
+    border-style: solid;
+  }
+  .cat-add {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #0d0e0c;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .cat-add:hover { background: #c6ff7a; }
+  .cat-add:active { transform: scale(0.92); }
+
+  .cats-total {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .cats-total .num { color: var(--text); font-size: 16px; }
+
+  /* ===== Savings ===== */
+  .savings-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .savings-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 24px;
+  }
+  .savings-table th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    font-weight: 500;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .savings-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 14px;
+  }
+  .savings-table tr:last-child td { border-bottom: none; }
+  .savings-table .indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 12px;
+    vertical-align: middle;
+  }
+  .ind-blue { background: var(--blue); box-shadow: 0 0 12px var(--blue); }
+  .ind-green { background: var(--green); box-shadow: 0 0 12px var(--green); }
+  .ind-yellow { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); }
+  .ind-red { background: var(--red); box-shadow: 0 0 12px var(--red); }
+
+  .savings-input {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    outline: none;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text);
+    padding: 4px 8px;
+    width: 110px;
+    transition: border-color 0.15s;
+  }
+  .savings-input:hover, .savings-input:focus { border-color: var(--border-strong); }
+  .savings-bank { color: var(--accent); font-weight: 500; }
+
+  .row-del {
+    color: var(--text-faint);
+    font-size: 16px;
+    transition: color 0.15s;
+  }
+  .row-del:hover { color: var(--red); }
+
+  .savings-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-faint);
+    font-style: italic;
+    font-family: var(--display);
+    font-size: 18px;
+  }
+
+  /* ===== Chart ===== */
+  .chart-toggle {
+    display: inline-flex;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    margin-bottom: 20px;
+  }
+  .chart-toggle button {
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text-dim);
+    border-radius: 5px;
+    transition: all 0.15s;
+  }
+  .chart-toggle button.active {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .chart-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .chart-wrap.hidden { display: none; }
+
+  /* ===== Footer hint ===== */
+  .hint {
+    margin-top: 32px;
+    padding: 16px;
+    background: var(--bg-card);
+    border-left: 2px solid var(--accent);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .hint strong { color: var(--text); }
+
+  /* ===== Mobile ===== */
+  @media (max-width: 768px) {
+    .app { padding: 18px 14px 60px; }
+    header.top { flex-direction: column; gap: 16px; align-items: flex-start; margin-bottom: 28px; }
+    .brand { font-size: 26px; }
+    .inputs { grid-template-columns: 1fr; gap: 12px; }
+    .metrics { grid-template-columns: 1fr; }
+    .metric.featured { grid-column: span 1; }
+    .metric.featured .value { font-size: 30px; }
+    .metric { padding: 18px 18px; }
+    .metric .value { font-size: 22px; }
+
+    /* Categories: stack header (check + name + del) on row 1, then 3 number fields */
+    .cat {
+      grid-template-columns: 28px 1fr 28px;
+      grid-template-rows: auto auto;
+      gap: 12px 10px;
+      padding: 14px 14px;
+    }
+    .cat .cat-name-wrap {
+      grid-column: 2;
+      grid-row: 1;
+      min-width: 0;
+    }
+    .cat .check { grid-column: 1; grid-row: 1; }
+    .cat .cat-del { grid-column: 3; grid-row: 1; }
+    .cat .nums-row {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .cat .num-field { width: 100%; }
+    .cat-input { width: 100%; font-size: 15px; padding: 8px 8px; }
+    .cat-remaining { font-size: 15px; text-align: center; min-width: 0; padding: 8px 0; }
+
+    .savings-table { font-size: 12px; }
+    .savings-table th, .savings-table td { padding: 10px 6px; }
+    .savings-input { width: 80px; padding: 6px 6px; }
+    .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { white-space: nowrap; padding: 10px 14px; }
+    .section-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+    .field input { font-size: 20px; }
+  }
+
+  /* hidden file input */
+  #importFile { display: none; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="top">
+    <div class="brand">budget<span class="dot">.</span></div>
+    <div class="top-actions">
+      <button class="btn" onclick="exportData()">Экспорт</button>
+      <button class="btn" onclick="document.getElementById('importFile').click()">Импорт</button>
+      <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="dashboard">Дашборд</button>
+    <button class="tab" data-tab="obligatory">Обязательные траты</button>
+    <button class="tab" data-tab="savings">Savings</button>
+  </nav>
+
+  <!-- ============== DASHBOARD ============== -->
+  <section class="section active" id="tab-dashboard">
+
+    <div class="inputs">
+      <div class="field">
+        <label>Сейчас на счету (€)</label>
+        <input type="number" id="bank" step="0.01" placeholder="0.00">
+      </div>
+      <div class="field">
+        <label>День следующей зарплаты</label>
+        <input type="number" id="salaryDay" min="1" max="31" placeholder="26">
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric featured" id="metric-yellow">
+        <div class="label">Тратить в день, чтобы выйти в ноль</div>
+        <div class="value"><span class="sym" id="m-perDayYellow-sym">€</span><span id="m-perDayYellow">0.00</span></div>
+        <div class="sub" id="m-perDayYellow-sub">Не залезая в накопления</div>
+      </div>
+      <div class="metric green" id="metric-green">
+        <div class="label">Зелёная зона (в день)</div>
+        <div class="value"><span class="sym" id="m-perDayGreen-sym">€</span><span id="m-perDayGreen">0.00</span></div>
+        <div class="sub" id="m-perDayGreen-sub">+€200 в savings к концу месяца</div>
+      </div>
+      <div class="metric blue" id="metric-all">
+        <div class="label">Тратить всё (в день)</div>
+        <div class="value"><span class="sym" id="m-perDayAll-sym">€</span><span id="m-perDayAll">0.00</span></div>
+        <div class="sub" id="m-perDayAll-sub">Включая накопления</div>
+      </div>
+
+      <div class="metric">
+        <div class="label">Всего на счету</div>
+        <div class="value"><span class="sym">€</span><span id="m-bank">0.00</span></div>
+        <div class="sub">ЗП + savings</div>
+      </div>
+      <div class="metric">
+        <div class="label">Без savings</div>
+        <div class="value"><span class="sym">€</span><span id="m-withoutSavings">0.00</span></div>
+        <div class="sub">Только этого периода</div>
+      </div>
+      <div class="metric">
+        <div class="label">После обязательных, без savings</div>
+        <div class="value"><span class="sym">€</span><span id="m-afterObligatoryNoSavings">0.00</span></div>
+        <div class="sub">Свободные деньги периода</div>
+      </div>
+      <div class="metric">
+        <div class="label">После обязательных, всего</div>
+        <div class="value"><span class="sym">€</span><span id="m-afterObligatoryAll">0.00</span></div>
+        <div class="sub">Включая накопления</div>
+      </div>
+    </div>
+
+    <div class="hint">
+      <strong>Как считается:</strong> «На счету» — это всё, что у тебя есть прямо сейчас (зп + остаток с прошлого месяца). Дни считаются до следующего числа зарплаты — если день уже наступил, идём к следующему месяцу. Обязательные траты: из остатка вычитается то, что <strong>ещё предстоит заплатить</strong> (бюджет минус уже потраченное). Галочка «оплачено» исключает категорию из вычета — деньги уже ушли со счёта.
+    </div>
+  </section>
+
+  <!-- ============== OBLIGATORY ============== -->
+  <section class="section" id="tab-obligatory">
+    <div class="section-head">
+      <h2>Обязательные траты</h2>
+      <div class="meta">Сумма к вычету: <span id="oblig-total">€0.00</span></div>
+    </div>
+
+    <div class="cats" id="catsList"></div>
+
+    <div class="cat cat-new" id="catNew">
+      <div class="check" id="newCatDone" onclick="toggleNewDone()"></div>
+      <div class="cat-name-wrap">
+        <input class="cat-name" id="newCatName" placeholder="Название категории" autocomplete="off">
+      </div>
+      <div class="nums-row">
+        <div class="num-field">
+          <label>Бюджет</label>
+          <input class="cat-input" id="newCatBudget" type="number" inputmode="decimal" step="0.01" placeholder="0">
+        </div>
+        <div class="num-field">
+          <label>Потрачено</label>
+          <input class="cat-input spent" id="newCatSpent" type="number" inputmode="decimal" step="0.01" placeholder="0">
+        </div>
+        <div class="num-field">
+          <label>Осталось</label>
+          <div class="cat-remaining" id="newCatRemaining">€0.00</div>
+        </div>
+      </div>
+      <button class="cat-add" onclick="addCategory()" title="Добавить">+</button>
+    </div>
+
+    <div class="hint">
+      <strong>Логика:</strong> из суммы вычитается то, что <strong>ещё осталось заплатить</strong>: <span class="mono">budget − spent</span>. Галочка «оплачено» значит «деньги уже ушли со счёта» — категория больше не вычитается (иначе двойной счёт). Не забывай обновлять «На счету» после оплаты.
+    </div>
+  </section>
+
+  <!-- ============== SAVINGS ============== -->
+  <section class="section" id="tab-savings">
+    <div class="section-head">
+      <h2>Savings</h2>
+      <div class="savings-actions">
+        <button class="btn" onclick="addSavingsRow()">+ Строка</button>
+        <button class="btn primary" onclick="finalizeMonth()">Финализировать месяц</button>
+      </div>
+    </div>
+
+    <div class="chart-toggle">
+      <button class="active" data-view="table" onclick="setSavingsView('table')">Таблица</button>
+      <button data-view="chart" onclick="setSavingsView('chart')">График</button>
+    </div>
+
+    <div id="savings-table-wrap">
+      <table class="savings-table" id="savingsTable">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Месяц (MM.YYYY)</th>
+            <th>Сохранено за месяц</th>
+            <th>В банке на конец</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="savingsBody"></tbody>
+      </table>
+    </div>
+
+    <div id="savings-chart-wrap" class="chart-wrap hidden">
+      <canvas id="savingsChart" width="800" height="320"></canvas>
+    </div>
+
+    <div class="hint">
+      <strong>Финализировать месяц:</strong> добавит новую строку — берёт сегодняшний остаток после обязательных (без учёта прошлых savings) и предыдущий банк, считает изменение. Все ячейки таблицы можно править вручную.
+      <br><br>
+      <strong>Индикаторы:</strong>
+      <span style="color: var(--blue)">●</span> €500+ ·
+      <span style="color: var(--green)">●</span> €200+ ·
+      <span style="color: var(--yellow)">●</span> €1+ ·
+      <span style="color: var(--red)">●</span> &lt; €1
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const STORAGE_KEY = 'budget_app_v1';
+
+const defaultState = {
+  bank: 0,
+  salaryDay: 26,
+  categories: [
+    // { id, name, budget, spent, done }
+  ],
+  savings: [
+    // { id, month: 'MM.YYYY', saved, bank }
+  ]
+};
+
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return structuredClone(defaultState);
+    const parsed = JSON.parse(raw);
+    // safe merge with defaults so missing fields don't break
+    return {
+      ...structuredClone(defaultState),
+      ...parsed,
+      categories: parsed.categories || [],
+      savings: parsed.savings || []
+    };
+  } catch (e) {
+    console.error('Failed to load state', e);
+    return structuredClone(defaultState);
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* ============================================================
+   MATH — pure functions, easy to verify
+   ============================================================ */
+
+/**
+ * Computes days remaining until the next salary day.
+ * If today is the salary day, the period starts today → count to next month's salary day.
+ * If today < salary day in this month → count to this month's salary day.
+ * If today > salary day in this month → count to next month's salary day.
+ *
+ * @param {number} salaryDay - day of month, 1..31
+ * @param {Date} today - reference date (defaults to now)
+ * @returns {number} number of full days remaining (always >= 1)
+ */
+function computeDaysLeft(salaryDay, today = new Date()) {
+  if (!salaryDay || salaryDay < 1 || salaryDay > 31) return 0;
+
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const d = today.getDate();
+
+  // Helper: build a date for a given year/month/day, clamping to month's last day
+  function safeDate(year, month, day) {
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    return new Date(year, month, Math.min(day, lastDay));
+  }
+
+  let target;
+  if (d < salaryDay) {
+    // salary day later this month
+    target = safeDate(y, m, salaryDay);
+  } else {
+    // salary day already passed (or it's today) → next month
+    target = safeDate(y, m + 1, salaryDay);
+  }
+
+  // Difference in whole days
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const startOfToday = new Date(y, m, d).getTime();
+  const startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+  const diff = Math.round((startOfTarget - startOfToday) / msPerDay);
+  return Math.max(1, diff);
+}
+
+/**
+ * For one category, returns the amount STILL TO BE PAID from current bank.
+ * Logic: we already have the money in `bank`. We need to subtract what we still owe.
+ *   - If done=true → 0 (already paid, bank already reflects this)
+ *   - Otherwise → max(0, budget - spent)
+ * This avoids double-counting: once a category is paid, the bank balance already
+ * went down, so we shouldn't subtract it again.
+ */
+function categoryAmount(cat) {
+  if (cat.done) return 0;
+  const budget = Number(cat.budget) || 0;
+  const spent = Number(cat.spent) || 0;
+  return Math.max(0, budget - spent);
+}
+
+/**
+ * Sum of all categories' effective amounts.
+ */
+function obligatoryTotal(categories) {
+  return categories.reduce((sum, c) => sum + categoryAmount(c), 0);
+}
+
+/**
+ * Current savings total = "bank" value of the last savings row, or 0 if empty.
+ * Rows are ordered chronologically; we take the last one as the current pool.
+ */
+function currentSavingsTotal(savings) {
+  if (!savings || savings.length === 0) return 0;
+  const last = savings[savings.length - 1];
+  return Number(last.bank) || 0;
+}
+
+/**
+ * Per-day spending to land at exactly zero (yellow zone) without touching savings.
+ * Returns { kind: 'ok', perDay } when available > 0,
+ *         { kind: 'deficit', deficit, daysNoSpend } when available <= 0.
+ */
+function perDayYellow(bank, obligatory, savingsPool, daysLeft) {
+  const available = bank - obligatory - savingsPool;
+  return budgetResult(available, daysLeft);
+}
+
+/**
+ * Per-day spending to land in the green zone (saving extra €200 this month).
+ */
+function perDayGreen(bank, obligatory, savingsPool, daysLeft, greenBuffer = 200) {
+  const available = bank - obligatory - savingsPool - greenBuffer;
+  return budgetResult(available, daysLeft);
+}
+
+/**
+ * Per-day spending if you spend everything including savings.
+ */
+function perDayAll(bank, obligatory, daysLeft) {
+  const available = bank - obligatory;
+  return budgetResult(available, daysLeft);
+}
+
+/**
+ * Shared logic: returns positive per-day amount if available > 0,
+ * otherwise returns deficit + how many days you'd need to spend nothing.
+ *
+ * "Days with no spending" = full remaining period. If you spend nothing
+ * for the whole period and still can't cover the deficit, the situation
+ * cannot be fixed without extra income — we still report daysLeft as the
+ * maximum effort possible.
+ */
+function budgetResult(available, daysLeft) {
+  if (daysLeft <= 0) {
+    return { kind: 'ok', perDay: 0 };
+  }
+  if (available >= 0) {
+    return { kind: 'ok', perDay: available / daysLeft };
+  }
+  return {
+    kind: 'deficit',
+    deficit: Math.abs(available),
+    daysNoSpend: daysLeft
+  };
+}
+
+/**
+ * Indicator color for a "saved this month" value.
+ */
+function savedIndicator(saved) {
+  const v = Number(saved) || 0;
+  if (v >= 500) return 'blue';
+  if (v >= 200) return 'green';
+  if (v >= 1) return 'yellow';
+  return 'red';
+}
+
+/* ============================================================
+   FORMATTING
+   ============================================================ */
+function fmt(n) {
+  const v = Number(n) || 0;
+  return v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function currentMonthKey(date = new Date()) {
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  return `${mm}.${date.getFullYear()}`;
+}
+
+/* ============================================================
+   RENDERING — Dashboard
+   ============================================================ */
+function renderDashboard() {
+  const bank = Number(state.bank) || 0;
+  const oblig = obligatoryTotal(state.categories);
+  const savingsPool = currentSavingsTotal(state.savings);
+  const daysLeft = computeDaysLeft(Number(state.salaryDay));
+
+  document.getElementById('m-bank').textContent = fmt(bank);
+  document.getElementById('m-withoutSavings').textContent = fmt(bank - savingsPool);
+
+  document.getElementById('m-perDayYellow-sub').innerHTML = renderPerDayMetric(
+    perDayYellow(bank, oblig, savingsPool, daysLeft),
+    'metric-yellow', 'm-perDayYellow', 'm-perDayYellow-sym',
+    `Не залезая в накопления · ${daysLeft} ${pluralDays(daysLeft)} до зп`
+  );
+  document.getElementById('m-perDayGreen-sub').innerHTML = renderPerDayMetric(
+    perDayGreen(bank, oblig, savingsPool, daysLeft),
+    'metric-green', 'm-perDayGreen', 'm-perDayGreen-sym',
+    '+€200 в savings к концу месяца'
+  );
+  document.getElementById('m-perDayAll-sub').innerHTML = renderPerDayMetric(
+    perDayAll(bank, oblig, daysLeft),
+    'metric-all', 'm-perDayAll', 'm-perDayAll-sym',
+    'Включая накопления'
+  );
+
+  document.getElementById('m-afterObligatoryNoSavings').textContent = fmt(bank - oblig - savingsPool);
+  document.getElementById('m-afterObligatoryAll').textContent = fmt(bank - oblig);
+
+  // sync inputs
+  document.getElementById('bank').value = state.bank || '';
+  document.getElementById('salaryDay').value = state.salaryDay || '';
+}
+
+/**
+ * Updates a per-day metric block based on calculation result.
+ * Returns the HTML string for the sub-text.
+ */
+function renderPerDayMetric(result, metricId, valueId, symId, normalSubText) {
+  const metricEl = document.getElementById(metricId);
+  const valueEl = document.getElementById(valueId);
+  const symEl = document.getElementById(symId);
+
+  if (result.kind === 'ok') {
+    metricEl.classList.remove('deficit');
+    symEl.textContent = '€';
+    valueEl.textContent = fmt(result.perDay);
+    return normalSubText;
+  } else {
+    metricEl.classList.add('deficit');
+    symEl.textContent = '−€';
+    valueEl.textContent = fmt(result.deficit);
+    const days = result.daysNoSpend;
+    const dayWord = pluralDays(days);
+    return `Не хватает · ${days} ${dayWord} без трат`;
+  }
+}
+
+/**
+ * Russian plural for "день / дня / дней".
+ */
+function pluralDays(n) {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs >= 11 && abs <= 14) return 'дней';
+  if (last === 1) return 'день';
+  if (last >= 2 && last <= 4) return 'дня';
+  return 'дней';
+}
+
+/* ============================================================
+   RENDERING — Categories
+   ============================================================ */
+function renderCategories() {
+  const list = document.getElementById('catsList');
+  list.innerHTML = '';
+
+  state.categories.forEach((cat) => {
+    const row = document.createElement('div');
+    row.className = 'cat' + (cat.done ? ' done' : '');
+    const remaining = categoryAmount(cat);
+
+    row.innerHTML = `
+      <div class="check ${cat.done ? 'checked' : ''}" data-id="${cat.id}" onclick="toggleDone('${cat.id}')"></div>
+      <div class="cat-name-wrap">
+        <input class="cat-name" value="${escapeHtml(cat.name)}" data-id="${cat.id}" data-field="name" placeholder="Название">
+      </div>
+      <div class="nums-row">
+        <div class="num-field">
+          <label>Бюджет</label>
+          <input class="cat-input" type="number" inputmode="decimal" step="0.01" placeholder="0" value="${cat.budget || ''}" data-id="${cat.id}" data-field="budget">
+        </div>
+        <div class="num-field">
+          <label>Потрачено</label>
+          <input class="cat-input spent" type="number" inputmode="decimal" step="0.01" placeholder="0" value="${cat.spent || ''}" data-id="${cat.id}" data-field="spent">
+        </div>
+        <div class="num-field">
+          <label>Осталось</label>
+          <div class="cat-remaining" data-remaining-for="${cat.id}">€${fmt(remaining)}</div>
+        </div>
+      </div>
+      <button class="cat-del" onclick="deleteCategory('${cat.id}')" title="Удалить">×</button>
+    `;
+    list.appendChild(row);
+  });
+
+  // bind inputs
+  list.querySelectorAll('input[data-id]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const id = e.target.dataset.id;
+      const field = e.target.dataset.field;
+      const cat = state.categories.find(c => c.id === id);
+      if (!cat) return;
+      if (field === 'name') {
+        cat.name = e.target.value;
+      } else {
+        cat[field] = e.target.value === '' ? 0 : parseFloat(e.target.value);
+      }
+      saveState();
+      // update this row's remaining cell
+      const remEl = list.querySelector(`[data-remaining-for="${id}"]`);
+      if (remEl) remEl.textContent = '€' + fmt(categoryAmount(cat));
+      renderDashboard();
+      updateObligTotal();
+    });
+  });
+
+  updateObligTotal();
+}
+
+function updateObligTotal() {
+  document.getElementById('oblig-total').textContent = '€' + fmt(obligatoryTotal(state.categories));
+}
+
+function addCategory() {
+  const nameInp = document.getElementById('newCatName');
+  const budgetInp = document.getElementById('newCatBudget');
+  const spentInp = document.getElementById('newCatSpent');
+  const doneEl = document.getElementById('newCatDone');
+
+  const name = nameInp.value.trim();
+  if (!name) {
+    nameInp.focus();
+    return;
+  }
+  state.categories.push({
+    id: uid(),
+    name,
+    budget: parseFloat(budgetInp.value) || 0,
+    spent: parseFloat(spentInp.value) || 0,
+    done: doneEl.classList.contains('checked')
+  });
+
+  // reset form
+  nameInp.value = '';
+  budgetInp.value = '';
+  spentInp.value = '';
+  doneEl.classList.remove('checked');
+  updateNewRemaining();
+
+  saveState();
+  renderCategories();
+  renderDashboard();
+
+  // Focus name for fast multi-add
+  nameInp.focus();
+}
+
+function toggleNewDone() {
+  const el = document.getElementById('newCatDone');
+  el.classList.toggle('checked');
+  updateNewRemaining();
+}
+
+function updateNewRemaining() {
+  const budget = parseFloat(document.getElementById('newCatBudget').value) || 0;
+  const spent = parseFloat(document.getElementById('newCatSpent').value) || 0;
+  const done = document.getElementById('newCatDone').classList.contains('checked');
+  const remaining = done ? 0 : Math.max(0, budget - spent);
+  document.getElementById('newCatRemaining').textContent = '€' + fmt(remaining);
+}
+
+function deleteCategory(id) {
+  if (!confirm('Удалить категорию?')) return;
+  state.categories = state.categories.filter(c => c.id !== id);
+  saveState();
+  renderCategories();
+  renderDashboard();
+}
+
+function toggleDone(id) {
+  const cat = state.categories.find(c => c.id === id);
+  if (!cat) return;
+  cat.done = !cat.done;
+  saveState();
+  renderCategories();
+  renderDashboard();
+}
+
+/* ============================================================
+   RENDERING — Savings
+   ============================================================ */
+function renderSavings() {
+  const body = document.getElementById('savingsBody');
+  body.innerHTML = '';
+
+  if (state.savings.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="5" class="savings-empty">Пока нет записей. Добавь строку вручную или нажми «Финализировать месяц».</td>`;
+    body.appendChild(tr);
+    drawChart();
+    return;
+  }
+
+  state.savings.forEach((row) => {
+    const tr = document.createElement('tr');
+    const ind = savedIndicator(row.saved);
+    tr.innerHTML = `
+      <td><span class="indicator ind-${ind}"></span></td>
+      <td><input class="savings-input" type="text" value="${escapeHtml(row.month)}" data-id="${row.id}" data-field="month" placeholder="MM.YYYY"></td>
+      <td><input class="savings-input" type="number" step="0.01" value="${row.saved}" data-id="${row.id}" data-field="saved"></td>
+      <td><input class="savings-input savings-bank" type="number" step="0.01" value="${row.bank}" data-id="${row.id}" data-field="bank"></td>
+      <td><button class="row-del" onclick="deleteSavingsRow('${row.id}')">×</button></td>
+    `;
+    body.appendChild(tr);
+  });
+
+  body.querySelectorAll('input[data-id]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const id = e.target.dataset.id;
+      const field = e.target.dataset.field;
+      const row = state.savings.find(r => r.id === id);
+      if (!row) return;
+      if (field === 'month') {
+        row.month = e.target.value;
+      } else {
+        row[field] = parseFloat(e.target.value) || 0;
+      }
+      saveState();
+      // update indicator on the fly if saved changed
+      if (field === 'saved') {
+        const indEl = e.target.closest('tr').querySelector('.indicator');
+        indEl.className = 'indicator ind-' + savedIndicator(row.saved);
+      }
+      renderDashboard();
+      drawChart();
+    });
+  });
+
+  drawChart();
+}
+
+function finalizeMonth() {
+  // Compute "saved" for current state:
+  //   saved = (current bank) - (obligatory) - (previous savings pool)
+  //   This is the money that DIDN'T get spent on top of preserving prior savings.
+  // Then "bank on end of month" = previous savings pool + saved.
+  const bank = Number(state.bank) || 0;
+  const oblig = obligatoryTotal(state.categories);
+  const prevPool = currentSavingsTotal(state.savings);
+
+  const saved = bank - oblig - prevPool;
+  const newBank = prevPool + saved;
+
+  const month = currentMonthKey();
+
+  // If a row for this month already exists, ask whether to overwrite
+  const existingIdx = state.savings.findIndex(r => r.month === month);
+  if (existingIdx >= 0) {
+    if (!confirm(`Запись за ${month} уже есть. Перезаписать?`)) return;
+    state.savings[existingIdx] = {
+      ...state.savings[existingIdx],
+      saved: round2(saved),
+      bank: round2(newBank)
+    };
+  } else {
+    state.savings.push({
+      id: uid(),
+      month,
+      saved: round2(saved),
+      bank: round2(newBank)
+    });
+  }
+
+  saveState();
+  renderSavings();
+  renderDashboard();
+
+  // Switch to savings tab
+  setTab('savings');
+}
+
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
+
+function deleteSavingsRow(id) {
+  if (!confirm('Удалить строку?')) return;
+  state.savings = state.savings.filter(r => r.id !== id);
+  saveState();
+  renderSavings();
+  renderDashboard();
+}
+
+function addSavingsRow() {
+  // Default: this month, 0 saved, bank carried over from previous row (if any).
+  const prevBank = currentSavingsTotal(state.savings);
+  state.savings.push({
+    id: uid(),
+    month: currentMonthKey(),
+    saved: 0,
+    bank: prevBank
+  });
+  saveState();
+  renderSavings();
+  renderDashboard();
+}
+
+/* ============================================================
+   CHART (vanilla canvas line chart)
+   ============================================================ */
+function setSavingsView(view) {
+  document.querySelectorAll('.chart-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+  document.getElementById('savings-table-wrap').classList.toggle('hidden', view !== 'table');
+  document.getElementById('savings-chart-wrap').classList.toggle('hidden', view !== 'chart');
+  if (view === 'chart') drawChart();
+}
+
+function drawChart() {
+  const canvas = document.getElementById('savingsChart');
+  if (!canvas) return;
+
+  // Handle DPI
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const cssW = rect.width || canvas.width;
+  const cssH = 320;
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const W = cssW;
+  const H = cssH;
+  const padL = 60, padR = 24, padT = 24, padB = 40;
+
+  ctx.fillStyle = '#1a1c19';
+  ctx.fillRect(0, 0, W, H);
+
+  if (state.savings.length === 0) {
+    ctx.fillStyle = '#5a5e55';
+    ctx.font = 'italic 16px Fraunces, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Нет данных', W / 2, H / 2);
+    return;
+  }
+
+  const data = state.savings.map(r => ({
+    label: r.month,
+    bank: Number(r.bank) || 0,
+    saved: Number(r.saved) || 0
+  }));
+
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+
+  const maxVal = Math.max(...data.map(d => d.bank), 100);
+  const minVal = Math.min(0, ...data.map(d => d.bank));
+  const range = maxVal - minVal || 1;
+
+  // grid
+  ctx.strokeStyle = '#2a2d29';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#5a5e55';
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.textAlign = 'right';
+  const ySteps = 4;
+  for (let i = 0; i <= ySteps; i++) {
+    const y = padT + (innerH * i) / ySteps;
+    const val = maxVal - (range * i) / ySteps;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(W - padR, y);
+    ctx.stroke();
+    ctx.fillText('€' + val.toFixed(0), padL - 8, y + 4);
+  }
+
+  // x labels + points
+  const stepX = data.length > 1 ? innerW / (data.length - 1) : 0;
+
+  function xAt(i) {
+    return data.length === 1 ? padL + innerW / 2 : padL + i * stepX;
+  }
+  function yAt(v) {
+    return padT + (1 - (v - minVal) / range) * innerH;
+  }
+
+  // x axis labels
+  ctx.fillStyle = '#8a8e85';
+  ctx.textAlign = 'center';
+  data.forEach((d, i) => {
+    ctx.fillText(d.label, xAt(i), H - padB + 18);
+  });
+
+  // line for bank
+  if (data.length > 1) {
+    ctx.strokeStyle = '#b4f06a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    data.forEach((d, i) => {
+      const x = xAt(i);
+      const y = yAt(d.bank);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // area fill
+    ctx.lineTo(xAt(data.length - 1), padT + innerH);
+    ctx.lineTo(xAt(0), padT + innerH);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(180, 240, 106, 0.08)';
+    ctx.fill();
+  }
+
+  // points colored by indicator
+  data.forEach((d, i) => {
+    const x = xAt(i);
+    const y = yAt(d.bank);
+    const ind = savedIndicator(d.saved);
+    const colors = { blue: '#6aa3f0', green: '#6af0a3', yellow: '#f0d76a', red: '#f06a6a' };
+    ctx.fillStyle = colors[ind];
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#1a1c19';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // saved label above point
+    ctx.fillStyle = '#e8e6df';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    const savedStr = (d.saved >= 0 ? '+' : '') + d.saved.toFixed(0);
+    ctx.fillText(savedStr, x, y - 10);
+  });
+}
+
+/* ============================================================
+   IMPORT / EXPORT
+   ============================================================ */
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `budget-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!confirm('Импорт перезапишет текущие данные. Продолжить?')) return;
+      state = {
+        ...structuredClone(defaultState),
+        ...data,
+        categories: data.categories || [],
+        savings: data.savings || []
+      };
+      saveState();
+      renderAll();
+    } catch (err) {
+      alert('Ошибка чтения файла: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // reset
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+function setTab(name) {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  document.querySelectorAll('.section').forEach(s => {
+    s.classList.toggle('active', s.id === 'tab-' + name);
+  });
+  if (name === 'savings') drawChart();
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => setTab(t.dataset.tab));
+});
+
+/* ============================================================
+   INPUT BINDINGS
+   ============================================================ */
+document.getElementById('bank').addEventListener('input', e => {
+  state.bank = parseFloat(e.target.value) || 0;
+  saveState();
+  renderDashboard();
+});
+document.getElementById('salaryDay').addEventListener('input', e => {
+  const v = parseInt(e.target.value);
+  state.salaryDay = (isNaN(v) || v < 1 || v > 31) ? 0 : v;
+  saveState();
+  renderDashboard();
+});
+
+// New category form: live remaining + Enter to submit
+['newCatBudget', 'newCatSpent'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateNewRemaining);
+});
+['newCatName', 'newCatBudget', 'newCatSpent'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addCategory();
+    }
+  });
+});
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function renderAll() {
+  renderDashboard();
+  renderCategories();
+  renderSavings();
+}
+
+renderAll();
+
+// Redraw chart on resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (!document.getElementById('savings-chart-wrap').classList.contains('hidden')) {
+      drawChart();
+    }
+  }, 200);
+});
+</script>
+
+</body>
+</html>
