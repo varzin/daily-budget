@@ -1,5 +1,5 @@
 import { state } from './state.js'
-import { savedIndicator } from './math.js'
+import { savedIndicator, computeBalances } from './math.js'
 
 export function drawChart() {
   const canvas = document.getElementById('savingsChart')
@@ -30,9 +30,10 @@ export function drawChart() {
     return
   }
 
-  const data = state.savings.map(r => ({
+  const balances = computeBalances(state.savings)
+  const data = state.savings.map((r, i) => ({
     label: r.month,
-    bank: Number(r.bank) || 0,
+    bank: balances[i],
     saved: Number(r.saved) || 0
   }))
 

@@ -8,6 +8,13 @@ export const defaultState = {
   updatedAt: null
 }
 
+// `bank` used to be stored per savings row but is now fully derived from
+// `saved`. Strip it on read so old localStorage / Dropbox JSONs are migrated
+// the first time they're saved again.
+function stripDerived(savings) {
+  return (savings || []).map(({ bank, ...rest }) => rest)
+}
+
 export function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -17,7 +24,7 @@ export function loadState() {
       ...structuredClone(defaultState),
       ...parsed,
       categories: parsed.categories || [],
-      savings: parsed.savings || []
+      savings: stripDerived(parsed.savings)
     }
   } catch (e) {
     console.error('Failed to load state', e)
@@ -51,7 +58,7 @@ export function replaceState(next) {
   Object.keys(state).forEach(k => delete state[k])
   Object.assign(state, structuredClone(defaultState), next, {
     categories: next.categories || [],
-    savings: next.savings || []
+    savings: stripDerived(next.savings)
   })
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   suppressNotify = false

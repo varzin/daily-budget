@@ -312,6 +312,12 @@
 }
 .savings-input:hover, .savings-input:focus { border-color: var(--border-strong); }
 .savings-bank { color: var(--accent); font-weight: 500; }
+.savings-bank-cell {
+  color: var(--accent);
+  font-weight: 500;
+  font-family: var(--mono);
+  text-align: left;
+}
 
 .row-del {
   color: var(--text-faint);

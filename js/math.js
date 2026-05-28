@@ -38,8 +38,17 @@ export function obligatoryTotal(categories) {
 
 export function currentSavingsTotal(savings) {
   if (!savings || savings.length === 0) return 0
-  const last = savings[savings.length - 1]
-  return Number(last.bank) || 0
+  return savings.reduce((sum, row) => sum + (Number(row.saved) || 0), 0)
+}
+
+/** Per-row cumulative balance: balance[i] = balance[i-1] + saved[i], starting from 0. */
+export function computeBalances(savings) {
+  let prev = 0
+  return (savings || []).map(row => {
+    const bank = prev + (Number(row.saved) || 0)
+    prev = bank
+    return bank
+  })
 }
 
 export function perDayYellow(bank, oblig, savingsPool, daysLeft) {
