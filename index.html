@@ -182,8 +182,23 @@
         </table>
       </div>
 
-      <div id="savings-chart-wrap" class="chart-wrap hidden">
-        <canvas id="savingsChart" width="800" height="320"></canvas>
+      <div id="savings-chart-wrap" class="chart-wrap" hidden>
+        <div class="chart-canvas-wrap">
+          <canvas id="savingsChart"></canvas>
+        </div>
+        <div class="chart-range" id="chartRange" hidden>
+          <div class="chart-range-labels">
+            <span id="chartRangeFrom">—</span>
+            <span class="chart-range-sep">to</span>
+            <span id="chartRangeTo">—</span>
+          </div>
+          <div class="range-slider">
+            <div class="range-slider-track"></div>
+            <div class="range-slider-progress" id="chartRangeProgress"></div>
+            <input type="range" id="chartRangeMin" min="0" max="0" value="0" step="1" aria-label="Range start">
+            <input type="range" id="chartRangeMax" min="0" max="0" value="0" step="1" aria-label="Range end">
+          </div>
+        </div>
       </div>
 
       <div class="hint">
@@ -261,6 +276,7 @@
 
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script type="module" src="js/app.js"></script>
 
 </body>

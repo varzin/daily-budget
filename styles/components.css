@@ -362,7 +362,99 @@
   padding: 24px;
   margin-bottom: 24px;
 }
-.chart-wrap.hidden { display: none; }
+.chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 320px;
+}
+
+/* Dual-handle range slider for the chart's visible window */
+.chart-range { margin-top: 20px; }
+.chart-range-labels {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+}
+.chart-range-labels .chart-range-sep { color: var(--text-faint); }
+
+.range-slider {
+  position: relative;
+  height: 22px;
+}
+.range-slider-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border-strong);
+  transform: translateY(-50%);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.range-slider-progress {
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  background: var(--accent);
+  transform: translateY(-50%);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.range-slider input[type=range] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  background: none;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.range-slider input[type=range]::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 22px;
+}
+.range-slider input[type=range]::-moz-range-track {
+  background: transparent;
+  height: 22px;
+}
+.range-slider input[type=range]::-webkit-slider-thumb {
+  pointer-events: auto;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-card);
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  margin-top: 0;
+}
+.range-slider input[type=range]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-card);
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.range-slider input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
+.range-slider input[type=range]:active::-moz-range-thumb { cursor: grabbing; }
+.range-slider input[type=range]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 .hint {
   margin-top: 32px;
