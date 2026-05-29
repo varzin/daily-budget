@@ -1,0 +1,57 @@
+/* Section + section-head — duplicated locally per migration guidance. */
+.section {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+.section:focus { outline: none; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sectionHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sectionHead h2 {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-style: italic;
+}
+.meta {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Category list container */
+.cats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+/* Hint footer (same look as DashboardTab.hint) */
+.hint {
+  margin-top: 32px;
+  padding: 16px;
+  background: var(--bg-card);
+  border-left: 2px solid var(--accent);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.hint strong { color: var(--text); }
+.hint .mono { font-family: var(--mono); }
+
+@media (max-width: 768px) {
+  .sectionHead { flex-direction: column; align-items: flex-start; gap: 8px; }
+}

@@ -1,0 +1,60 @@
+.metric {
+  background: var(--bg-card);
+  padding: 24px 22px;
+}
+.label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+.value {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.sym {
+  color: var(--text-faint);
+  margin-right: 2px;
+  font-weight: 300;
+}
+.sub {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ---------- Variants ---------- */
+.featured {
+  grid-column: span 2;
+  background: linear-gradient(135deg, #1a1c19 0%, #14171280 100%);
+}
+.featured .value { font-size: 38px; color: var(--accent); }
+
+.green .value { color: var(--green); }
+.yellow .value { color: var(--yellow); }
+.blue .value { color: var(--blue); }
+
+.deficit {
+  background: linear-gradient(135deg, #1a1412 0%, #14101080 100%);
+  border-color: var(--red);
+}
+.deficit .value,
+.deficit .sym { color: var(--red); }
+.deficit .sub { color: var(--red); opacity: 0.85; }
+.deficit .label::before {
+  content: '⚠ ';
+  color: var(--red);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .metric { padding: 18px 18px; }
+  .value { font-size: 22px; }
+  .featured { grid-column: span 1; }
+  .featured .value { font-size: 30px; }
+}
