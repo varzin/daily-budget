@@ -42,11 +42,29 @@
   overflow: hidden;
 }
 
+/* Shared column template — header + row must align. */
+.header,
 .row {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: minmax(0, 1fr) 72px 72px 84px 16px;
   align-items: center;
   gap: 12px;
+}
+
+.header {
+  padding: 10px 16px;
+  background: var(--bg);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.header > span:not(:first-child):not(:last-child) {
+  text-align: right;
+}
+
+.row {
   padding: 14px 16px;
   background: transparent;
   border: none;
@@ -58,7 +76,6 @@
   transition: background 0.12s;
   font-family: inherit;
 }
-.row:first-child { border-top: none; }
 .row:hover { background: var(--bg-elev); }
 .row:focus-visible {
   outline: none;
@@ -71,30 +88,43 @@
 }
 
 .name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .badge {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--accent);
   background: var(--accent-dim);
   border-radius: 4px;
-  padding: 2px 6px;
+  padding: 2px 5px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
-.amount {
+.num {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.left {
   font-family: var(--mono);
   font-size: 14px;
   color: var(--accent);
   font-weight: 500;
+  text-align: right;
 }
-.rowDone .amount {
+.rowDone .left {
   color: var(--text-faint);
   text-decoration: line-through;
 }
@@ -103,31 +133,34 @@
   font-size: 18px;
   color: var(--text-faint);
   line-height: 1;
-  margin-left: 4px;
+  text-align: right;
 }
 
-.totalRow {
+.footer {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  padding: 14px 4px 0;
-  margin-top: 4px;
-}
-.totalLabel {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-faint);
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 0 4px;
 }
 .totalValue {
   font-family: var(--mono);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 500;
   color: var(--text);
 }
 
-.actions {
-  margin-top: 16px;
+@media (max-width: 540px) {
+  .header,
+  .row {
+    grid-template-columns: minmax(0, 1fr) 56px 56px 68px 14px;
+    gap: 8px;
+  }
+  .header { padding: 10px 12px; }
+  .row { padding: 12px 12px; }
+  .num { font-size: 12px; }
+  .left { font-size: 13px; }
 }
 
 .hint {

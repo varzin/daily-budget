@@ -40,6 +40,13 @@ export default function CategoriesTab() {
         </div>
       ) : (
         <div className={styles.grid}>
+          <div className={styles.header} aria-hidden="true">
+            <span />
+            <span>Budget</span>
+            <span>Spent</span>
+            <span>Left</span>
+            <span />
+          </div>
           {categories.map(cat => (
             <button
               key={cat.id}
@@ -48,24 +55,24 @@ export default function CategoriesTab() {
               onClick={() => openEdit(cat)}
               aria-label={`Edit ${cat.name}`}
             >
-              <span className={styles.name}>{cat.name}</span>
-              {cat.done && <span className={styles.badge}>paid</span>}
-              <span className={styles.amount}>€{fmt(categoryAmount(cat))}</span>
+              <span className={styles.name}>
+                {cat.name}
+                {cat.done && <span className={styles.badge}>paid</span>}
+              </span>
+              <span className={styles.num}>{fmt(cat.budget || 0)}</span>
+              <span className={styles.num}>{fmt(cat.spent || 0)}</span>
+              <span className={styles.left}>{fmt(categoryAmount(cat))}</span>
               <span className={styles.chevron} aria-hidden="true">›</span>
             </button>
           ))}
         </div>
       )}
 
-      <div className={styles.totalRow}>
-        <span className={styles.totalLabel}>Total to deduct</span>
-        <span className={styles.totalValue}>€{fmt(total)}</span>
-      </div>
-
-      <div className={styles.actions}>
-        <Button variant="secondary" onClick={openAdd} block>
+      <div className={styles.footer}>
+        <Button variant="secondary" onClick={openAdd}>
           + Add expense
         </Button>
+        <span className={styles.totalValue}>€{fmt(total)}</span>
       </div>
 
       <div className={styles.hint}>
