@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import type { Category } from '../../types'
 import { useBudgetStore } from '../../store/budgetStore'
 import Modal from '../ui/Modal/Modal'
 import Button from '../ui/Button/Button'
 import TextField from '../ui/TextField/TextField'
-import Toggle from '../ui/Toggle/Toggle'
 import styles from './CategoryEditModal.module.css'
 
 interface CategoryEditModalProps {
@@ -74,8 +74,14 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
       footer={
         <>
           {isEdit && (
-            <Button variant="danger" onClick={onDelete} className={styles.deleteBtn}>
-              Delete
+            <Button
+              variant="danger"
+              onClick={onDelete}
+              className={styles.deleteBtn}
+              aria-label="Delete"
+              title="Delete"
+            >
+              <Trash2 size={18} strokeWidth={2} />
             </Button>
           )}
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -128,13 +134,17 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
           />
         </div>
 
-        <div className={styles.toggleBlock}>
-          <Toggle
-            checked={draft.done}
-            onChange={next => setDraft(d => ({ ...d, done: next }))}
-            label="Already paid"
-            description="Excluded from this period's deduction — money already left the account."
-          />
+        <div className={styles.actionsRow}>
+          <button
+            type="button"
+            className={styles.allSpent}
+            disabled={!parseNum(draft.budget)}
+            onClick={() =>
+              setDraft(d => ({ ...d, spent: d.budget || '0' }))
+            }
+          >
+            All spent
+          </button>
         </div>
       </div>
     </Modal>
