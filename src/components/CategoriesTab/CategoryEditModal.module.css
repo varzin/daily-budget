@@ -13,6 +13,14 @@
 .actionsRow {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.spentError {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--danger, #e25555);
 }
 
 .allSpent {

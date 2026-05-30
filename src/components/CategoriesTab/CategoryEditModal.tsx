@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import type { Category } from '../../types'
 import { useBudgetStore } from '../../store/budgetStore'
+import { evaluateLenient, hasMathOps } from '../../lib/evalExpr'
 import Modal from '../ui/Modal/Modal'
 import Button from '../ui/Button/Button'
 import TextField from '../ui/TextField/TextField'
+import MathField from '../ui/MathField/MathField'
 import styles from './CategoryEditModal.module.css'
 
 interface CategoryEditModalProps {
@@ -15,17 +17,22 @@ interface CategoryEditModalProps {
 
 interface Draft {
   name: string
-  budget: string
-  spent: string
+  budgetExpr: string
+  spentExpr: string
   done: boolean
 }
 
+function exprFromCategory(expr: string | undefined, num: number): string {
+  if (expr) return expr
+  return num ? String(num) : ''
+}
+
 function draftFrom(category: Category | null): Draft {
-  if (!category) return { name: '', budget: '', spent: '', done: false }
+  if (!category) return { name: '', budgetExpr: '', spentExpr: '', done: false }
   return {
     name: category.name,
-    budget: category.budget ? String(category.budget) : '',
-    spent: category.spent ? String(category.spent) : '',
+    budgetExpr: exprFromCategory(category.budgetExpr, category.budget),
+    spentExpr: exprFromCategory(category.spentExpr, category.spent),
     done: category.done,
   }
 }
@@ -38,15 +45,21 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
     if (open) setDraft(draftFrom(category))
   }, [open, category])
 
-  const parseNum = (s: string) => (s === '' ? 0 : parseFloat(s) || 0)
+  const budgetEval = evaluateLenient(draft.budgetExpr)
+  const spentEval = evaluateLenient(draft.spentExpr)
+  const budgetInvalid = !budgetEval.ok
+  const spentInvalid = !spentEval.ok
 
   const submit = () => {
     const name = draft.name.trim()
     if (!name) return
+    if (!budgetEval.ok || !spentEval.ok) return
     const payload = {
       name,
-      budget: parseNum(draft.budget),
-      spent: parseNum(draft.spent),
+      budget: budgetEval.value,
+      budgetExpr: hasMathOps(draft.budgetExpr) ? draft.budgetExpr.trim() : undefined,
+      spent: spentEval.value,
+      spentExpr: hasMathOps(draft.spentExpr) ? draft.spentExpr.trim() : undefined,
       done: draft.done,
     }
     const store = useBudgetStore.getState()
@@ -85,7 +98,11 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
             </Button>
           )}
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={submit} disabled={!draft.name.trim()}>
+          <Button
+            variant="primary"
+            onClick={submit}
+            disabled={!draft.name.trim() || budgetInvalid || spentInvalid}
+          >
             {isEdit ? 'Save' : 'Add'}
           </Button>
         </>
@@ -108,39 +125,38 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
         />
 
         <div className={styles.numRow}>
-          <TextField
+          <MathField
             label="Budget"
-            type="number"
-            inputMode="decimal"
-            step="0.01"
             placeholder="0"
             prefix="€"
             alignRight
             fullWidth
-            value={draft.budget}
-            onChange={e => setDraft(d => ({ ...d, budget: e.target.value }))}
+            value={draft.budgetExpr}
+            onChange={v => setDraft(d => ({ ...d, budgetExpr: v }))}
           />
-          <TextField
+          <MathField
             label="Spent"
-            type="number"
-            inputMode="decimal"
-            step="0.01"
             placeholder="0"
             prefix="€"
             alignRight
             fullWidth
-            value={draft.spent}
-            onChange={e => setDraft(d => ({ ...d, spent: e.target.value }))}
+            value={draft.spentExpr}
+            onChange={v => setDraft(d => ({ ...d, spentExpr: v }))}
           />
         </div>
 
         <div className={styles.actionsRow}>
+          {(budgetInvalid || spentInvalid) && (
+            <span className={styles.spentError}>
+              Invalid expression in {budgetInvalid ? 'Budget' : 'Spent'}
+            </span>
+          )}
           <button
             type="button"
             className={styles.allSpent}
-            disabled={!parseNum(draft.budget)}
+            disabled={budgetInvalid || !budgetEval.ok || budgetEval.value === 0}
             onClick={() =>
-              setDraft(d => ({ ...d, spent: d.budget || '0' }))
+              setDraft(d => ({ ...d, spentExpr: d.budgetExpr || '0' }))
             }
           >
             All spent

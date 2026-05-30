@@ -4,7 +4,9 @@ export interface Category {
   id: string
   name: string
   budget: number
+  budgetExpr?: string
   spent: number
+  spentExpr?: string
   done: boolean
 }
 
