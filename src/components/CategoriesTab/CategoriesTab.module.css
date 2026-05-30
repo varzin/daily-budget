@@ -10,8 +10,6 @@
 
 .sectionHead {
   margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
 }
 .sectionHead h2 {
   font-family: var(--display);
@@ -136,13 +134,15 @@
   text-align: right;
 }
 
+/* Footer right-padding equals row-padding + chevron column + gap, so the
+   total's right edge aligns with the Left column's right edge in rows. */
 .footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
   margin-top: 16px;
-  padding: 0 4px;
+  padding-left: 16px;
+  padding-right: calc(16px + 16px + 12px);
 }
 .totalValue {
   font-family: var(--mono);
@@ -159,6 +159,10 @@
   }
   .header { padding: 10px 12px; }
   .row { padding: 12px 12px; }
+  .footer {
+    padding-left: 12px;
+    padding-right: calc(12px + 14px + 8px);
+  }
   .num { font-size: 12px; }
   .left { font-size: 13px; }
 }

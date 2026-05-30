@@ -40,8 +40,8 @@ export default function CategoriesTab() {
         </div>
       ) : (
         <div className={styles.grid}>
-          <div className={styles.header} aria-hidden="true">
-            <span />
+          <div className={styles.header}>
+            <span>Category</span>
             <span>Budget</span>
             <span>Spent</span>
             <span>Left</span>
@@ -69,7 +69,7 @@ export default function CategoriesTab() {
       )}
 
       <div className={styles.footer}>
-        <Button variant="secondary" onClick={openAdd}>
+        <Button variant="primary" onClick={openAdd}>
           + Add expense
         </Button>
         <span className={styles.totalValue}>€{fmt(total)}</span>
