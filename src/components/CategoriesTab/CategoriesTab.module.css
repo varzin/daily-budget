@@ -21,14 +21,11 @@
 }
 
 .empty {
-  padding: 32px 20px;
-  text-align: center;
-  background: var(--bg-card);
-  border: 1px dashed var(--border);
-  border-radius: 10px;
+  padding: 32px 4px;
   color: var(--text-dim);
   font-size: 14px;
   line-height: 1.6;
+  max-width: 38ch;
 }
 
 .grid {
@@ -134,21 +131,20 @@
   text-align: right;
 }
 
-/* Footer right-padding equals row-padding + chevron column + gap, so the
-   total's right edge aligns with the Left column's right edge in rows. */
 .footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 16px;
-  padding-left: 16px;
-  padding-right: calc(16px + 16px + 12px);
+  margin-top: 18px;
 }
 .totalValue {
-  font-family: var(--mono);
-  font-size: 20px;
-  font-weight: 500;
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
   color: var(--text);
+  letter-spacing: -0.02em;
 }
 
 @media (max-width: 540px) {
@@ -159,23 +155,29 @@
   }
   .header { padding: 10px 12px; }
   .row { padding: 12px 12px; }
-  .footer {
-    padding-left: 12px;
-    padding-right: calc(12px + 14px + 8px);
-  }
   .num { font-size: 12px; }
   .left { font-size: 13px; }
+  .totalValue { font-size: 26px; }
 }
 
+/* Editorial sidebar — matches Dashboard hint. */
 .hint {
   margin-top: 32px;
-  padding: 16px;
-  background: var(--bg-card);
+  padding: 18px;
   border-left: 2px solid var(--accent);
-  border-radius: 4px;
-  font-size: 13px;
   color: var(--text-dim);
+  font-size: 13px;
   line-height: 1.6;
 }
-.hint strong { color: var(--text); }
-.hint .mono { font-family: var(--mono); }
+.hint p { margin: 0; }
+.hint em { font-family: var(--display); font-style: italic; color: var(--text); }
+.hint strong { color: var(--text); font-weight: 500; }
+.hint .mono { font-family: var(--mono); color: var(--text); }
+.hintEyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--text-faint);
+  margin: 0 0 10px;
+  font-weight: 500;
+}

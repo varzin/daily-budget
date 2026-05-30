@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react'
 import styles from './MetricCard.module.css'
 
-type Variant = 'featured' | 'green' | 'yellow' | 'blue' | 'deficit'
+type Tone = 'green' | 'yellow' | 'blue' | 'deficit'
 
 interface MetricCardProps {
-  variant?: Variant
+  /** Render the hero treatment (large serif italic, full-width). Can combine with tone. */
+  featured?: boolean
+  tone?: Tone
   label: string
   symbol?: string
   value: string
@@ -12,25 +14,28 @@ interface MetricCardProps {
   id?: string
 }
 
-/**
- * Concatenates CSS-Module class names, dropping falsy values.
- * Intentionally manual — no `classnames` dependency.
- */
 function cx(...names: Array<string | false | null | undefined>): string {
   return names.filter(Boolean).join(' ')
 }
 
 export default function MetricCard({
-  variant,
+  featured,
+  tone,
   label,
   symbol = '€',
   value,
   subtitle,
   id,
 }: MetricCardProps) {
-  const variantClass = variant ? styles[variant] : undefined
   return (
-    <div className={cx(styles.metric, variantClass)} id={id}>
+    <div
+      className={cx(
+        styles.metric,
+        featured && styles.featured,
+        tone && styles[tone],
+      )}
+      id={id}
+    >
       <div className={styles.label}>{label}</div>
       <div className={styles.value}>
         <span className={styles.sym}>{symbol}</span>

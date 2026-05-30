@@ -75,14 +75,16 @@ export default function CategoriesTab() {
         <span className={styles.totalValue}>€{fmt(total)}</span>
       </div>
 
-      <div className={styles.hint}>
-        <strong>Logic:</strong> we subtract what's{' '}
-        <strong>still left to pay</strong>:{' '}
-        <span className={styles.mono}>budget − spent</span>. The "paid" toggle
-        means "that money already left the account" — the category is no longer
-        deducted (otherwise double-counted). Remember to update "Current
-        balance" after paying.
-      </div>
+      <aside className={styles.hint}>
+        <p className={styles.hintEyebrow}>Logic</p>
+        <p>
+          We subtract what's <strong>still left to pay</strong> (
+          <span className={styles.mono}>budget − spent</span>). Marking a
+          category <em>paid</em> means the money already left your account, so
+          it's no longer deducted — remember to update <em>Current balance</em>{' '}
+          after paying.
+        </p>
+      </aside>
 
       <CategoryEditModal
         open={modal.kind !== 'closed'}

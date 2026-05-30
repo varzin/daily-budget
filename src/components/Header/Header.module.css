@@ -1,11 +1,11 @@
-/* Header — port of header.top + .brand from styles/layout.css and responsive.css */
+/* Header — wordmark sits on its own breathing space; no rule below it (the
+   input-card top edge already provides a divider, so a header underline reads
+   as a doubled hairline). */
 .top {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 48px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: 28px;
 }
 
 .brand {
@@ -22,7 +22,6 @@
     flex-direction: column;
     gap: 16px;
     align-items: flex-start;
-    margin-bottom: 28px;
   }
   .brand { font-size: 26px; }
 }

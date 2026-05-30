@@ -45,9 +45,9 @@
 }
 .indicatorTooltip {
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  left: calc(100% + 2px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
   display: grid;
   gap: 4px;
   padding: 10px 12px;
@@ -67,16 +67,16 @@
 .indicatorTooltip::after {
   content: '';
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  right: 100%;
+  transform: translateY(-50%);
   border: 5px solid transparent;
-  border-top-color: var(--border-strong);
+  border-right-color: var(--border-strong);
 }
 .indicatorWrap:hover .indicatorTooltip,
 .indicatorWrap:focus-within .indicatorTooltip {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(-50%) translateX(0);
 }
 .legendRow {
   display: inline-flex;

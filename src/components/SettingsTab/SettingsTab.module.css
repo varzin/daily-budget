@@ -13,9 +13,7 @@
 .block { margin-bottom: 32px; }
 
 .blockHead {
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
 }
 .blockHead h2 {
   font-family: var(--display);
