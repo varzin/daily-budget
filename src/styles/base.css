@@ -1,0 +1,49 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body {
+  position: relative;
+  background-image:
+    radial-gradient(ellipse 90% 55% at 50% -10%, #b4f06a14, transparent 60%),
+    radial-gradient(ellipse 70% 45% at 95% 105%, #6aa3f00d, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 0% 60%, #f06a6a08, transparent 70%);
+}
+/* Editorial paper grain — subtle SVG turbulence, fixed so it doesn't scroll. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.92  0 0 0 0 0.90  0 0 0 0 0.87  0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+}
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin-inline: auto;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-inline: max(20px, env(safe-area-inset-left), env(safe-area-inset-right));
+}
+
+main {
+  /* Reserve space for the floating BottomNav so content isn't covered.
+     ~52px nav + 20px bottom offset + breathing room. */
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input { font-family: inherit; color: inherit; }

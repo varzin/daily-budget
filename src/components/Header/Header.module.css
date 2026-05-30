@@ -1,0 +1,27 @@
+/* Header — wordmark sits on its own breathing space; no rule below it (the
+   input-card top edge already provides a divider, so a header underline reads
+   as a doubled hairline). */
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 28px;
+}
+
+.brand {
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  font-style: italic;
+}
+.brand :global(.dot) { color: var(--accent); }
+
+@media (max-width: 768px) {
+  .top {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .brand { font-size: 26px; }
+}

@@ -1,0 +1,75 @@
+.rangeSlider {
+  --thumb-size: 16px;
+  --track-height: 3px;
+  --slider-height: 22px;
+  position: relative;
+  height: var(--slider-height);
+}
+.rangeSliderTrack,
+.rangeSliderProgress {
+  position: absolute;
+  top: calc((var(--slider-height) - var(--track-height)) / 2);
+  height: var(--track-height);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.rangeSliderTrack {
+  left: 0;
+  right: 0;
+  background: var(--border-strong);
+}
+.rangeSliderProgress { background: var(--accent); }
+
+.rangeSlider input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--slider-height);
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+}
+/* Make the runnable track the same height as the slider so the thumb can be
+   centred predictably by tuning margin-top. */
+.rangeSlider input[type=range]::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  height: var(--slider-height);
+  background: transparent;
+}
+.rangeSlider input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  margin-top: calc((var(--slider-height) - var(--thumb-size)) / 2);
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-card);
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+/* Firefox auto-centres the thumb on the track, so no margin tuning needed. */
+.rangeSlider input[type=range]::-moz-range-track {
+  height: var(--slider-height);
+  background: transparent;
+  border: none;
+}
+.rangeSlider input[type=range]::-moz-range-thumb {
+  pointer-events: auto;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-card);
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.rangeSlider input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
+.rangeSlider input[type=range]:active::-moz-range-thumb { cursor: grabbing; }
+.rangeSlider input[type=range]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

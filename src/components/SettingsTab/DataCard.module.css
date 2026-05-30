@@ -1,0 +1,36 @@
+/* DataCard — port of .settings-card + .sync-actions from styles/components.css */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px;
+}
+
+.lead {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.hiddenInput { display: none; }
+
+.btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: all 0.15s;
+  background: var(--bg-elev);
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn:hover { color: var(--text); border-color: var(--accent); }

@@ -1,0 +1,107 @@
+/* Floating bottom navigation — port of .tabs / .tabs-inner / .tab*
+   from styles/layout.css. */
+.tabs {
+  --nav-padding: 4px;
+  --nav-radius: 24px;
+  --tab-icon: 24px;
+  --tab-padding: 8px;
+  --tab-duration: 0.5s;
+  --tab-easing: cubic-bezier(.6, .04, .35, 1.22);
+
+  position: fixed;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  /* Without this, `left:50%` + `right:auto` makes the shrink-to-fit width
+     cap at half the viewport, so wider content gets clipped. max-content
+     tells the browser to size strictly to its children. */
+  width: max-content;
+  z-index: 50;
+  padding: 1px;
+  border-radius: calc(var(--nav-radius) + 1px);
+  background: linear-gradient(8deg, var(--border) 25%, var(--border-strong) 50%, var(--border) 175%);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.inner {
+  display: flex;
+  padding: var(--nav-padding);
+  border-radius: var(--nav-radius);
+  background-color: color-mix(in srgb, var(--bg-card) 92%, transparent);
+}
+
+.tab {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--tab-padding);
+  overflow: hidden;
+  border-radius: calc(var(--nav-radius) - var(--nav-padding));
+  cursor: pointer;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  transition: width var(--tab-duration) var(--tab-easing),
+              background-color var(--tab-duration) linear,
+              color var(--tab-duration) linear;
+}
+
+/* Chrome / Edge: native size interpolation */
+@supports (interpolate-size: allow-keywords) {
+  .tab {
+    width: calc(var(--tab-icon) + var(--tab-padding) * 2);
+    padding: var(--tab-padding);
+    interpolate-size: allow-keywords;
+  }
+  .tab.active { width: auto; }
+}
+
+/* Safari / Firefox fallback: grid-template-columns trick */
+@supports not (interpolate-size: allow-keywords) {
+  .tab { padding: var(--tab-padding) 0 var(--tab-padding) var(--tab-padding); }
+  .tab .label {
+    grid-template-columns: 0fr;
+    transition: opacity var(--tab-duration) linear,
+                filter var(--tab-duration) linear,
+                grid-template-columns var(--tab-duration) var(--tab-easing);
+  }
+  .tab .label > span { margin-right: 0; transition: margin-right var(--tab-duration) var(--tab-easing); }
+  .tab.active .label { grid-template-columns: 1fr; }
+  .tab.active .label > span { margin-right: var(--tab-padding); }
+}
+
+.tab:hover:not(.active) { background-color: var(--border); color: var(--text); }
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: var(--tab-icon);
+  height: var(--tab-icon);
+}
+
+.label {
+  display: grid;
+  opacity: 0;
+  filter: blur(4px);
+  transition: opacity var(--tab-duration) linear, filter var(--tab-duration) linear;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.label > span { min-width: 0; }
+
+.tab.active {
+  background-color: var(--accent);
+  color: var(--bg);
+  cursor: default;
+}
+.tab.active .label { opacity: 1; filter: blur(0); }

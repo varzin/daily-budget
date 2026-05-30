@@ -1,0 +1,34 @@
+.chartWrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.chartCanvasWrap {
+  position: relative;
+  width: 100%;
+  height: 320px;
+}
+
+.chartRange { margin-top: 20px; }
+.chartRangeLabels {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+}
+.chartRangeSep { color: var(--text-faint); }
+
+.savingsEmpty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-faint);
+  font-style: italic;
+  font-family: var(--display);
+  font-size: 18px;
+}

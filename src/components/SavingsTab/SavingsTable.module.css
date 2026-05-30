@@ -1,0 +1,143 @@
+.savingsTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 24px;
+}
+.savingsTable th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  font-weight: 500;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.savingsTable td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.savingsTable tr:last-child td { border-bottom: none; }
+
+.indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 12px;
+  vertical-align: middle;
+}
+.indBlue { background: var(--blue); box-shadow: 0 0 12px var(--blue); }
+.indGreen { background: var(--green); box-shadow: 0 0 12px var(--green); }
+.indYellow { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); }
+.indRed { background: var(--red); box-shadow: 0 0 12px var(--red); }
+
+/* Indicator with hover-legend tooltip */
+.indicatorWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  margin: -4px;
+}
+.indicatorTooltip {
+  position: absolute;
+  left: calc(100% + 2px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 20;
+}
+.indicatorTooltip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: var(--border-strong);
+}
+.indicatorWrap:hover .indicatorTooltip,
+.indicatorWrap:focus-within .indicatorTooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+.legendRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.indicatorTooltip .legendRow .indicator {
+  margin: 0;
+  width: 7px;
+  height: 7px;
+}
+
+.savingsInput {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  outline: none;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--text);
+  padding: 4px 8px;
+  width: 110px;
+  transition: border-color 0.15s;
+}
+.savingsInput[type=month] {
+  width: 160px;
+  font-family: var(--body);
+  color-scheme: dark;
+}
+.savingsInput:hover, .savingsInput:focus { border-color: var(--border-strong); }
+
+.savingsBankCell {
+  color: var(--accent);
+  font-weight: 500;
+  font-family: var(--mono);
+  text-align: left;
+}
+
+.rowDel {
+  color: var(--text-faint);
+  font-size: 16px;
+  transition: color 0.15s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.rowDel:hover { color: var(--red); }
+
+.savingsEmpty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-faint);
+  font-style: italic;
+  font-family: var(--display);
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .savingsTable { font-size: 12px; }
+  .savingsTable th, .savingsTable td { padding: 10px 6px; }
+  .savingsInput { width: 80px; padding: 6px 6px; }
+}
