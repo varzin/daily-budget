@@ -90,7 +90,7 @@
 .syncError {
   margin-top: 14px;
   padding: 10px 12px;
-  background: #f06a6a15;
+  background: var(--red-tint);
   border-left: 2px solid var(--red);
   border-radius: 4px;
   color: var(--red);
@@ -113,9 +113,9 @@
 .btn:hover { color: var(--text); border-color: var(--accent); }
 .btnPrimary {
   background: var(--accent);
-  color: #0d0e0c;
+  color: var(--on-accent);
   border-color: var(--accent);
   font-weight: 500;
 }
-.btnPrimary:hover { background: #c6ff7a; }
+.btnPrimary:hover { background: var(--accent-hover); }
 .btnDanger:hover { color: var(--red); border-color: var(--red); }

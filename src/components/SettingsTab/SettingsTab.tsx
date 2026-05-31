@@ -1,10 +1,12 @@
+import ThemeCard from './ThemeCard'
 import SyncCard from './SyncCard'
 import DataCard from './DataCard'
 import styles from './SettingsTab.module.css'
 
 /**
- * Settings tab. Two blocks: Sync (Dropbox) and Data (manual import/export).
- * Mirrors the markup of #tab-settings in the original index.html.
+ * Settings tab. Three blocks: Theme (appearance), Sync (Dropbox) and Data
+ * (manual import/export). Mirrors the markup of #tab-settings in the original
+ * index.html.
  */
 export default function SettingsTab() {
   return (
@@ -15,6 +17,13 @@ export default function SettingsTab() {
       aria-labelledby="tab-btn-settings"
       tabIndex={0}
     >
+      <div className={styles.block}>
+        <div className={styles.blockHead}>
+          <h2>Theme</h2>
+        </div>
+        <ThemeCard />
+      </div>
+
       <div className={styles.block}>
         <div className={styles.blockHead}>
           <h2>Sync</h2>

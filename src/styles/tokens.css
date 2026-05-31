@@ -1,19 +1,134 @@
+/*
+ * Design tokens.
+ *
+ * Two layers:
+ *   1. Brand / typography — theme-independent, declared once on :root.
+ *   2. Semantic color tokens — every surface, text and accent value the UI
+ *      consumes. Dark is the default (declared on :root), Light overrides it
+ *      under [data-theme='light'].
+ *
+ * The resolved theme ('light' | 'dark') is written to <html data-theme="…">
+ * by the theme store (src/store/themeStore.ts); 'system' is resolved to one
+ * of the two before it reaches the DOM, so CSS only ever deals with the two
+ * concrete themes.
+ *
+ * Accent rules of thumb:
+ *   --accent       brand lime, used as a *fill* (buttons, active tab, toggle).
+ *   --on-accent    text/icon color placed *on* that fill.
+ *   --accent-text  accent used as *foreground text* — darkened in Light so it
+ *                  stays legible on pale surfaces.
+ */
+
 :root {
+  /* ---------- Typography (theme-independent) ---------- */
+  --display: 'Fraunces', serif;
+  --body: 'Inter Tight', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+
+  /* ---------- Dark theme (default) ---------- */
+
+  /* Surfaces */
   --bg: #0d0e0c;
   --bg-elev: #16181580;
   --bg-card: #1a1c19;
+
+  /* Lines */
   --border: #2a2d29;
   --border-strong: #3a3d39;
+
+  /* Text */
   --text: #e8e6df;
   --text-dim: #8a8e85;
   --text-faint: #5a5e55;
+
+  /* Accent */
   --accent: #b4f06a;
+  --accent-hover: #c6ff7a;
   --accent-dim: #b4f06a40;
+  --accent-text: #b4f06a;
+  --on-accent: #0d0e0c;
+
+  /* Status / data colors */
   --blue: #6aa3f0;
   --green: #6af0a3;
   --yellow: #f0d76a;
   --red: #f06a6a;
-  --display: 'Fraunces', serif;
-  --body: 'Inter Tight', sans-serif;
-  --mono: 'JetBrains Mono', monospace;
+  --danger: #e25555;
+
+  /* Tinted backgrounds derived from status colors */
+  --red-tint: #f06a6a18;
+  --danger-tint: #e2555520;
+
+  /* Savings chart line fill (semi-transparent accent) */
+  --chart-area: #b4f06a14;
+
+  /* Shadows (rgb triple so alpha can vary at the use site) */
+  --shadow-rgb: 0, 0, 0;
+  --inset-highlight: rgba(255, 255, 255, 0.03);
+
+  /* Ambient page glows (body background) */
+  --glow-accent: #b4f06a14;
+  --glow-blue: #6aa3f00d;
+  --glow-red: #f06a6a08;
+
+  /* Metric cards — featured "hero" cards stay a dark spotlight; the plain
+     deficit card is a subtle tint over the regular card surface. */
+  --metric-featured-bg:
+    radial-gradient(120% 140% at 0% 0%, #1f2a18 0%, #14171280 55%, #0d0e0c 100%);
+  --metric-featured-deficit-bg:
+    radial-gradient(120% 140% at 0% 0%, #2a1614 0%, #14101280 55%, #0d0e0c 100%);
+  --metric-deficit-bg:
+    linear-gradient(135deg, #1a1412 0%, #14101080 100%);
+}
+
+/* ---------- Light theme ---------- */
+:root[data-theme='light'] {
+  /* Surfaces — warm paper, matching the editorial dark palette's warmth. */
+  --bg: #f4f2ea;
+  --bg-elev: #ffffffcc;
+  --bg-card: #fbfaf4;
+
+  /* Lines */
+  --border: #e3e0d3;
+  --border-strong: #cdcabb;
+
+  /* Text */
+  --text: #1c1e17;
+  --text-dim: #585b4f;
+  --text-faint: #8a8d7f;
+
+  /* Accent — fill stays the brand lime; text/hover darken for contrast. */
+  --accent: #9ad84a;
+  --accent-hover: #8ccc3a;
+  --accent-dim: #9ad84a33;
+  --accent-text: #4f8a1f;
+  --on-accent: #14180c;
+
+  /* Status / data colors — darker variants legible on pale surfaces. */
+  --blue: #2f6cc0;
+  --green: #1f9d57;
+  --yellow: #b07d0a;
+  --red: #d23b3b;
+  --danger: #cf3b3b;
+
+  --red-tint: #d23b3b18;
+  --danger-tint: #cf3b3b18;
+
+  --chart-area: #9ad84a2e;
+
+  --shadow-rgb: 60, 58, 48;
+  --inset-highlight: rgba(255, 255, 255, 0.6);
+
+  --glow-accent: #9ad84a1f;
+  --glow-blue: #6aa3f014;
+  --glow-red: #f0a06a14;
+
+  /* Featured cards become a soft tinted light surface; their text uses
+     --accent-text / --red which read well on the pale gradient. */
+  --metric-featured-bg:
+    radial-gradient(120% 140% at 0% 0%, #e9f2d8 0%, #f2f0e4 55%, #f8f6ee 100%);
+  --metric-featured-deficit-bg:
+    radial-gradient(120% 140% at 0% 0%, #f8e3e1 0%, #f5ece8 55%, #faf6f0 100%);
+  --metric-deficit-bg:
+    linear-gradient(135deg, #fbe9e9 0%, #f7dedecc 100%);
 }

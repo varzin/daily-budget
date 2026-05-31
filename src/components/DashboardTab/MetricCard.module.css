@@ -32,7 +32,7 @@
 /* ---------- Variants ---------- */
 .featured {
   grid-column: 1 / -1;
-  background: radial-gradient(120% 140% at 0% 0%, #1f2a18 0%, #14171280 55%, #0d0e0c 100%);
+  background: var(--metric-featured-bg);
   padding: 32px 24px 36px;
   position: relative;
 }
@@ -46,7 +46,7 @@
   pointer-events: none;
 }
 .featured .label {
-  color: var(--accent);
+  color: var(--accent-text);
   margin-bottom: 18px;
   letter-spacing: 0.18em;
 }
@@ -56,13 +56,13 @@
   font-weight: 400;
   font-size: 72px;
   line-height: 0.95;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: -0.04em;
 }
 .featured .sym {
   font-family: var(--display);
   font-style: italic;
-  color: var(--accent);
+  color: var(--accent-text);
   opacity: 0.55;
   font-size: 0.55em;
   vertical-align: 0.35em;
@@ -79,7 +79,7 @@
 .blue .value { color: var(--blue); }
 
 .deficit {
-  background: linear-gradient(135deg, #1a1412 0%, #14101080 100%);
+  background: var(--metric-deficit-bg);
 }
 .deficit .value,
 .deficit .sym { color: var(--red); }
@@ -89,7 +89,7 @@
   color: var(--red);
 }
 .featured.deficit {
-  background: radial-gradient(120% 140% at 0% 0%, #2a1614 0%, #14101280 55%, #0d0e0c 100%);
+  background: var(--metric-featured-deficit-bg);
 }
 .featured.deficit::after { display: none; }
 .featured.deficit .label,

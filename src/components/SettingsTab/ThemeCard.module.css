@@ -1,0 +1,14 @@
+/* ThemeCard — matches the settings-card surface used by Sync/Data cards. */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px;
+}
+
+.lead {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
