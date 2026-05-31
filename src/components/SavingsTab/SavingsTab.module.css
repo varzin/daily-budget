@@ -61,6 +61,9 @@
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 14px;
   border: 1px solid var(--border-strong);
   border-radius: 6px;

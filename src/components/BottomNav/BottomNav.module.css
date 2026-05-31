@@ -1,3 +1,20 @@
+/* Full-width shield under the floating nav: absorbs clicks in the bottom
+   strip and applies a progressive backdrop blur that fades from clear at
+   the top to fully blurred near the pill — a visual cue that this area
+   isn't interactive. */
+.shield {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(100px + env(safe-area-inset-bottom));
+  z-index: 49;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  mask-image: linear-gradient(to top, #000 35%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, #000 35%, transparent 100%);
+}
+
 /* Floating bottom navigation — port of .tabs / .tabs-inner / .tab*
    from styles/layout.css. */
 .tabs {

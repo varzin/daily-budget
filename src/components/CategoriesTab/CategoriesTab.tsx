@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { obligatoryTotal, categoryAmount } from '../../lib/math'
 import { fmt } from '../../lib/utils'
@@ -45,7 +46,6 @@ export default function CategoriesTab() {
             <span>Budget</span>
             <span>Spent</span>
             <span>Left</span>
-            <span />
           </div>
           {categories.map(cat => (
             <button
@@ -62,7 +62,6 @@ export default function CategoriesTab() {
               <span className={styles.num}>{fmt(cat.budget || 0)}</span>
               <span className={styles.num}>{fmt(cat.spent || 0)}</span>
               <span className={styles.left}>{fmt(categoryAmount(cat))}</span>
-              <span className={styles.chevron} aria-hidden="true">›</span>
             </button>
           ))}
         </div>
@@ -70,7 +69,8 @@ export default function CategoriesTab() {
 
       <div className={styles.footer}>
         <Button variant="primary" onClick={openAdd}>
-          + Add expense
+          <Plus size={16} strokeWidth={2.5} />
+          <span>Add expense</span>
         </Button>
         <span className={styles.totalValue}>€{fmt(total)}</span>
       </div>

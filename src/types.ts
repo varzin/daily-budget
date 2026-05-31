@@ -7,6 +7,7 @@ export interface Category {
   budgetExpr?: string
   spent: number
   spentExpr?: string
+  note?: string
   done: boolean
 }
 

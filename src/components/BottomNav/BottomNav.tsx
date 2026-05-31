@@ -137,13 +137,15 @@ export default function BottomNav({ active, onChange }: Props) {
   }
 
   return (
-    <nav
-      className={styles.tabs}
-      role="tablist"
-      aria-label="Sections"
-    >
-      <div className={styles.inner} onKeyDown={handleKeyDown}>
-        {TABS.map((t, i) => {
+    <>
+      <div className={styles.shield} aria-hidden="true" />
+      <nav
+        className={styles.tabs}
+        role="tablist"
+        aria-label="Sections"
+      >
+        <div className={styles.inner} onKeyDown={handleKeyDown}>
+          {TABS.map((t, i) => {
           const isActive = t.name === active
           const className = [styles.tab, isActive ? styles.active : '']
             .filter(Boolean)
@@ -172,5 +174,6 @@ export default function BottomNav({ active, onChange }: Props) {
         })}
       </div>
     </nav>
+    </>
   )
 }
