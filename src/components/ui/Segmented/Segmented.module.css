@@ -1,0 +1,70 @@
+/* Segmented control — a track holding N equal-width segments and a sliding
+   highlight (.thumb) that animates between them. Mirrors the look of the
+   small chart toggle but generalized and full-width. */
+.group {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--seg-count, 3), 1fr);
+  gap: 0;
+  padding: 3px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  /* Exactly one segment wide. With a gapless grid each segment is the inner
+     track width (100% of the padding-box minus the 3px padding on each side)
+     divided by the count, so translateX(index * 100%) lands precisely. */
+  width: calc((100% - 6px) / var(--seg-count));
+  border-radius: 7px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.25);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.option {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.18s;
+}
+.option:hover {
+  color: var(--text);
+}
+.option.active {
+  color: var(--text);
+}
+.option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+}
+.icon svg {
+  width: 16px;
+  height: 16px;
+}

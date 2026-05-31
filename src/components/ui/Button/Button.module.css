@@ -36,12 +36,12 @@
 
 .primary {
   background: var(--accent);
-  color: #0d0e0c;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 .primary:hover:not(:disabled) {
-  background: #c3f680;
-  border-color: #c3f680;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .secondary {
@@ -60,7 +60,7 @@
   border-color: transparent;
 }
 .danger:hover:not(:disabled) {
-  background: #f06a6a18;
+  background: var(--red-tint);
 }
 
 .ghost {

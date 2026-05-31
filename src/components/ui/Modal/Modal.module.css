@@ -22,7 +22,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 48px rgba(var(--shadow-rgb), 0.5);
   animation: dialogIn 0.18s ease;
 }
 .dialog:focus { outline: none; }

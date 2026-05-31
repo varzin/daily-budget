@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
@@ -16,6 +16,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@300;400;500;600&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    /* Apply the persisted theme before first paint to avoid a flash.
+       Mirrors src/store/themeStore.ts — keep the key and meta colors in sync. */
+    (function () {
+      try {
+        var raw = localStorage.getItem('budget_theme_v1');
+        var mode = raw ? (JSON.parse(raw).state || {}).mode : 'dark';
+        if (mode !== 'light' && mode !== 'system') mode = 'dark';
+        var dark = mode === 'dark' ||
+          (mode === 'system' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var resolved = dark ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', resolved);
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', dark ? '#0d0e0c' : '#f4f2ea');
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>

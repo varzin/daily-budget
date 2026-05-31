@@ -15,6 +15,7 @@ import {
   type Plugin,
 } from 'chart.js'
 import { useBudgetStore } from '../../store/budgetStore'
+import { useThemeStore } from '../../store/themeStore'
 import { computeBalances, savedIndicator } from '../../lib/math'
 import type { SavedIndicator } from '../../lib/math'
 import ChartRangeSlider from './ChartRangeSlider'
@@ -33,7 +34,57 @@ Chart.register(
   Legend,
 )
 
+// Theme-aware palette, read live from the CSS design tokens on <html> so that
+// switching System / Light / Dark propagates to the canvas (which can't use
+// CSS variables directly).
+interface ChartPalette {
+  text: string
+  line: string
+  area: string
+  pointBorder: string
+  grid: string
+  tickDim: string
+  tickFaint: string
+  tooltipBg: string
+  indicators: Record<SavedIndicator, string>
+}
+
+const FALLBACK_PALETTE: ChartPalette = {
+  text: '#e8e6df',
+  line: '#b4f06a',
+  area: '#b4f06a14',
+  pointBorder: '#1a1c19',
+  grid: '#2a2d29',
+  tickDim: '#8a8e85',
+  tickFaint: '#5a5e55',
+  tooltipBg: '#16181580',
+  indicators: { blue: '#6aa3f0', green: '#6af0a3', yellow: '#f0d76a', red: '#f06a6a' },
+}
+
+function readPalette(): ChartPalette {
+  if (typeof document === 'undefined') return FALLBACK_PALETTE
+  const cs = getComputedStyle(document.documentElement)
+  const pick = (name: string, fb: string): string => cs.getPropertyValue(name).trim() || fb
+  return {
+    text: pick('--text', FALLBACK_PALETTE.text),
+    line: pick('--accent', FALLBACK_PALETTE.line),
+    area: pick('--chart-area', FALLBACK_PALETTE.area),
+    pointBorder: pick('--bg-card', FALLBACK_PALETTE.pointBorder),
+    grid: pick('--border', FALLBACK_PALETTE.grid),
+    tickDim: pick('--text-dim', FALLBACK_PALETTE.tickDim),
+    tickFaint: pick('--text-faint', FALLBACK_PALETTE.tickFaint),
+    tooltipBg: pick('--bg-elev', FALLBACK_PALETTE.tooltipBg),
+    indicators: {
+      blue: pick('--blue', FALLBACK_PALETTE.indicators.blue),
+      green: pick('--green', FALLBACK_PALETTE.indicators.green),
+      yellow: pick('--yellow', FALLBACK_PALETTE.indicators.yellow),
+      red: pick('--red', FALLBACK_PALETTE.indicators.red),
+    },
+  }
+}
+
 // Draws the value of each point right above it — ported 1:1 from js/chart.js.
+// Reads the text color live so it tracks the active theme.
 const pointLabelsPlugin: Plugin<'line'> = {
   id: 'pointLabels',
   afterDatasetsDraw(chart) {
@@ -44,7 +95,9 @@ const pointLabelsPlugin: Plugin<'line'> = {
     const values = dataset.data as number[]
     ctx.save()
     ctx.font = '500 11px "JetBrains Mono", monospace'
-    ctx.fillStyle = '#e8e6df'
+    ctx.fillStyle =
+      getComputedStyle(chart.canvas).getPropertyValue('--text').trim() ||
+      FALLBACK_PALETTE.text
     ctx.textAlign = 'center'
     ctx.textBaseline = 'bottom'
     meta.data.forEach((pt, i) => {
@@ -59,47 +112,26 @@ Chart.register(pointLabelsPlugin)
 
 type Point = { month: string; saved: number; bank: number }
 
-function readIndicatorColors(): Record<SavedIndicator, string> {
-  // Read live CSS custom properties so dark/light theme changes propagate.
-  if (typeof document === 'undefined') {
-    return { blue: '#6aa3f0', green: '#6af0a3', yellow: '#f0d76a', red: '#f06a6a' }
-  }
-  const cs = getComputedStyle(document.documentElement)
-  const fallback: Record<SavedIndicator, string> = {
-    blue: '#6aa3f0', green: '#6af0a3', yellow: '#f0d76a', red: '#f06a6a',
-  }
-  const pick = (name: string, fb: string): string => {
-    const v = cs.getPropertyValue(name).trim()
-    return v || fb
-  }
-  return {
-    blue:   pick('--blue',   fallback.blue),
-    green:  pick('--green',  fallback.green),
-    yellow: pick('--yellow', fallback.yellow),
-    red:    pick('--red',    fallback.red),
-  }
-}
-
-function buildData(slice: Point[], colors: Record<SavedIndicator, string>): ChartData<'line'> {
+function buildData(slice: Point[], palette: ChartPalette): ChartData<'line'> {
   return {
     labels: slice.map(d => d.month),
     datasets: [{
       data: slice.map(d => d.bank),
-      borderColor: '#b4f06a',
-      backgroundColor: 'rgba(180, 240, 106, 0.08)',
+      borderColor: palette.line,
+      backgroundColor: palette.area,
       borderWidth: 2,
       fill: 'origin',
       tension: 0.25,
       pointRadius: 5,
       pointHoverRadius: 7,
-      pointBackgroundColor: slice.map(d => colors[savedIndicator(d.saved)]),
-      pointBorderColor: '#1a1c19',
+      pointBackgroundColor: slice.map(d => palette.indicators[savedIndicator(d.saved)]),
+      pointBorderColor: palette.pointBorder,
       pointBorderWidth: 2,
     }],
   }
 }
 
-function chartOptions(): ChartOptions<'line'> {
+function chartOptions(palette: ChartPalette): ChartOptions<'line'> {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -108,11 +140,11 @@ function chartOptions(): ChartOptions<'line'> {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#16181580',
-        borderColor: '#2a2d29',
+        backgroundColor: palette.tooltipBg,
+        borderColor: palette.grid,
         borderWidth: 1,
-        titleColor: '#e8e6df',
-        bodyColor: '#e8e6df',
+        titleColor: palette.text,
+        bodyColor: palette.text,
         callbacks: {
           label: ctx => 'Balance: €' + (ctx.parsed.y ?? 0).toFixed(2),
         },
@@ -120,9 +152,9 @@ function chartOptions(): ChartOptions<'line'> {
     },
     scales: {
       y: {
-        grid: { color: '#2a2d29', drawTicks: false },
+        grid: { color: palette.grid, drawTicks: false },
         ticks: {
-          color: '#5a5e55',
+          color: palette.tickFaint,
           font: { family: 'JetBrains Mono, monospace', size: 11 },
           padding: 8,
           callback: v => '€' + v,
@@ -132,10 +164,10 @@ function chartOptions(): ChartOptions<'line'> {
       x: {
         grid: { display: false },
         ticks: {
-          color: '#8a8e85',
+          color: palette.tickDim,
           font: { family: 'JetBrains Mono, monospace', size: 11 },
         },
-        border: { color: '#2a2d29' },
+        border: { color: palette.grid },
       },
     },
   }
@@ -143,6 +175,8 @@ function chartOptions(): ChartOptions<'line'> {
 
 export default function SavingsChart() {
   const savings = useBudgetStore(s => s.savings)
+  // Re-render (and rebuild chart colors) whenever the resolved theme changes.
+  const resolved = useThemeStore(s => s.resolved)
 
   const fullData = useMemo<Point[]>(() => {
     const balances = computeBalances(savings)
@@ -175,11 +209,11 @@ export default function SavingsChart() {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const colors = readIndicatorColors()
+    const palette = readPalette()
     const instance = new Chart(canvas, {
       type: 'line',
-      data: buildData([], colors),
-      options: chartOptions(),
+      data: buildData([], palette),
+      options: chartOptions(palette),
     })
     chartRef.current = instance
     return () => {
@@ -188,12 +222,14 @@ export default function SavingsChart() {
     }
   }, [])
 
-  // --- Effect 2: update data only. No destroy/recreate. ---
+  // --- Effect 2: update data + theme colors. No destroy/recreate. ---
   useEffect(() => {
     const chart = chartRef.current
     if (!chart) return
+    const palette = readPalette()
+    chart.options = chartOptions(palette)
     if (fullData.length === 0) {
-      chart.data = buildData([], readIndicatorColors())
+      chart.data = buildData([], palette)
       chart.update()
       return
     }
@@ -203,13 +239,13 @@ export default function SavingsChart() {
     const start = Math.min(cLo, cHi)
     const end = Math.max(cLo, cHi)
     const slice = fullData.slice(start, end + 1)
-    chart.data = buildData(slice, readIndicatorColors())
+    chart.data = buildData(slice, palette)
     // Container may have just become visible (hidden→shown transition when
     // the first row is added). Force a resize so Chart.js picks up the new
     // box dimensions instead of staying at zero size.
     chart.resize()
     chart.update()
-  }, [fullData, range])
+  }, [fullData, range, resolved])
 
   const isEmpty = savings.length === 0
   const showRange = fullData.length >= 3

@@ -15,7 +15,7 @@
   letter-spacing: -0.02em;
   font-style: italic;
 }
-.brand :global(.dot) { color: var(--accent); }
+.brand :global(.dot) { color: var(--accent-text); }
 
 @media (max-width: 768px) {
   .top {

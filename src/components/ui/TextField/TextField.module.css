@@ -31,7 +31,7 @@
   border-color: var(--accent);
 }
 .inputWrap:has(input[aria-invalid='true']) {
-  border-color: var(--danger, #e25555);
+  border-color: var(--danger);
 }
 
 .input {

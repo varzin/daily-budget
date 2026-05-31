@@ -14,9 +14,9 @@ html, body {
 body {
   position: relative;
   background-image:
-    radial-gradient(ellipse 90% 55% at 50% -10%, #b4f06a14, transparent 60%),
-    radial-gradient(ellipse 70% 45% at 95% 105%, #6aa3f00d, transparent 65%),
-    radial-gradient(ellipse 40% 30% at 0% 60%, #f06a6a08, transparent 70%);
+    radial-gradient(ellipse 90% 55% at 50% -10%, var(--glow-accent), transparent 60%),
+    radial-gradient(ellipse 70% 45% at 95% 105%, var(--glow-blue), transparent 65%),
+    radial-gradient(ellipse 40% 30% at 0% 60%, var(--glow-red), transparent 70%);
 }
 /* Editorial paper grain — subtle SVG turbulence, fixed so it doesn't scroll. */
 body::before {
