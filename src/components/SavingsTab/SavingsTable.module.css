@@ -43,6 +43,12 @@
   padding: 4px;
   margin: -4px;
 }
+/* Expand pointer hit area for a11y (~36x44) without resizing the dot or shifting layout */
+.indicatorWrap::before {
+  content: '';
+  position: absolute;
+  inset: -14px -10px;
+}
 .indicatorTooltip {
   position: absolute;
   left: calc(100% + 2px);
@@ -118,14 +124,19 @@
 
 .rowDel {
   color: var(--text-faint);
-  font-size: 16px;
   transition: color 0.15s;
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 6px;
+  margin: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
 }
 .rowDel:hover { color: var(--red); }
+.rowDel:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .savingsEmpty {
   text-align: center;

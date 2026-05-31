@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { X } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { computeBalances, savedIndicator } from '../../lib/math'
 import type { SavedIndicator } from '../../lib/math'
@@ -120,7 +121,7 @@ export default function SavingsTable() {
                   onClick={() => onDelete(row.id)}
                   aria-label="Delete row"
                 >
-                  ×
+                  <X size={18} strokeWidth={2} aria-hidden="true" />
                 </button>
               </td>
             </tr>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { fmt, currentMonthKey } from '../../lib/utils'
 import { obligatoryTotal, currentSavingsTotal } from '../../lib/math'
@@ -113,7 +114,10 @@ export default function SavingsTab() {
         >
           Finalize month
         </button>
-        <button type="button" className={styles.btn} onClick={handleAddRow}>+ Row</button>
+        <button type="button" className={styles.btn} onClick={handleAddRow}>
+          <Plus size={14} strokeWidth={2.5} />
+          <span>Row</span>
+        </button>
       </div>
     </section>
   )
