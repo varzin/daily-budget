@@ -9,6 +9,9 @@
 }
 
 .sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 16px;
 }
 .sectionHead h2 {
@@ -18,6 +21,29 @@
   letter-spacing: -0.01em;
   font-style: italic;
   margin: 0;
+}
+
+.helpBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.helpBtn:hover {
+  background: var(--bg-elev);
+  color: var(--text-dim);
+}
+.helpBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .empty {
@@ -55,7 +81,7 @@
   color: var(--text-faint);
   font-weight: 500;
 }
-.header > span:not(:first-child):not(:last-child) {
+.header > span:not(:first-child) {
   text-align: right;
 }
 
@@ -80,6 +106,11 @@
 
 .rowDone {
   opacity: 0.55;
+}
+
+/* Nothing left to pay — everything budgeted is already spent. */
+.rowSpent {
+  opacity: 0.5;
 }
 
 .name {
@@ -123,6 +154,10 @@
   color: var(--text-faint);
   text-decoration: line-through;
 }
+.rowSpent .left {
+  color: var(--text-dim);
+  font-weight: 400;
+}
 
 .footer {
   display: flex;
@@ -153,24 +188,13 @@
   .totalValue { font-size: 26px; }
 }
 
-/* Editorial sidebar — matches Dashboard hint. */
+/* Help copy — shown inside the "How it works" modal. */
 .hint {
-  margin-top: 32px;
-  padding: 18px;
-  border-left: 2px solid var(--accent);
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
 }
 .hint p { margin: 0; }
 .hint em { font-family: var(--display); font-style: italic; color: var(--text); }
 .hint strong { color: var(--text); font-weight: 500; }
 .hint .mono { font-family: var(--mono); color: var(--text); }
-.hintEyebrow {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: var(--text-faint);
-  margin: 0 0 10px;
-  font-weight: 500;
-}
