@@ -9,7 +9,7 @@
   justify-content: center;
   padding: 20px;
   z-index: 100;
-  animation: backdropIn 0.15s ease;
+  animation: backdropIn 0.32s ease-out;
 }
 
 .dialog {
@@ -23,7 +23,9 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 48px rgba(var(--shadow-rgb), 0.5);
-  animation: dialogIn 0.18s ease;
+  /* Desktop: gentle pop — scale up from slightly small while fading in. */
+  transform-origin: center bottom;
+  animation: dialogIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .dialog:focus { outline: none; }
 
@@ -60,8 +62,14 @@
   to { opacity: 1; }
 }
 @keyframes dialogIn {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Mobile: slide up from the bottom edge like a native sheet. */
+@keyframes sheetIn {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 @media (max-width: 768px) {
@@ -75,8 +83,17 @@
     border-bottom: none;
     max-height: 92dvh;
     padding-bottom: env(safe-area-inset-bottom);
+    transform-origin: bottom center;
+    animation: sheetIn 0.34s cubic-bezier(0.32, 0.72, 0, 1);
   }
   .head { padding: 18px 20px 12px; }
   .body { padding: 18px 20px; }
   .foot { padding: 14px 20px 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .dialog {
+    animation-duration: 0.01ms;
+  }
 }
