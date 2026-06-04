@@ -21,6 +21,11 @@ function isFullySpent(cat: Category): boolean {
   return !cat.done && (cat.budget || 0) > 0 && (cat.spent || 0) >= (cat.budget || 0)
 }
 
+/** Fully paid: spent has reached the budget (or the row is marked done). */
+function isFullyPaid(cat: Category): boolean {
+  return cat.done || ((cat.budget || 0) > 0 && (cat.spent || 0) >= (cat.budget || 0))
+}
+
 export default function CategoriesTab() {
   const categories = useBudgetStore(s => s.categories)
   const total = useMemo(() => obligatoryTotal(categories), [categories])
@@ -29,7 +34,7 @@ export default function CategoriesTab() {
   const [filter, setFilter] = useState<Filter>('all')
 
   const visibleCategories = useMemo(
-    () => (filter === 'unpaid' ? categories.filter(c => !c.done) : categories),
+    () => (filter === 'unpaid' ? categories.filter(c => !isFullyPaid(c)) : categories),
     [categories, filter]
   )
 
@@ -103,10 +108,7 @@ export default function CategoriesTab() {
               onClick={() => openEdit(cat)}
               aria-label={`Edit ${cat.name}`}
             >
-              <span className={styles.name}>
-                {cat.name}
-                {cat.done && <span className={styles.badge}>paid</span>}
-              </span>
+              <span className={styles.name}>{cat.name}</span>
               <span className={styles.num}>{fmt(cat.budget || 0)}</span>
               <span className={styles.num}>{fmt(cat.spent || 0)}</span>
               <span className={styles.left}>{fmt(categoryAmount(cat))}</span>

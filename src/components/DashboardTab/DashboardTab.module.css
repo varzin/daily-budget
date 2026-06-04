@@ -59,8 +59,8 @@
 }
 
 /* "X days left" — countdown under the next-income input.
-   Mirrors the field label's faint/uppercase styling, with the count
-   itself picked out in accent mono so it reads as a live figure. */
+   Kept in the same muted tone as the label so it doesn't read as an
+   emphasised/clickable figure. */
 .daysLeft {
   display: flex;
   align-items: baseline;
@@ -72,7 +72,7 @@
   font-size: 15px;
   font-weight: 500;
   line-height: 1;
-  color: var(--accent);
+  color: var(--text-faint);
 }
 .daysLeftLabel {
   font-size: 11px;
