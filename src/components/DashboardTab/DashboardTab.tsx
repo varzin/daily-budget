@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { HelpCircle } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import {
   obligatoryTotal,
@@ -10,9 +11,17 @@ import {
   type BudgetResult,
 } from '../../lib/math'
 import { fmt, pluralDays } from '../../lib/utils'
+import Modal from '../ui/Modal/Modal'
 import Inputs from './Inputs'
 import MetricCard from './MetricCard'
 import styles from './DashboardTab.module.css'
+
+interface BreakdownItem {
+  key: string
+  label: string
+  value: number
+  help: string
+}
 
 function perDayCardProps(
   result: BudgetResult,
@@ -49,6 +58,7 @@ export default function DashboardTab() {
   const incomeDay = useBudgetStore(s => s.incomeDay)
   const categories = useBudgetStore(s => s.categories)
   const savings = useBudgetStore(s => s.savings)
+  const [helpItem, setHelpItem] = useState<BreakdownItem | null>(null)
 
   const m = useMemo(() => {
     const b = Number(bank) || 0
@@ -82,6 +92,40 @@ export default function DashboardTab() {
     /* featured */ true,
   )
   const allProps = perDayCardProps(m.all, 'Including savings', 'blue')
+
+  // Ordered from raw building blocks → derived "free to spend" sums.
+  const breakdownItems: BreakdownItem[] = [
+    {
+      key: 'savings',
+      label: 'Savings',
+      value: m.savingsPool,
+      help: 'Your set-aside pool — the sum of every "Saved this month" row in the Savings tab. It stays reserved, so the green and yellow daily budgets leave it untouched.',
+    },
+    {
+      key: 'fixed',
+      label: 'Fixed expenses',
+      value: m.oblig,
+      help: "What's still left to pay across your fixed expenses (budget − spent). Categories you've marked paid are excluded.",
+    },
+    {
+      key: 'withoutSavings',
+      label: 'Without savings',
+      value: m.withoutSavings,
+      help: 'Your balance with the savings pool set aside, before paying fixed expenses. Formula: balance − savings.',
+    },
+    {
+      key: 'afterFixedNoSavings',
+      label: 'After fixed expenses, no savings',
+      value: m.afterObligNoSavings,
+      help: 'Truly free to spend: your balance after removing both fixed expenses and savings. This drives the break-even daily figure. Formula: balance − fixed expenses − savings.',
+    },
+    {
+      key: 'afterFixedTotal',
+      label: 'After fixed expenses, total',
+      value: m.afterObligAll,
+      help: 'What\'s left after fixed expenses if you allow yourself to dip into savings. This drives the "spend everything" daily figure. Formula: balance − fixed expenses.',
+    },
+  ]
 
   const hasData = m.bank > 0
 
@@ -144,18 +188,23 @@ export default function DashboardTab() {
               <span className={styles.breakdownCaret} aria-hidden="true">+</span>
             </summary>
             <dl className={styles.breakdownList}>
-              <div className={styles.breakdownRow}>
-                <dt>Without savings</dt>
-                <dd>€{fmt(m.withoutSavings)}</dd>
-              </div>
-              <div className={styles.breakdownRow}>
-                <dt>After fixed expenses, no savings</dt>
-                <dd>€{fmt(m.afterObligNoSavings)}</dd>
-              </div>
-              <div className={styles.breakdownRow}>
-                <dt>After fixed expenses, total</dt>
-                <dd>€{fmt(m.afterObligAll)}</dd>
-              </div>
+              {breakdownItems.map(item => (
+                <div key={item.key} className={styles.breakdownRow}>
+                  <dt className={styles.breakdownTerm}>
+                    <span>{item.label}</span>
+                    <button
+                      type="button"
+                      className={styles.helpBtn}
+                      onClick={() => setHelpItem(item)}
+                      aria-label={`What does "${item.label}" mean?`}
+                      title="What does this mean?"
+                    >
+                      <HelpCircle size={15} strokeWidth={2} />
+                    </button>
+                  </dt>
+                  <dd>€{fmt(item.value)}</dd>
+                </div>
+              ))}
             </dl>
           </details>
 
@@ -170,6 +219,16 @@ export default function DashboardTab() {
           </aside>
         </>
       )}
+
+      <Modal
+        open={helpItem !== null}
+        onClose={() => setHelpItem(null)}
+        title={helpItem?.label}
+      >
+        <div className={styles.helpBody}>
+          <p>{helpItem?.help}</p>
+        </div>
+      </Modal>
     </section>
   )
 }
