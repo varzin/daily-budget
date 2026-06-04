@@ -16,7 +16,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 28px;
 }
 
 .field {
@@ -56,6 +56,29 @@
   font-size: 22px;
   font-weight: 400;
   color: var(--text);
+}
+
+/* "X days left" — countdown under the next-income input.
+   Mirrors the field label's faint/uppercase styling, with the count
+   itself picked out in accent mono so it reads as a live figure. */
+.daysLeft {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+.daysLeftNum {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--accent);
+}
+.daysLeftLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
 }
 
 /* ---------- Metrics grid ---------- */

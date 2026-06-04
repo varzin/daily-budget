@@ -137,19 +137,20 @@ export default function DashboardTab() {
       aria-labelledby="tab-btn-dashboard"
       tabIndex={0}
     >
-      <Inputs />
-
       {!hasData ? (
-        <div className={styles.empty}>
-          <p className={styles.emptyEyebrow}>Start here</p>
-          <h2 className={styles.emptyTitle}>
-            Enter your <em>current balance</em> to see your daily budget.
-          </h2>
-          <p className={styles.emptyBody}>
-            We'll split it across the days until your next income — with and
-            without dipping into savings.
-          </p>
-        </div>
+        <>
+          <div className={styles.empty}>
+            <p className={styles.emptyEyebrow}>Start here</p>
+            <h2 className={styles.emptyTitle}>
+              Enter your <em>current balance</em> to see your daily budget.
+            </h2>
+            <p className={styles.emptyBody}>
+              We'll split it across the days until your next income — with and
+              without dipping into savings.
+            </p>
+          </div>
+          <Inputs />
+        </>
       ) : (
         <>
           <div className={styles.metrics}>
@@ -181,6 +182,8 @@ export default function DashboardTab() {
               subtitle={allProps.subtitle}
             />
           </div>
+
+          <Inputs />
 
           <details className={styles.breakdown}>
             <summary className={styles.breakdownSummary}>
