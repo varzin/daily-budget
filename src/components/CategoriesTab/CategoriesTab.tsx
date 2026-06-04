@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Plus, HelpCircle } from 'lucide-react'
+import { Plus, HelpCircle, List, ListFilter } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { obligatoryTotal, categoryAmount } from '../../lib/math'
 import { fmt } from '../../lib/utils'
@@ -14,6 +14,8 @@ type ModalState =
   | { kind: 'add' }
   | { kind: 'edit'; category: Category }
 
+type Filter = 'all' | 'unpaid'
+
 /** Everything budgeted is already spent — nothing left to pay (but not marked paid). */
 function isFullySpent(cat: Category): boolean {
   return !cat.done && (cat.budget || 0) > 0 && (cat.spent || 0) >= (cat.budget || 0)
@@ -24,6 +26,12 @@ export default function CategoriesTab() {
   const total = useMemo(() => obligatoryTotal(categories), [categories])
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' })
   const [helpOpen, setHelpOpen] = useState(false)
+  const [filter, setFilter] = useState<Filter>('all')
+
+  const visibleCategories = useMemo(
+    () => (filter === 'unpaid' ? categories.filter(c => !c.done) : categories),
+    [categories, filter]
+  )
 
   const openAdd = () => setModal({ kind: 'add' })
   const openEdit = (category: Category) => setModal({ kind: 'edit', category })
@@ -48,6 +56,28 @@ export default function CategoriesTab() {
         >
           <HelpCircle size={18} strokeWidth={2} />
         </button>
+        <div className={styles.viewToggle} role="tablist" aria-label="Filter">
+          <button
+            type="button"
+            className={filter === 'all' ? styles.active : ''}
+            onClick={() => setFilter('all')}
+            aria-label="Show all"
+            aria-pressed={filter === 'all'}
+            title="Show all"
+          >
+            <List size={16} strokeWidth={2} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={filter === 'unpaid' ? styles.active : ''}
+            onClick={() => setFilter('unpaid')}
+            aria-label="Show unpaid only"
+            aria-pressed={filter === 'unpaid'}
+            title="Show unpaid only"
+          >
+            <ListFilter size={16} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {categories.length === 0 ? (
@@ -63,7 +93,9 @@ export default function CategoriesTab() {
             <span>Spent</span>
             <span>Left</span>
           </div>
-          {categories.map(cat => (
+          {visibleCategories.length === 0 ? (
+            <div className={styles.emptyRow}>Everything's paid. 🎉</div>
+          ) : visibleCategories.map(cat => (
             <button
               key={cat.id}
               type="button"
