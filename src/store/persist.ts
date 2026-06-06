@@ -10,22 +10,27 @@ export const defaultState: BudgetState = {
   categories: [],
   savings: [],
   updatedAt: null,
+  meta: { bank: null, incomeDay: null },
 }
 
 /**
  * Normalize savings rows on load / replace:
  *  - drop the legacy derived `bank` field (computed on the fly now)
  *  - convert legacy "MM.YYYY" months → ISO "YYYY-MM"
+ *  - preserve per-entity sync metadata (updatedAt / deletedAt tombstone)
  */
 export function migrateSavings(savings: unknown): SavingsRow[] {
   if (!Array.isArray(savings)) return []
   return savings.map((row) => {
     const r = row as Partial<SavingsRow> & { bank?: number }
-    return {
+    const out: SavingsRow = {
       id: String(r.id ?? ''),
       month: normalizeMonth(String(r.month ?? '')),
       saved: Number(r.saved) || 0,
     }
+    if (r.updatedAt) out.updatedAt = r.updatedAt
+    if (r.deletedAt) out.deletedAt = r.deletedAt
+    return out
   })
 }
 
@@ -48,5 +53,9 @@ export function coerceBudgetState(input: unknown): BudgetState {
     categories: Array.isArray(o.categories) ? o.categories : [],
     savings: migrateSavings(o.savings),
     updatedAt: o.updatedAt ?? null,
+    meta: {
+      bank: o.meta?.bank ?? null,
+      incomeDay: o.meta?.incomeDay ?? null,
+    },
   }
 }

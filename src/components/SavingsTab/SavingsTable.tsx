@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { computeBalances, savedIndicator } from '../../lib/math'
 import type { SavedIndicator } from '../../lib/math'
-import { fmt } from '../../lib/utils'
+import { fmt, live } from '../../lib/utils'
 import styles from './SavingsTable.module.css'
 
 const INDICATOR_TIERS: Array<{ tier: SavedIndicator; label: string }> = [
@@ -39,7 +39,8 @@ function IndicatorCell({ tier }: { tier: SavedIndicator }) {
 }
 
 export default function SavingsTable() {
-  const savings = useBudgetStore(s => s.savings)
+  const allSavings = useBudgetStore(s => s.savings)
+  const savings = useMemo(() => live(allSavings), [allSavings])
   const balances = useMemo(() => computeBalances(savings), [savings])
 
   if (savings.length === 0) {

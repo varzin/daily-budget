@@ -23,7 +23,15 @@
    - красный — превышает все траты, включая копилку.
 
 ## Dropbox-синхронизация — переработка надёжности
-Текущая схема (`src/sync/dropbox.ts`) опасна: «самый свежий целый файл
+**Статус: реализовано** (ветка `storage-improvements`). Все три слоя ниже
+собраны: CAS через `rev`, слияние по сущностям с tombstone, conflict-copy.
+Чистая логика слияния — `src/sync/merge.ts`; движок (rev-трекинг, CAS-retry,
+conflict-copy, `push()`) — `src/sync/dropbox.ts`; per-entity `updatedAt`/
+`deletedAt` и `meta` для скаляров — в `src/types.ts`/`budgetStore.ts`. Покрыто
+e2e: `test/e2e/dropboxSync.e2e.test.ts` (фейковый Dropbox с rev-семантикой).
+Раздел ниже сохранён как исходный замысел.
+
+Прежняя схема была опасна: «самый свежий целый файл
 побеждает». Единица конфликта — весь `budget.json`, победитель по `updatedAt`
 (часы клиента), запись `mode: 'overwrite'` без проверки `rev`, pull только при
 загрузке. Реальные сбои: (1) тихая потеря несвязанных правок с двух устройств —
@@ -56,15 +64,23 @@ pull и push; (3) побеждает не «кто новее», а у кого 
 ## Запланированные улучшения (план)
 
 ### Надёжность хранения (localStorage)
+**Статус: реализовано** (ветка `storage-improvements`). Логика — чистые модули
+`src/lib/storagePersistence.ts` (обёртка persist/persisted/estimate +
+`initStoragePersistence`, запрос при первом осмысленном вводе, не cold-on-load) и
+`src/lib/backupNudge.ts` (`hasMeaningfulData`, `shouldShowBackupNudge`). UI:
+постоянный чип-индикатор «Protect your data» в хедере (`Header/BackupNudge`) с
+модалкой-объяснением и Connect Dropbox; статус хранилища — `SettingsTab/
+StorageCard`. Покрыто unit-тестами `test/storage/*`. Замысел ниже.
+
 НЕ мигрировать на IndexedDB ради надёжности — это тот же класс «script-writable
 storage», Safari ITP вычищает его так же (7 дней без открытия), выгоды ноль.
 Решение из двух дешёвых слоёв, прозрачно для текущей архитектуры (Zustand
 продолжает писать в localStorage):
-1. **`navigator.storage.persist()`** один раз на старте — помечает хранилище
-   persistent, браузер перестаёт вычищать под нехватку места и по ITP-таймеру.
-   В Settings показывать статус через `navigator.storage.persisted()`.
+1. **`navigator.storage.persist()`** при первом осмысленном вводе — помечает
+   хранилище persistent, браузер перестаёт вычищать под нехватку места и по
+   ITP-таймеру. В Settings статус через `navigator.storage.persisted()`.
 2. **Копия вне устройства** — единственное, что переживёт очистку данных/смену
-   телефона. Уже есть Dropbox-синк и экспорт JSON; добавить мягкий разовый намёк
+   телефона. Уже есть Dropbox-синк и экспорт JSON; добавлен мягкий разовый намёк
    подключить синк / скачать бэкап тем, кто синк не подключил.
 
 ### Замена нативных диалогов

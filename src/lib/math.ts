@@ -34,7 +34,7 @@ export function computeDaysLeft(incomeDay: number, today: Date = new Date()): nu
 }
 
 export function categoryAmount(cat: Category): number {
-  if (cat.done) return 0
+  if (cat.done || cat.deletedAt) return 0
   const budget = Number(cat.budget) || 0
   const spent = Number(cat.spent) || 0
   return Math.max(0, budget - spent)
@@ -46,7 +46,7 @@ export function obligatoryTotal(categories: Category[]): number {
 
 export function currentSavingsTotal(savings: SavingsRow[]): number {
   if (!savings || savings.length === 0) return 0
-  return savings.reduce((sum, row) => sum + (Number(row.saved) || 0), 0)
+  return savings.reduce((sum, row) => sum + (row.deletedAt ? 0 : Number(row.saved) || 0), 0)
 }
 
 /** Per-row cumulative balance: balance[i] = balance[i-1] + saved[i], starting from 0. */

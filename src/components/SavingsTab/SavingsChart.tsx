@@ -18,6 +18,7 @@ import { useBudgetStore } from '../../store/budgetStore'
 import { useThemeStore } from '../../store/themeStore'
 import { computeBalances, savedIndicator } from '../../lib/math'
 import type { SavedIndicator } from '../../lib/math'
+import { live } from '../../lib/utils'
 import ChartRangeSlider from './ChartRangeSlider'
 import styles from './SavingsChart.module.css'
 
@@ -174,7 +175,8 @@ function chartOptions(palette: ChartPalette): ChartOptions<'line'> {
 }
 
 export default function SavingsChart() {
-  const savings = useBudgetStore(s => s.savings)
+  const allSavings = useBudgetStore(s => s.savings)
+  const savings = useMemo(() => live(allSavings), [allSavings])
   // Re-render (and rebuild chart colors) whenever the resolved theme changes.
   const resolved = useThemeStore(s => s.resolved)
 

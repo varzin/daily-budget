@@ -25,7 +25,7 @@ export default function SavingsTab() {
     const saved = Math.round((bank - oblig - prevPool) * 100) / 100
     const month = currentMonthKey()
 
-    const existingIdx = savings.findIndex(r => r.month === month)
+    const existingIdx = savings.findIndex(r => r.month === month && !r.deletedAt)
     const existingNote = existingIdx >= 0
       ? `\n⚠ An entry for ${month} already exists — its "Saved this month" will be overwritten.\n`
       : ''

@@ -7,13 +7,17 @@ import CategoriesTab from './components/CategoriesTab/CategoriesTab'
 import SavingsTab from './components/SavingsTab/SavingsTab'
 import SettingsTab from './components/SettingsTab/SettingsTab'
 import { initSync } from './sync/dropbox'
+import { initStoragePersistence } from './lib/storagePersistence'
 import { useApplyTheme } from './store/themeStore'
 import type { TabName } from './types'
 
 export default function App() {
   const [tab, setTab] = useState<TabName>('dashboard')
   useApplyTheme()
-  useEffect(() => { initSync() }, [])
+  useEffect(() => {
+    initSync()
+    initStoragePersistence()
+  }, [])
   return (
     <div className="app">
       <UpdateBanner />
