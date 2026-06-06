@@ -119,6 +119,17 @@ function mergeScalars(
 }
 
 export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResult {
+  // Migration safety: data written before this rework has no per-entity
+  // timestamps. If BOTH sides are un-stamped, fall back to the old "newest
+  // whole document wins" (by document updatedAt) — so an upgrade can never
+  // spuriously conflict, resurrect a deletion, or lose the newer balance to a
+  // per-entity tie. The first edit stamps entities and switches to true entity
+  // merge from then on.
+  if (!isStamped(local) && !isStamped(remote)) {
+    const merged = time(local.updatedAt) >= time(remote.updatedAt) ? local : remote
+    return { merged, conflicts: [] }
+  }
+
   const conflicts: Conflict[] = []
   const categories = mergeCollection(local.categories, remote.categories, 'category', conflicts)
   const savings = mergeCollection(local.savings, remote.savings, 'savings', conflicts)
@@ -138,6 +149,14 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
     },
     conflicts,
   }
+}
+
+/** Whether a document carries any per-entity sync metadata (i.e. post-rework). */
+function isStamped(d: BudgetState): boolean {
+  if (d.meta && (d.meta.bank || d.meta.incomeDay)) return true
+  if (d.categories.some((e) => e.updatedAt || e.deletedAt)) return true
+  if (d.savings.some((e) => e.updatedAt || e.deletedAt)) return true
+  return false
 }
 
 /**
