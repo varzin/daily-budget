@@ -1,0 +1,73 @@
+/* Backup nudge — a top banner, styled after UpdateBanner but roomy enough for
+   two actions and a dismiss. Sits just under the update banner's z-index. */
+.banner {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 14px;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 12px 14px 12px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: 0 6px 20px rgba(var(--shadow-rgb), 0.5);
+  animation: backupBannerIn 0.3s ease;
+}
+@keyframes backupBannerIn {
+  from { transform: translate(-50%, -12px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.text {
+  flex: 1 1 220px;
+  line-height: 1.35;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.primary,
+.secondary {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 36px;
+}
+.primary {
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+}
+.primary:hover { filter: brightness(1.05); }
+.secondary {
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+}
+.secondary:hover { background: var(--accent); color: var(--on-accent); }
+
+.dismiss {
+  color: var(--text-faint);
+  font-size: 18px;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.dismiss:hover { color: var(--text); }

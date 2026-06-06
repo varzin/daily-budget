@@ -64,15 +64,22 @@ pull и push; (3) побеждает не «кто новее», а у кого 
 ## Запланированные улучшения (план)
 
 ### Надёжность хранения (localStorage)
+**Статус: реализовано** (ветка `storage-improvements`). Логика — чистые модули
+`src/lib/storagePersistence.ts` (обёртка persist/persisted/estimate +
+`initStoragePersistence`, запрос при первом осмысленном вводе, не cold-on-load) и
+`src/lib/backupNudge.ts` (`hasMeaningfulData`, `shouldNudgeBackup`). UI: верхний
+баннер-намёк `components/BackupBanner`, статус хранилища — `SettingsTab/
+StorageCard`. Покрыто unit-тестами `test/storage/*`. Замысел ниже.
+
 НЕ мигрировать на IndexedDB ради надёжности — это тот же класс «script-writable
 storage», Safari ITP вычищает его так же (7 дней без открытия), выгоды ноль.
 Решение из двух дешёвых слоёв, прозрачно для текущей архитектуры (Zustand
 продолжает писать в localStorage):
-1. **`navigator.storage.persist()`** один раз на старте — помечает хранилище
-   persistent, браузер перестаёт вычищать под нехватку места и по ITP-таймеру.
-   В Settings показывать статус через `navigator.storage.persisted()`.
+1. **`navigator.storage.persist()`** при первом осмысленном вводе — помечает
+   хранилище persistent, браузер перестаёт вычищать под нехватку места и по
+   ITP-таймеру. В Settings статус через `navigator.storage.persisted()`.
 2. **Копия вне устройства** — единственное, что переживёт очистку данных/смену
-   телефона. Уже есть Dropbox-синк и экспорт JSON; добавить мягкий разовый намёк
+   телефона. Уже есть Dropbox-синк и экспорт JSON; добавлен мягкий разовый намёк
    подключить синк / скачать бэкап тем, кто синк не подключил.
 
 ### Замена нативных диалогов
