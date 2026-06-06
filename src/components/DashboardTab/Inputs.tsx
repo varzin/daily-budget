@@ -1,16 +1,21 @@
 import type { ChangeEvent } from 'react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { computeDaysLeft } from '../../lib/math'
+import { formatUpdatedAgo, isStale } from '../../lib/freshness'
 import { pluralDays } from '../../lib/utils'
 import styles from './DashboardTab.module.css'
 
 export default function Inputs() {
   const bank = useBudgetStore(s => s.bank)
   const incomeDay = useBudgetStore(s => s.incomeDay)
+  const bankUpdatedAt = useBudgetStore(s => s.meta.bank)
 
   const day = Number(incomeDay)
   const showDaysLeft = day >= 1 && day <= 31
   const daysLeft = showDaysLeft ? computeDaysLeft(day) : 0
+
+  const updatedLabel = formatUpdatedAgo(bankUpdatedAt)
+  const stale = isStale(bankUpdatedAt)
 
   const onBankChange = (e: ChangeEvent<HTMLInputElement>) => {
     // Original `js/state.js` stored a raw number; empty input → 0.
@@ -39,6 +44,12 @@ export default function Inputs() {
             onChange={onBankChange}
           />
         </div>
+        {updatedLabel && (
+          <p className={`${styles.updated} ${stale ? styles.updatedStale : ''}`}>
+            {updatedLabel}
+            {stale && <span className={styles.updatedNudge}> · refresh your balance</span>}
+          </p>
+        )}
       </div>
       <div className={styles.field}>
         <label htmlFor="incomeDay">Next income day</label>
