@@ -241,6 +241,10 @@
   color: var(--text);
   white-space: nowrap;
 }
+.perDayUnit {
+  color: var(--text-faint);
+  font-size: 12px;
+}
 
 /* ---------- Hint sidebar ---------- */
 .hint {

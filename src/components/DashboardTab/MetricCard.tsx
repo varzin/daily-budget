@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import styles from './MetricCard.module.css'
 
-type Tone = 'green' | 'yellow' | 'blue' | 'deficit'
+type Tone = 'green' | 'teal' | 'yellow' | 'orange' | 'blue' | 'deficit'
 
 interface MetricCardProps {
   /** Render the hero treatment (large serif italic, full-width). Can combine with tone. */

@@ -75,8 +75,15 @@
 }
 
 .green .value { color: var(--green); }
+.teal .value { color: var(--teal); }
 .yellow .value { color: var(--yellow); }
+.orange .value { color: var(--orange); }
 .blue .value { color: var(--blue); }
+
+/* The decorative lime glow on the featured card only suits the positive
+   (teal / green) states — drop it once spending dips into savings. */
+.featured.orange::after { display: none; }
+.featured.orange .label { color: var(--orange); }
 
 .deficit {
   background: var(--metric-deficit-bg);

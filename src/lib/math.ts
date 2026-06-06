@@ -85,6 +85,49 @@ export function perDayAll(bank: number, oblig: number, daysLeft: number): Budget
   return budgetResult(available, daysLeft)
 }
 
+/**
+ * The four situational states for the single dashboard widget (CLAUDE.md
+ * "Future ideas" #3), ordered best → worst:
+ *  - `ahead`       — can keep the full buffer/cushion and still spend (teal);
+ *  - `onTrack`     — savings stay whole, but not the full cushion (green);
+ *  - `intoSavings` — fixed expenses covered, but spending dips into savings (orange);
+ *  - `over`        — can't even cover fixed expenses (red, deficit).
+ */
+export type SituationState = 'ahead' | 'onTrack' | 'intoSavings' | 'over'
+
+export interface Situation {
+  state: SituationState
+  /** The daily figure to feature for this state (perDay when ok, else deficit). */
+  result: BudgetResult
+}
+
+/**
+ * Pick the situational state and the single daily number that best describes it.
+ * Each state features the largest daily spend that still respects its boundary,
+ * so the headline figure is always actionable for where the user actually is.
+ */
+export function computeSituation(
+  bank: number,
+  oblig: number,
+  savingsPool: number,
+  buffer: number,
+  daysLeft: number,
+): Situation {
+  const afterBuffer = bank - oblig - savingsPool - buffer
+  const afterSavings = bank - oblig - savingsPool
+  const afterFixed = bank - oblig
+
+  if (afterBuffer >= 0) {
+    return { state: 'ahead', result: perDayGreen(bank, oblig, savingsPool, daysLeft, buffer) }
+  }
+  if (afterSavings >= 0) {
+    return { state: 'onTrack', result: perDayYellow(bank, oblig, savingsPool, daysLeft) }
+  }
+  // Below the savings line: feature the "spend everything" figure — it's an ok
+  // perDay while fixed expenses are still covered, and a deficit once they're not.
+  return { state: afterFixed >= 0 ? 'intoSavings' : 'over', result: perDayAll(bank, oblig, daysLeft) }
+}
+
 export function savedIndicator(saved: number): SavedIndicator {
   const v = Number(saved) || 0
   if (v >= 500) return 'blue'

@@ -51,7 +51,9 @@
   /* Status / data colors */
   --blue: #6aa3f0;
   --green: #6af0a3;
+  --teal: #6af0cf;
   --yellow: #f0d76a;
+  --orange: #f0a86a;
   --red: #f06a6a;
   --danger: #e25555;
 
@@ -107,7 +109,9 @@
   /* Status / data colors — darker variants legible on pale surfaces. */
   --blue: #2f6cc0;
   --green: #1f9d57;
+  --teal: #149d86;
   --yellow: #b07d0a;
+  --orange: #c0701f;
   --red: #d23b3b;
   --danger: #cf3b3b;
 
