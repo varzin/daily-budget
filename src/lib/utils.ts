@@ -2,6 +2,11 @@ export function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 }
 
+/** Drop tombstoned (soft-deleted) entities — used wherever the UI lists them. */
+export function live<T extends { deletedAt?: string }>(items: T[]): T[] {
+  return items.filter((e) => !e.deletedAt)
+}
+
 export function fmt(n: number): string {
   const v = Number(n) || 0
   return v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

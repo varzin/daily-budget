@@ -1,5 +1,11 @@
 import type { BudgetState, SyncInfo, SyncStatus } from '../types'
 import { useBudgetStore, wasLastChangeRemote } from '../store/budgetStore'
+import {
+  mergeBudget,
+  sameDocument,
+  conflictDocument,
+  type Conflict,
+} from './merge'
 
 // Public Dropbox App key (client ID). Not a secret — safe to ship.
 // If you fork this project, replace with your own from
@@ -9,6 +15,7 @@ const DROPBOX_APP_KEY = 'c02o5hadwqgywrr'
 const FILE_PATH = '/budget.json'
 const TOKENS_KEY = 'budget_app_dropbox_v1'
 const PUSH_DEBOUNCE_MS = 2000
+const MAX_CAS_RETRIES = 4
 
 // ---------- store access helpers ----------
 const getLocalState = () => useBudgetStore.getState()
@@ -23,8 +30,18 @@ function snapshotPayload(): BudgetState {
     categories: s.categories,
     savings: s.savings,
     updatedAt: s.updatedAt,
+    meta: s.meta,
   }
 }
+
+// ---------- compare-and-swap state ----------
+// The Dropbox `rev` of /budget.json as we last saw it. Every write is a
+// rev-checked `update` (never a blind `overwrite`), so a change that landed
+// since our last pull makes Dropbox reject the write instead of silently
+// clobbering it. `null` means "we've never seen the file" → create with `add`.
+let lastRev: string | null = null
+// Losing entity versions from the most recent merge, awaiting a conflict-copy.
+let pendingConflicts: Conflict[] = []
 
 // ---------- token storage ----------
 interface DropboxTokens {
@@ -236,69 +253,162 @@ async function fetchAccountInfo(): Promise<{ email?: string; name?: string } | n
   return info
 }
 
+// ---------- remote download + entity merge ----------
+//
+// Downloads /budget.json, merges it into the local store per-entity, remembers
+// its rev, and stashes any conflicts. Returns whether the merge produced
+// something worth pushing back up (local had changes the remote lacks, or a
+// conflict needs its copy written). `path/not_found` means the file doesn't
+// exist yet → caller should create it.
+async function mergeFromRemote(): Promise<{ needsPush: boolean }> {
+  const res = await dbxFetch('https://content.dropboxapi.com/2/files/download', {
+    method: 'POST',
+    headers: { 'Dropbox-API-Arg': JSON.stringify({ path: FILE_PATH }) },
+  })
+  if (res.status === 409) {
+    // path/not_found — first sync. Create the file from local data.
+    lastRev = null
+    return { needsPush: true }
+  }
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`)
+
+  const remote = JSON.parse(await res.text()) as BudgetState
+  lastRev = readRev(res)
+
+  const local = snapshotPayload()
+  const { merged, conflicts } = mergeBudget(local, remote)
+  pendingConflicts.push(...conflicts)
+  replaceLocalState(merged)
+
+  // Push back only if we actually contribute something (avoid echo loops).
+  const needsPush = conflicts.length > 0 || !sameDocument(merged, remote)
+  return { needsPush }
+}
+
+function readRev(res: Response): string | null {
+  const raw = res.headers.get('Dropbox-API-Result')
+  if (!raw) return null
+  try {
+    return (JSON.parse(raw) as { rev?: string }).rev ?? null
+  } catch {
+    return null
+  }
+}
+
 // ---------- pull ----------
 export async function pull(): Promise<void> {
   if (!loadTokens()) return
   setStatus('syncing')
   try {
-    const res = await dbxFetch('https://content.dropboxapi.com/2/files/download', {
-      method: 'POST',
-      headers: { 'Dropbox-API-Arg': JSON.stringify({ path: FILE_PATH }) },
-    })
-    if (res.status === 409) {
-      // path/not_found — file doesn't exist yet. First sync: push local up.
-      setStatus('synced', { lastSyncAt: Date.now() })
-      schedulePush(true)
-      return
+    const { needsPush } = await mergeFromRemote()
+    if (needsPush) {
+      await pushNow()
+    } else {
+      setStatus('synced', { lastSyncAt: Date.now(), lastError: null })
     }
-    if (!res.ok) throw new Error(`Download failed: ${res.status}`)
-    const remote = JSON.parse(await res.text()) as BudgetState
-    const local = getLocalState()
-    const remoteAt = remote.updatedAt ? new Date(remote.updatedAt).getTime() : 0
-    const localAt = local.updatedAt ? new Date(local.updatedAt).getTime() : 0
-
-    if (remoteAt > localAt) {
-      replaceLocalState(remote)
-    } else if (localAt > remoteAt) {
-      // local is newer — push it up
-      schedulePush(true)
-    }
-    setStatus('synced', { lastSyncAt: Date.now(), lastError: null })
   } catch (err) {
-    const msg = errorMessage(err)
-    if (msg === 'Not connected') {
-      setStatus('not_connected')
-      return
-    }
-    setStatus(navigator.onLine ? 'error' : 'offline', { lastError: msg })
+    reportError(err)
   }
 }
 
-// ---------- push (debounced) ----------
+// ---------- push (compare-and-swap) ----------
 let pushTimer: ReturnType<typeof setTimeout> | null = null
 function schedulePush(immediate = false): void {
   if (!loadTokens()) return
   if (pushTimer) clearTimeout(pushTimer)
-  pushTimer = setTimeout(doPush, immediate ? 0 : PUSH_DEBOUNCE_MS)
+  pushTimer = setTimeout(() => {
+    pushTimer = null
+    void pushNow()
+  }, immediate ? 0 : PUSH_DEBOUNCE_MS)
 }
 
-async function doPush(): Promise<void> {
+/**
+ * Write local state up with a rev-checked compare-and-swap. If Dropbox rejects
+ * the write because the file moved on (a concurrent push from another device),
+ * re-pull + merge to fold in that change, then retry against the new rev — so
+ * the other device's write is never lost (CLAUDE.md layer 1 + 2).
+ */
+export async function push(): Promise<void> {
+  if (pushTimer) {
+    clearTimeout(pushTimer)
+    pushTimer = null
+  }
+  await pushNow()
+}
+
+async function pushNow(): Promise<void> {
   if (!loadTokens()) return
   setStatus('syncing')
   try {
-    const res = await dbxFetch('https://content.dropboxapi.com/2/files/upload', {
-      method: 'POST',
-      headers: {
-        'Dropbox-API-Arg': JSON.stringify({ path: FILE_PATH, mode: 'overwrite', mute: true }),
-        'Content-Type': 'application/octet-stream',
-      },
-      body: JSON.stringify(snapshotPayload()),
-    })
-    if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-    setStatus('synced', { lastSyncAt: Date.now(), lastError: null })
+    for (let attempt = 0; attempt <= MAX_CAS_RETRIES; attempt++) {
+      // Save any losing versions beside the primary file before overwriting it.
+      await flushConflictCopies()
+
+      const mode = lastRev
+        ? { '.tag': 'update', update: lastRev }
+        : 'add'
+      const res = await dbxFetch('https://content.dropboxapi.com/2/files/upload', {
+        method: 'POST',
+        headers: {
+          'Dropbox-API-Arg': JSON.stringify({ path: FILE_PATH, mode, mute: true }),
+          'Content-Type': 'application/octet-stream',
+        },
+        body: JSON.stringify(snapshotPayload()),
+      })
+
+      if (res.ok) {
+        const meta = JSON.parse(await res.text()) as { rev?: string }
+        lastRev = meta.rev ?? lastRev
+        setStatus('synced', { lastSyncAt: Date.now(), lastError: null })
+        return
+      }
+
+      if (res.status === 409) {
+        // Stale rev (or a file appeared under us) — merge what's there and retry.
+        await mergeFromRemote()
+        continue
+      }
+
+      throw new Error(`Upload failed: ${res.status}`)
+    }
+    throw new Error('Upload kept conflicting — please try again')
   } catch (err) {
-    setStatus(navigator.onLine ? 'error' : 'offline', { lastError: errorMessage(err) })
+    reportError(err)
   }
+}
+
+// ---------- conflict copies ----------
+// When entity merge couldn't confidently pick a winner, the loser is saved
+// next to the primary file so no edit is ever thrown away (CLAUDE.md layer 3).
+async function flushConflictCopies(): Promise<void> {
+  if (pendingConflicts.length === 0) return
+  const conflicts = pendingConflicts
+  pendingConflicts = []
+  const copy = conflictDocument(snapshotPayload(), conflicts)
+  const path = conflictCopyPath()
+  await dbxFetch('https://content.dropboxapi.com/2/files/upload', {
+    method: 'POST',
+    headers: {
+      'Dropbox-API-Arg': JSON.stringify({ path, mode: 'add', autorename: true, mute: true }),
+      'Content-Type': 'application/octet-stream',
+    },
+    body: JSON.stringify(copy),
+  })
+}
+
+function conflictCopyPath(): string {
+  const device = account?.name || account?.email || 'device'
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+  return `/budget (conflict ${device} ${stamp}).json`
+}
+
+function reportError(err: unknown): void {
+  const msg = errorMessage(err)
+  if (msg === 'Not connected') {
+    setStatus('not_connected')
+    return
+  }
+  setStatus(navigator.onLine ? 'error' : 'offline', { lastError: msg })
 }
 
 // ---------- auto-push subscription ----------
@@ -330,12 +440,8 @@ function stopAutoPush(): void {
 export async function syncNow(): Promise<void> {
   if (!loadTokens()) return
   await pull()
-  // pull schedules a push if local is newer; flush immediately
-  if (pushTimer) {
-    clearTimeout(pushTimer)
-    pushTimer = null
-    await doPush()
-  }
+  // Flush any debounced local push that piled up during/just before the pull.
+  if (pushTimer) await push()
 }
 
 export function disconnectDropbox(): void {
@@ -343,6 +449,8 @@ export function disconnectDropbox(): void {
   account = null
   lastSyncAt = null
   lastError = null
+  lastRev = null
+  pendingConflicts = []
   if (pushTimer) {
     clearTimeout(pushTimer)
     pushTimer = null

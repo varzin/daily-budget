@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Plus, HelpCircle, List, ListFilter } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { obligatoryTotal, categoryAmount } from '../../lib/math'
-import { fmt } from '../../lib/utils'
+import { fmt, live } from '../../lib/utils'
 import Button from '../ui/Button/Button'
 import Modal from '../ui/Modal/Modal'
 import CategoryEditModal from './CategoryEditModal'
@@ -27,7 +27,8 @@ function isFullyPaid(cat: Category): boolean {
 }
 
 export default function CategoriesTab() {
-  const categories = useBudgetStore(s => s.categories)
+  const allCategories = useBudgetStore(s => s.categories)
+  const categories = useMemo(() => live(allCategories), [allCategories])
   const total = useMemo(() => obligatoryTotal(categories), [categories])
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' })
   const [helpOpen, setHelpOpen] = useState(false)

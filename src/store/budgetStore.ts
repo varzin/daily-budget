@@ -21,8 +21,9 @@ export function wasLastChangeRemote(): boolean {
 }
 
 // ---------- math helpers used by finalizeMonth ----------
+// Tombstoned entities (deletedAt set) are excluded from all sums.
 function categoryAmount(cat: Category): number {
-  if (cat.done) return 0
+  if (cat.done || cat.deletedAt) return 0
   const budget = Number(cat.budget) || 0
   const spent = Number(cat.spent) || 0
   return Math.max(0, budget - spent)
@@ -31,7 +32,7 @@ function obligatoryTotal(categories: Category[]): number {
   return categories.reduce((sum, c) => sum + categoryAmount(c), 0)
 }
 function currentSavingsTotal(savings: SavingsRow[]): number {
-  return savings.reduce((sum, r) => sum + (Number(r.saved) || 0), 0)
+  return savings.reduce((sum, r) => sum + (r.deletedAt ? 0 : Number(r.saved) || 0), 0)
 }
 
 // ---------- store types ----------
@@ -53,10 +54,13 @@ type BudgetActions = {
 
 export type BudgetStore = BudgetState & BudgetActions
 
-// Helper: every local mutation goes through this so we always bump
-// updatedAt before persistence (which Dropbox uses for conflict resolution).
+const now = (): string => new Date().toISOString()
+
+// Helper: every local mutation goes through this so we always bump the
+// document-level updatedAt. Per-entity `updatedAt` (and `meta` for scalars)
+// are stamped by the individual actions — that's what entity merge compares.
 function touch<T extends Partial<BudgetState>>(patch: T): T & { updatedAt: string } {
-  return { ...patch, updatedAt: new Date().toISOString() }
+  return { ...patch, updatedAt: now() }
 }
 
 export const useBudgetStore = create<BudgetStore>()(
@@ -65,49 +69,66 @@ export const useBudgetStore = create<BudgetStore>()(
       ...defaultState,
 
       // ---------- bank / income ----------
-      setBank: (n) => set(touch({ bank: Number(n) || 0 })),
-      setIncomeDay: (n) => set(touch({ incomeDay: Number(n) || 0 })),
+      setBank: (n) => {
+        const t = now()
+        set(touch({ bank: Number(n) || 0, meta: { ...get().meta, bank: t } }))
+      },
+      setIncomeDay: (n) => {
+        const t = now()
+        set(touch({ incomeDay: Number(n) || 0, meta: { ...get().meta, incomeDay: t } }))
+      },
 
       // ---------- categories ----------
       addCategory: (input) => {
-        const cat: Category = { id: uid(), ...input }
+        const cat: Category = { id: uid(), ...input, updatedAt: now() }
         set(touch({ categories: [...get().categories, cat] }))
       },
       updateCategory: (id, patch) => {
+        const t = now()
         set(touch({
           categories: get().categories.map((c) =>
-            c.id === id ? { ...c, ...patch } : c,
+            c.id === id ? { ...c, ...patch, updatedAt: t } : c,
           ),
         }))
       },
+      // Delete = tombstone: keep the row with `deletedAt` so the deletion
+      // survives a merge with a stale copy instead of being resurrected.
       deleteCategory: (id) => {
+        const t = now()
         set(touch({
-          categories: get().categories.filter((c) => c.id !== id),
+          categories: get().categories.map((c) =>
+            c.id === id ? { ...c, deletedAt: t, updatedAt: t } : c,
+          ),
         }))
       },
       toggleCategoryDone: (id) => {
+        const t = now()
         set(touch({
           categories: get().categories.map((c) =>
-            c.id === id ? { ...c, done: !c.done } : c,
+            c.id === id ? { ...c, done: !c.done, updatedAt: t } : c,
           ),
         }))
       },
 
       // ---------- savings ----------
       addSavingsRow: () => {
-        const row: SavingsRow = { id: uid(), month: currentMonthKey(), saved: 0 }
+        const row: SavingsRow = { id: uid(), month: currentMonthKey(), saved: 0, updatedAt: now() }
         set(touch({ savings: [...get().savings, row] }))
       },
       updateSavingsRow: (id, patch) => {
+        const t = now()
         set(touch({
           savings: get().savings.map((r) =>
-            r.id === id ? { ...r, ...patch } : r,
+            r.id === id ? { ...r, ...patch, updatedAt: t } : r,
           ),
         }))
       },
       deleteSavingsRow: (id) => {
+        const t = now()
         set(touch({
-          savings: get().savings.filter((r) => r.id !== id),
+          savings: get().savings.map((r) =>
+            r.id === id ? { ...r, deletedAt: t, updatedAt: t } : r,
+          ),
         }))
       },
       finalizeMonth: (bankAtFinalize) => {
@@ -118,14 +139,15 @@ export const useBudgetStore = create<BudgetStore>()(
         const saved = round2(bank - oblig - prevPool)
         const month = currentMonthKey()
 
-        const existingIdx = savings.findIndex((r) => r.month === month)
+        const t = now()
+        const existingIdx = savings.findIndex((r) => r.month === month && !r.deletedAt)
         let nextSavings: SavingsRow[]
         if (existingIdx >= 0) {
           nextSavings = savings.map((r, i) =>
-            i === existingIdx ? { ...r, saved } : r,
+            i === existingIdx ? { ...r, saved, updatedAt: t } : r,
           )
         } else {
-          nextSavings = [...savings, { id: uid(), month, saved }]
+          nextSavings = [...savings, { id: uid(), month, saved, updatedAt: t }]
         }
         set(touch({ savings: nextSavings }))
       },
@@ -139,6 +161,7 @@ export const useBudgetStore = create<BudgetStore>()(
           categories: s.categories,
           savings: s.savings,
           updatedAt: s.updatedAt,
+          meta: s.meta,
         }
         const blob = new Blob([JSON.stringify(payload, null, 2)], {
           type: 'application/json',
@@ -180,7 +203,11 @@ export const useBudgetStore = create<BudgetStore>()(
           // Preserve remote's updatedAt; bump it for local imports.
           updatedAt: fromRemote
             ? (s.updatedAt ?? null)
-            : new Date().toISOString(),
+            : now(),
+          meta: {
+            bank: s.meta?.bank ?? null,
+            incomeDay: s.meta?.incomeDay ?? null,
+          },
         }
         lastChangeWasRemote = fromRemote
         try {
@@ -207,6 +234,7 @@ export const useBudgetStore = create<BudgetStore>()(
         categories: state.categories,
         savings: state.savings,
         updatedAt: state.updatedAt,
+        meta: state.meta,
       }),
       // Run the legacy-month migration exactly once on rehydrate.
       onRehydrateStorage: () => (rehydrated) => {
