@@ -8,7 +8,7 @@
  * Both the data-presence check and the nudge decision are pure functions.
  */
 import { describe, expect, it } from 'vitest'
-import { hasMeaningfulData, shouldNudgeBackup } from '../../src/lib/backupNudge'
+import { hasMeaningfulData, shouldShowBackupNudge } from '../../src/lib/backupNudge'
 import type { BudgetState } from '../../src/types'
 
 function state(p: Partial<BudgetState> = {}): BudgetState {
@@ -56,17 +56,15 @@ describe('hasMeaningfulData', () => {
   })
 })
 
-describe('shouldNudgeBackup', () => {
-  it('nudges when there is data, no sync, and not dismissed', () => {
-    expect(shouldNudgeBackup({ connected: false, hasData: true, dismissed: false })).toBe(true)
+describe('shouldShowBackupNudge', () => {
+  // Persistent indicator: shown whenever there's unprotected data, no dismiss.
+  it('shows when there is data and Dropbox is not connected', () => {
+    expect(shouldShowBackupNudge({ connected: false, hasData: true })).toBe(true)
   })
-  it('does not nudge without data', () => {
-    expect(shouldNudgeBackup({ connected: false, hasData: false, dismissed: false })).toBe(false)
+  it('hides without data', () => {
+    expect(shouldShowBackupNudge({ connected: false, hasData: false })).toBe(false)
   })
-  it('does not nudge once Dropbox is connected', () => {
-    expect(shouldNudgeBackup({ connected: true, hasData: true, dismissed: false })).toBe(false)
-  })
-  it('does not nudge after dismissal', () => {
-    expect(shouldNudgeBackup({ connected: false, hasData: true, dismissed: true })).toBe(false)
+  it('hides once Dropbox is connected (data is protected off-device)', () => {
+    expect(shouldShowBackupNudge({ connected: true, hasData: true })).toBe(false)
   })
 })

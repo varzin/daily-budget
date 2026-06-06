@@ -1,0 +1,66 @@
+/* Persistent backup chip — sits on the header's right, opposite the brand.
+   Deliberately quiet (not alarming red): a steady reminder, not a warning. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  min-height: 32px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.chip:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.chip svg:first-child { color: var(--yellow); flex-shrink: 0; }
+.label { white-space: nowrap; }
+.info { color: var(--text-faint); }
+
+.modalBody p {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.modalBody p + p { margin-top: 12px; }
+.modalBody strong { color: var(--text); }
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Buttons — local copy of .btn / .btn.primary so the chip stays self-contained. */
+.btn {
+  padding: 9px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--bg-elev);
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 40px;
+  transition: all 0.15s;
+}
+.btn:hover { color: var(--text); border-color: var(--accent); }
+.btnPrimary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 500;
+}
+.btnPrimary:hover { background: var(--accent-hover); }
+
+@media (max-width: 768px) {
+  .actions { justify-content: stretch; }
+  .actions .btn { flex: 1; }
+}

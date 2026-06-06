@@ -1,15 +1,10 @@
 import SyncIndicator from './SyncIndicator'
+import BackupNudge from './BackupNudge'
 import styles from './Header.module.css'
 
 /**
- * Top bar: brand "Daily budget" with colored dots + SyncIndicator on the right.
- * Original markup (index.html):
- *   <header class="top">
- *     <div class="brand">
- *       <span class="dot">daily</span>budget<span class="dot">.</span>
- *       <button class="sync-indicator">…</button>
- *     </div>
- *   </header>
+ * Top bar: brand "Daily budget" with colored dots + SyncIndicator inline, and
+ * a persistent "Protect your data" chip on the right while data is unprotected.
  */
 export default function Header() {
   return (
@@ -18,6 +13,7 @@ export default function Header() {
         <span className="dot">daily</span>budget<span className="dot">.</span>
         <SyncIndicator />
       </div>
+      <BackupNudge />
     </header>
   )
 }

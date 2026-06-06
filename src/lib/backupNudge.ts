@@ -19,16 +19,15 @@ export interface BackupNudgeInputs {
   /** Dropbox sync connected — already have an off-device copy. */
   connected: boolean
   hasData: boolean
-  /** User dismissed the nudge before (persisted across reloads). */
-  dismissed: boolean
 }
 
 /**
- * Show the "keep a copy off this device" nudge only to users who actually risk
- * losing something: they have data, haven't connected sync, and haven't waved
- * the hint away. Persistent storage doesn't help here — it dies on "clear data"
- * or a new phone — so this is independent of the persisted status.
+ * Whether to show the persistent "Protect your data" indicator. It's not a
+ * one-time, dismissable nudge: the data stays unprotected for as long as it
+ * lives only on this device, so the reminder stays until Dropbox sync is
+ * connected. (Persistent storage doesn't resolve it — it dies on "clear data"
+ * or a new phone — so this is independent of the persisted status.)
  */
-export function shouldNudgeBackup({ connected, hasData, dismissed }: BackupNudgeInputs): boolean {
-  return hasData && !connected && !dismissed
+export function shouldShowBackupNudge({ connected, hasData }: BackupNudgeInputs): boolean {
+  return hasData && !connected
 }

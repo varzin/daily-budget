@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import Header from './components/Header/Header'
 import BottomNav from './components/BottomNav/BottomNav'
 import UpdateBanner from './components/UpdateBanner/UpdateBanner'
-import BackupBanner from './components/BackupBanner/BackupBanner'
 import DashboardTab from './components/DashboardTab/DashboardTab'
 import CategoriesTab from './components/CategoriesTab/CategoriesTab'
 import SavingsTab from './components/SavingsTab/SavingsTab'
@@ -22,7 +21,6 @@ export default function App() {
   return (
     <div className="app">
       <UpdateBanner />
-      <BackupBanner />
       <Header />
       <main>
         {tab === 'dashboard' && <DashboardTab />}

@@ -67,8 +67,9 @@ pull и push; (3) побеждает не «кто новее», а у кого 
 **Статус: реализовано** (ветка `storage-improvements`). Логика — чистые модули
 `src/lib/storagePersistence.ts` (обёртка persist/persisted/estimate +
 `initStoragePersistence`, запрос при первом осмысленном вводе, не cold-on-load) и
-`src/lib/backupNudge.ts` (`hasMeaningfulData`, `shouldNudgeBackup`). UI: верхний
-баннер-намёк `components/BackupBanner`, статус хранилища — `SettingsTab/
+`src/lib/backupNudge.ts` (`hasMeaningfulData`, `shouldShowBackupNudge`). UI:
+постоянный чип-индикатор «Protect your data» в хедере (`Header/BackupNudge`) с
+модалкой-объяснением и Connect Dropbox; статус хранилища — `SettingsTab/
 StorageCard`. Покрыто unit-тестами `test/storage/*`. Замысел ниже.
 
 НЕ мигрировать на IndexedDB ради надёжности — это тот же класс «script-writable
