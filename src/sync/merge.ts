@@ -98,7 +98,7 @@ function mergeCollection<T extends Entity>(
 function mergeScalars(
   local: BudgetState,
   remote: BudgetState,
-): Pick<BudgetState, 'bank' | 'incomeDay' | 'meta'> {
+): Pick<BudgetState, 'bank' | 'incomeDay' | 'buffer' | 'meta'> {
   const pick = (field: keyof BudgetMeta): { value: number; ts: string | null } => {
     const lt = time(local.meta?.[field])
     const rt = time(remote.meta?.[field])
@@ -111,10 +111,12 @@ function mergeScalars(
   }
   const bank = pick('bank')
   const incomeDay = pick('incomeDay')
+  const buffer = pick('buffer')
   return {
     bank: bank.value,
     incomeDay: incomeDay.value,
-    meta: { bank: bank.ts, incomeDay: incomeDay.ts },
+    buffer: buffer.value,
+    meta: { bank: bank.ts, incomeDay: incomeDay.ts, buffer: buffer.ts },
   }
 }
 
@@ -142,6 +144,7 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
     merged: {
       bank: scalars.bank,
       incomeDay: scalars.incomeDay,
+      buffer: scalars.buffer,
       categories,
       savings,
       updatedAt: updatedAt ?? null,
@@ -153,7 +156,7 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
 
 /** Whether a document carries any per-entity sync metadata (i.e. post-rework). */
 function isStamped(d: BudgetState): boolean {
-  if (d.meta && (d.meta.bank || d.meta.incomeDay)) return true
+  if (d.meta && (d.meta.bank || d.meta.incomeDay || d.meta.buffer)) return true
   if (d.categories.some((e) => e.updatedAt || e.deletedAt)) return true
   if (d.savings.some((e) => e.updatedAt || e.deletedAt)) return true
   return false
@@ -174,7 +177,12 @@ function docKey(d: BudgetState): string {
   return JSON.stringify({
     bank: d.bank,
     incomeDay: d.incomeDay,
-    meta: { bank: d.meta?.bank ?? null, incomeDay: d.meta?.incomeDay ?? null },
+    buffer: d.buffer,
+    meta: {
+      bank: d.meta?.bank ?? null,
+      incomeDay: d.meta?.incomeDay ?? null,
+      buffer: d.meta?.buffer ?? null,
+    },
     cats,
     sav,
   })

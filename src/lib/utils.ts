@@ -12,6 +12,12 @@ export function fmt(n: number): string {
   return v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+/** Money formatter without forced decimals — "200", "12,50" — for settings/labels. */
+export function fmtAmount(n: number): string {
+  const v = Number(n) || 0
+  return v.toLocaleString('de-DE', { maximumFractionDigits: 2 })
+}
+
 // ISO 8601 year-month (e.g. "2026-01") — the value format used by
 // <input type="month"> and stored on each savings row.
 export function currentMonthKey(date: Date = new Date()): string {

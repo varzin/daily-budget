@@ -32,11 +32,14 @@ export interface SavingsRow extends EntityMeta {
 export interface BudgetMeta {
   bank: string | null
   incomeDay: string | null
+  buffer: string | null
 }
 
 export interface BudgetState {
   bank: number
   incomeDay: number
+  /** Desired positive balance to keep by month end — the green-zone cushion. */
+  buffer: number
   categories: Category[]
   savings: SavingsRow[]
   updatedAt: string | null

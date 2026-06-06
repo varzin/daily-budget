@@ -1,0 +1,14 @@
+/* BufferCard — green-zone cushion setting. Mirrors the other Settings cards. */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px;
+}
+
+.lead {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}

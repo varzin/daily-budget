@@ -27,6 +27,7 @@ function snapshotPayload(): BudgetState {
   return {
     bank: s.bank,
     incomeDay: s.incomeDay,
+    buffer: s.buffer,
     categories: s.categories,
     savings: s.savings,
     updatedAt: s.updatedAt,

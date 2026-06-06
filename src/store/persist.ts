@@ -4,13 +4,17 @@ import { normalizeMonth } from '../lib/utils'
 // Same key the vanilla app used — existing users' data is preserved.
 export const STORAGE_KEY = 'budget_app_v1'
 
+/** Default green-zone cushion (€) when the user hasn't customized it. */
+export const DEFAULT_BUFFER = 200
+
 export const defaultState: BudgetState = {
   bank: 0,
   incomeDay: 26,
+  buffer: DEFAULT_BUFFER,
   categories: [],
   savings: [],
   updatedAt: null,
-  meta: { bank: null, incomeDay: null },
+  meta: { bank: null, incomeDay: null, buffer: null },
 }
 
 /**
@@ -50,12 +54,24 @@ export function coerceBudgetState(input: unknown): BudgetState {
   return {
     bank: Number(o.bank) || 0,
     incomeDay: Number(o.incomeDay) || defaultState.incomeDay,
+    buffer: coerceBuffer(o.buffer),
     categories: Array.isArray(o.categories) ? o.categories : [],
     savings: migrateSavings(o.savings),
     updatedAt: o.updatedAt ?? null,
     meta: {
       bank: o.meta?.bank ?? null,
       incomeDay: o.meta?.incomeDay ?? null,
+      buffer: o.meta?.buffer ?? null,
     },
   }
+}
+
+/**
+ * Coerce a persisted/imported buffer. `0` is a valid choice (no cushion), so we
+ * distinguish "absent" (→ default) from an explicit 0; negatives are clamped.
+ */
+export function coerceBuffer(value: unknown): number {
+  if (value === undefined || value === null || value === '') return DEFAULT_BUFFER
+  const n = Number(value)
+  return Number.isFinite(n) ? Math.max(0, n) : DEFAULT_BUFFER
 }

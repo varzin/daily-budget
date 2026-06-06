@@ -10,7 +10,7 @@ import {
   perDayAll,
   type BudgetResult,
 } from '../../lib/math'
-import { fmt, pluralDays } from '../../lib/utils'
+import { fmt, fmtAmount, pluralDays } from '../../lib/utils'
 import Modal from '../ui/Modal/Modal'
 import Inputs from './Inputs'
 import MetricCard from './MetricCard'
@@ -56,6 +56,7 @@ function perDayCardProps(
 export default function DashboardTab() {
   const bank = useBudgetStore(s => s.bank)
   const incomeDay = useBudgetStore(s => s.incomeDay)
+  const buffer = useBudgetStore(s => s.buffer)
   const categories = useBudgetStore(s => s.categories)
   const savings = useBudgetStore(s => s.savings)
   const [helpItem, setHelpItem] = useState<BreakdownItem | null>(null)
@@ -75,10 +76,10 @@ export default function DashboardTab() {
       afterObligNoSavings: b - oblig - savingsPool,
       afterObligAll: b - oblig,
       yellow: perDayYellow(b, oblig, savingsPool, daysLeft),
-      green: perDayGreen(b, oblig, savingsPool, daysLeft),
+      green: perDayGreen(b, oblig, savingsPool, daysLeft, buffer),
       all: perDayAll(b, oblig, daysLeft),
     }
-  }, [bank, incomeDay, categories, savings])
+  }, [bank, incomeDay, buffer, categories, savings])
 
   const yellowProps = perDayCardProps(
     m.yellow,
@@ -87,7 +88,9 @@ export default function DashboardTab() {
   )
   const greenProps = perDayCardProps(
     m.green,
-    '+€200 to savings by month end',
+    buffer > 0
+      ? `+€${fmtAmount(buffer)} to savings by month end`
+      : 'Break even by month end',
     'green',
     /* featured */ true,
   )
