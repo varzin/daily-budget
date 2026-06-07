@@ -19,6 +19,8 @@ import { useThemeStore } from '../../store/themeStore'
 import { computeBalances, savedIndicator } from '../../lib/math'
 import type { SavedIndicator } from '../../lib/math'
 import { live } from '../../lib/utils'
+import { money } from '../../lib/currency'
+import { useMoney } from '../../lib/useMoney'
 import ChartRangeSlider from './ChartRangeSlider'
 import styles from './SavingsChart.module.css'
 
@@ -101,10 +103,11 @@ const pointLabelsPlugin: Plugin<'line'> = {
       FALLBACK_PALETTE.text
     ctx.textAlign = 'center'
     ctx.textBaseline = 'bottom'
+    const sym = money(useBudgetStore.getState().currency).symbol
     meta.data.forEach((pt, i) => {
       const v = values[i]
       if (v == null) return
-      ctx.fillText('€' + Math.round(v), pt.x, pt.y - 10)
+      ctx.fillText(sym + Math.round(v), pt.x, pt.y - 10)
     })
     ctx.restore()
   },
@@ -132,7 +135,7 @@ function buildData(slice: Point[], palette: ChartPalette): ChartData<'line'> {
   }
 }
 
-function chartOptions(palette: ChartPalette): ChartOptions<'line'> {
+function chartOptions(palette: ChartPalette, symbol: string): ChartOptions<'line'> {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -147,7 +150,7 @@ function chartOptions(palette: ChartPalette): ChartOptions<'line'> {
         titleColor: palette.text,
         bodyColor: palette.text,
         callbacks: {
-          label: ctx => 'Balance: €' + (ctx.parsed.y ?? 0).toFixed(2),
+          label: ctx => 'Balance: ' + symbol + (ctx.parsed.y ?? 0).toFixed(2),
         },
       },
     },
@@ -158,7 +161,7 @@ function chartOptions(palette: ChartPalette): ChartOptions<'line'> {
           color: palette.tickFaint,
           font: { family: 'JetBrains Mono, monospace', size: 11 },
           padding: 8,
-          callback: v => '€' + v,
+          callback: v => symbol + v,
         },
         border: { display: false },
       },
@@ -179,6 +182,7 @@ export default function SavingsChart() {
   const savings = useMemo(() => live(allSavings), [allSavings])
   // Re-render (and rebuild chart colors) whenever the resolved theme changes.
   const resolved = useThemeStore(s => s.resolved)
+  const money = useMoney()
 
   const fullData = useMemo<Point[]>(() => {
     const balances = computeBalances(savings)
@@ -215,7 +219,7 @@ export default function SavingsChart() {
     const instance = new Chart(canvas, {
       type: 'line',
       data: buildData([], palette),
-      options: chartOptions(palette),
+      options: chartOptions(palette, money.symbol),
     })
     chartRef.current = instance
     return () => {
@@ -229,7 +233,7 @@ export default function SavingsChart() {
     const chart = chartRef.current
     if (!chart) return
     const palette = readPalette()
-    chart.options = chartOptions(palette)
+    chart.options = chartOptions(palette, money.symbol)
     if (fullData.length === 0) {
       chart.data = buildData([], palette)
       chart.update()
@@ -247,7 +251,7 @@ export default function SavingsChart() {
     // box dimensions instead of staying at zero size.
     chart.resize()
     chart.update()
-  }, [fullData, range, resolved])
+  }, [fullData, range, resolved, money.symbol])
 
   const isEmpty = savings.length === 0
   const showRange = fullData.length >= 3

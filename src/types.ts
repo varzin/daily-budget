@@ -33,6 +33,7 @@ export interface BudgetMeta {
   bank: string | null
   incomeDay: string | null
   buffer: string | null
+  currency: string | null
 }
 
 export interface BudgetState {
@@ -40,6 +41,8 @@ export interface BudgetState {
   incomeDay: number
   /** Desired positive balance to keep by month end — the green-zone cushion. */
   buffer: number
+  /** ISO 4217 currency code (e.g. "EUR"); see lib/currency.ts for the set. */
+  currency: string
   categories: Category[]
   savings: SavingsRow[]
   updatedAt: string | null

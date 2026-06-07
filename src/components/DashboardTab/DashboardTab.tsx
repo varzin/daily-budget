@@ -8,7 +8,9 @@ import {
   computeSituation,
   type Situation,
 } from '../../lib/math'
-import { fmt, fmtAmount, pluralDays } from '../../lib/utils'
+import { pluralDays } from '../../lib/utils'
+import { useMoney } from '../../lib/useMoney'
+import type { Money } from '../../lib/currency'
 import Modal from '../ui/Modal/Modal'
 import Inputs from './Inputs'
 import MetricCard from './MetricCard'
@@ -32,27 +34,27 @@ interface CardProps {
 }
 
 /** Map a situational state to the single widget's tone, headline and copy. */
-function situationProps(s: Situation, buffer: number, daysLeft: number): CardProps {
+function situationProps(s: Situation, buffer: number, daysLeft: number, money: Money): CardProps {
   const until = `${daysLeft} ${pluralDays(daysLeft)} until income`
-  const perDay = s.result.kind === 'ok' ? fmt(s.result.perDay) : '0'
+  const perDay = s.result.kind === 'ok' ? money.fmt(s.result.perDay) : '0'
 
   switch (s.state) {
     case 'ahead':
       return {
         tone: 'teal',
         label: 'Daily budget',
-        symbol: '€',
+        symbol: money.symbol,
         value: perDay,
         subtitle:
           buffer > 0
-            ? `Ahead — keeps your €${fmtAmount(buffer)} cushion · ${until}`
+            ? `Ahead — keeps your ${money.symbol}${money.fmtAmount(buffer)} cushion · ${until}`
             : `You're ahead of plan · ${until}`,
       }
     case 'onTrack':
       return {
         tone: 'green',
         label: 'Daily budget',
-        symbol: '€',
+        symbol: money.symbol,
         value: perDay,
         subtitle: `Savings stay untouched · ${until}`,
       }
@@ -60,7 +62,7 @@ function situationProps(s: Situation, buffer: number, daysLeft: number): CardPro
       return {
         tone: 'orange',
         label: 'Daily budget',
-        symbol: '€',
+        symbol: money.symbol,
         value: perDay,
         subtitle: `Dips into savings · ${until}`,
       }
@@ -70,8 +72,8 @@ function situationProps(s: Situation, buffer: number, daysLeft: number): CardPro
       return {
         tone: 'deficit',
         label: 'Over budget',
-        symbol: '−€',
-        value: fmt(deficit),
+        symbol: `−${money.symbol}`,
+        value: money.fmt(deficit),
         subtitle: `Deficit · ${days} ${pluralDays(days)} of no spending`,
       }
     }
@@ -84,6 +86,7 @@ export default function DashboardTab() {
   const buffer = useBudgetStore(s => s.buffer)
   const categories = useBudgetStore(s => s.categories)
   const savings = useBudgetStore(s => s.savings)
+  const money = useMoney()
   const [helpItem, setHelpItem] = useState<BreakdownItem | null>(null)
 
   const m = useMemo(() => {
@@ -108,7 +111,7 @@ export default function DashboardTab() {
     }
   }, [bank, incomeDay, buffer, categories, savings])
 
-  const card = situationProps(m.situation, buffer, m.daysLeft)
+  const card = situationProps(m.situation, buffer, m.daysLeft, money)
 
   // Ordered from raw building blocks → derived "free to spend" sums → the three
   // daily figures (kept here now that the dashboard shows a single widget).
@@ -227,7 +230,7 @@ export default function DashboardTab() {
                     </button>
                   </dt>
                   <dd>
-                    €{fmt(item.value)}
+                    {money.symbol}{money.fmt(item.value)}
                     {item.perDay && <span className={styles.perDayUnit}> /day</span>}
                   </dd>
                 </div>

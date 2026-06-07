@@ -98,25 +98,31 @@ function mergeCollection<T extends Entity>(
 function mergeScalars(
   local: BudgetState,
   remote: BudgetState,
-): Pick<BudgetState, 'bank' | 'incomeDay' | 'buffer' | 'meta'> {
-  const pick = (field: keyof BudgetMeta): { value: number; ts: string | null } => {
+): Pick<BudgetState, 'bank' | 'incomeDay' | 'buffer' | 'currency' | 'meta'> {
+  // Generic over the field so it works for numeric scalars (bank/incomeDay/
+  // buffer) and the string scalar (currency) alike.
+  const pick = <K extends keyof BudgetMeta>(
+    field: K,
+  ): { value: BudgetState[K]; ts: string | null } => {
     const lt = time(local.meta?.[field])
     const rt = time(remote.meta?.[field])
     // Strictly-newer wins; tie keeps local (scalars don't get conflict-copies).
     const useRemote = rt > lt
     return {
       value: useRemote ? remote[field] : local[field],
-      ts: useRemote ? remote.meta?.[field] ?? null : local.meta?.[field] ?? null,
+      ts: (useRemote ? remote.meta?.[field] : local.meta?.[field]) ?? null,
     }
   }
   const bank = pick('bank')
   const incomeDay = pick('incomeDay')
   const buffer = pick('buffer')
+  const currency = pick('currency')
   return {
     bank: bank.value,
     incomeDay: incomeDay.value,
     buffer: buffer.value,
-    meta: { bank: bank.ts, incomeDay: incomeDay.ts, buffer: buffer.ts },
+    currency: currency.value,
+    meta: { bank: bank.ts, incomeDay: incomeDay.ts, buffer: buffer.ts, currency: currency.ts },
   }
 }
 
@@ -145,6 +151,7 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
       bank: scalars.bank,
       incomeDay: scalars.incomeDay,
       buffer: scalars.buffer,
+      currency: scalars.currency,
       categories,
       savings,
       updatedAt: updatedAt ?? null,
@@ -156,7 +163,7 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
 
 /** Whether a document carries any per-entity sync metadata (i.e. post-rework). */
 function isStamped(d: BudgetState): boolean {
-  if (d.meta && (d.meta.bank || d.meta.incomeDay || d.meta.buffer)) return true
+  if (d.meta && (d.meta.bank || d.meta.incomeDay || d.meta.buffer || d.meta.currency)) return true
   if (d.categories.some((e) => e.updatedAt || e.deletedAt)) return true
   if (d.savings.some((e) => e.updatedAt || e.deletedAt)) return true
   return false
@@ -178,10 +185,12 @@ function docKey(d: BudgetState): string {
     bank: d.bank,
     incomeDay: d.incomeDay,
     buffer: d.buffer,
+    currency: d.currency,
     meta: {
       bank: d.meta?.bank ?? null,
       incomeDay: d.meta?.incomeDay ?? null,
       buffer: d.meta?.buffer ?? null,
+      currency: d.meta?.currency ?? null,
     },
     cats,
     sav,

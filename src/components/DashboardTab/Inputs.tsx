@@ -2,6 +2,7 @@ import type { ChangeEvent } from 'react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { computeDaysLeft } from '../../lib/math'
 import { formatUpdatedAgo, isStale } from '../../lib/freshness'
+import { useMoney } from '../../lib/useMoney'
 import { pluralDays } from '../../lib/utils'
 import styles from './DashboardTab.module.css'
 
@@ -9,6 +10,7 @@ export default function Inputs() {
   const bank = useBudgetStore(s => s.bank)
   const incomeDay = useBudgetStore(s => s.incomeDay)
   const bankUpdatedAt = useBudgetStore(s => s.meta.bank)
+  const money = useMoney()
 
   const day = Number(incomeDay)
   const showDaysLeft = day >= 1 && day <= 31
@@ -33,7 +35,7 @@ export default function Inputs() {
       <div className={styles.field}>
         <label htmlFor="bank">Current balance</label>
         <div className={styles.fieldInput}>
-          <span className={styles.fieldPrefix} aria-hidden="true">€</span>
+          <span className={styles.fieldPrefix} aria-hidden="true">{money.symbol}</span>
           <input
             type="number"
             id="bank"

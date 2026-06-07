@@ -1,5 +1,6 @@
 import type { BudgetState, SavingsRow } from '../types'
 import { normalizeMonth } from '../lib/utils'
+import { coerceCurrency, DEFAULT_CURRENCY } from '../lib/currency'
 
 // Same key the vanilla app used — existing users' data is preserved.
 export const STORAGE_KEY = 'budget_app_v1'
@@ -11,10 +12,11 @@ export const defaultState: BudgetState = {
   bank: 0,
   incomeDay: 26,
   buffer: DEFAULT_BUFFER,
+  currency: DEFAULT_CURRENCY,
   categories: [],
   savings: [],
   updatedAt: null,
-  meta: { bank: null, incomeDay: null, buffer: null },
+  meta: { bank: null, incomeDay: null, buffer: null, currency: null },
 }
 
 /**
@@ -55,6 +57,7 @@ export function coerceBudgetState(input: unknown): BudgetState {
     bank: Number(o.bank) || 0,
     incomeDay: Number(o.incomeDay) || defaultState.incomeDay,
     buffer: coerceBuffer(o.buffer),
+    currency: coerceCurrency(o.currency),
     categories: Array.isArray(o.categories) ? o.categories : [],
     savings: migrateSavings(o.savings),
     updatedAt: o.updatedAt ?? null,
@@ -62,6 +65,7 @@ export function coerceBudgetState(input: unknown): BudgetState {
       bank: o.meta?.bank ?? null,
       incomeDay: o.meta?.incomeDay ?? null,
       buffer: o.meta?.buffer ?? null,
+      currency: o.meta?.currency ?? null,
     },
   }
 }

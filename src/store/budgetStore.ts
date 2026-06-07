@@ -9,6 +9,7 @@ import {
   coerceBudgetState,
   coerceBuffer,
 } from './persist'
+import { coerceCurrency } from '../lib/currency'
 
 // ---------- echo-suppression flag (read by sync/dropbox.ts) ----------
 //
@@ -41,6 +42,7 @@ type BudgetActions = {
   setBank: (n: number) => void
   setIncomeDay: (n: number) => void
   setBuffer: (n: number) => void
+  setCurrency: (code: string) => void
   addCategory: (input: Omit<Category, 'id'>) => void
   updateCategory: (id: string, patch: Partial<Category>) => void
   deleteCategory: (id: string) => void
@@ -82,6 +84,10 @@ export const useBudgetStore = create<BudgetStore>()(
       setBuffer: (n) => {
         const t = now()
         set(touch({ buffer: Math.max(0, Number(n) || 0), meta: { ...get().meta, buffer: t } }))
+      },
+      setCurrency: (code) => {
+        const t = now()
+        set(touch({ currency: coerceCurrency(code), meta: { ...get().meta, currency: t } }))
       },
 
       // ---------- categories ----------
@@ -165,6 +171,7 @@ export const useBudgetStore = create<BudgetStore>()(
           bank: s.bank,
           incomeDay: s.incomeDay,
           buffer: s.buffer,
+          currency: s.currency,
           categories: s.categories,
           savings: s.savings,
           updatedAt: s.updatedAt,
@@ -206,6 +213,7 @@ export const useBudgetStore = create<BudgetStore>()(
           bank: Number(s.bank) || 0,
           incomeDay: Number(s.incomeDay) || defaultState.incomeDay,
           buffer: coerceBuffer(s.buffer),
+          currency: coerceCurrency(s.currency),
           categories: Array.isArray(s.categories) ? s.categories : [],
           savings: migrateSavings(s.savings),
           // Preserve remote's updatedAt; bump it for local imports.
@@ -216,6 +224,7 @@ export const useBudgetStore = create<BudgetStore>()(
             bank: s.meta?.bank ?? null,
             incomeDay: s.meta?.incomeDay ?? null,
             buffer: s.meta?.buffer ?? null,
+            currency: s.meta?.currency ?? null,
           },
         }
         lastChangeWasRemote = fromRemote
@@ -241,6 +250,7 @@ export const useBudgetStore = create<BudgetStore>()(
         bank: state.bank,
         incomeDay: state.incomeDay,
         buffer: state.buffer,
+        currency: state.currency,
         categories: state.categories,
         savings: state.savings,
         updatedAt: state.updatedAt,

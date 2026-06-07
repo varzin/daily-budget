@@ -3,6 +3,7 @@ import { MoreHorizontal } from 'lucide-react'
 import type { Category } from '../../types'
 import { useBudgetStore } from '../../store/budgetStore'
 import { evaluateLenient, hasMathOps } from '../../lib/evalExpr'
+import { useMoney } from '../../lib/useMoney'
 import Modal from '../ui/Modal/Modal'
 import Button from '../ui/Button/Button'
 import TextField from '../ui/TextField/TextField'
@@ -116,6 +117,7 @@ function MoreMenu({ canAllSpent, canDelete, onAllSpent, onAddNote, onDelete }: M
 }
 
 export default function CategoryEditModal({ open, category, onClose }: CategoryEditModalProps) {
+  const money = useMoney()
   const isEdit = category !== null
   const [draft, setDraft] = useState<Draft>(() => draftFrom(category))
   const noteRef = useRef<HTMLTextAreaElement>(null)
@@ -216,7 +218,7 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
           <MathField
             label="Budget"
             placeholder="0"
-            prefix="€"
+            prefix={money.symbol}
             alignRight
             fullWidth
             value={draft.budgetExpr}
@@ -225,7 +227,7 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
           <MathField
             label="Spent"
             placeholder="0"
-            prefix="€"
+            prefix={money.symbol}
             alignRight
             fullWidth
             value={draft.spentExpr}
