@@ -1,36 +1,68 @@
 import { fmt, fmtAmount } from './utils'
 
 /**
- * Currency selection (CLAUDE.md "Выбор валюты"). The chosen currency is a synced
- * scalar on the budget store; this module is the single source of truth for the
- * supported set and for turning a code into a symbol + locale-aware formatters.
+ * Currency selection (CLAUDE.md "Выбор валюты"). We keep a short curated list of
+ * ISO 4217 *codes*; everything else (symbol, fraction digits, display name) is
+ * derived from the platform `Intl` data so it's always correct and needs no
+ * hand-maintenance. Adding a currency = adding its code below.
  *
- * The app renders the symbol as a *prefix* separate from the number (a stylistic
- * choice predating this feature), so the formatters here return only the grouped
- * number — components prepend `symbol`.
+ * Number grouping follows the *device* locale (navigator.language), not the
+ * currency — the currency only decides the symbol and how many decimals. The app
+ * renders the symbol as a prefix separate from the number (a stylistic choice),
+ * so the formatters here return just the grouped number.
  */
-export interface Currency {
-  code: string
-  symbol: string
-  /** Locale used for number grouping/decimals (e.g. "1.234,56" vs "1,234.56"). */
-  locale: string
-  decimals: number
-  label: string
-}
-
-export const CURRENCIES: Currency[] = [
-  { code: 'EUR', symbol: '€', locale: 'de-DE', decimals: 2, label: 'Euro' },
-  { code: 'USD', symbol: '$', locale: 'en-US', decimals: 2, label: 'US Dollar' },
-  { code: 'GBP', symbol: '£', locale: 'en-GB', decimals: 2, label: 'British Pound' },
-  { code: 'CHF', symbol: 'CHF', locale: 'de-CH', decimals: 2, label: 'Swiss Franc' },
-  { code: 'PLN', symbol: 'zł', locale: 'pl-PL', decimals: 2, label: 'Polish Złoty' },
-  { code: 'CAD', symbol: 'C$', locale: 'en-CA', decimals: 2, label: 'Canadian Dollar' },
-  { code: 'AUD', symbol: 'A$', locale: 'en-AU', decimals: 2, label: 'Australian Dollar' },
-  { code: 'JPY', symbol: '¥', locale: 'ja-JP', decimals: 0, label: 'Japanese Yen' },
-]
+export const CURRENCY_CODES = ['EUR', 'USD', 'GBP', 'CHF', 'PLN', 'CAD', 'AUD', 'JPY'] as const
 
 export const DEFAULT_CURRENCY = 'EUR'
 
+export interface Currency {
+  code: string
+  symbol: string
+  decimals: number
+  /** Localized display name, e.g. "US Dollar". */
+  name: string
+}
+
+function intlSymbol(code: string): string {
+  try {
+    const parts = new Intl.NumberFormat('en', {
+      style: 'currency',
+      currency: code,
+      currencyDisplay: 'narrowSymbol',
+    }).formatToParts(0)
+    return parts.find((p) => p.type === 'currency')?.value ?? code
+  } catch {
+    return code
+  }
+}
+
+function intlDecimals(code: string): number {
+  try {
+    return (
+      new Intl.NumberFormat('en', { style: 'currency', currency: code }).resolvedOptions()
+        .maximumFractionDigits ?? 2
+    )
+  } catch {
+    return 2
+  }
+}
+
+function intlName(code: string): string {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'currency' }).of(code) ?? code
+  } catch {
+    return code
+  }
+}
+
+function buildCurrency(code: string): Currency {
+  return { code, symbol: intlSymbol(code), decimals: intlDecimals(code), name: intlName(code) }
+}
+
+/** The curated set, with Intl-derived display data — used to render the picker. */
+export const CURRENCIES: Currency[] = CURRENCY_CODES.map(buildCurrency)
+
+const CODE_SET = new Set<string>(CURRENCY_CODES)
 const BY_CODE = new Map(CURRENCIES.map((c) => [c.code, c]))
 
 /** Look up a currency by code, falling back to the default for unknown codes. */
@@ -40,29 +72,39 @@ export function getCurrency(code: string | null | undefined): Currency {
 
 /** Coerce a persisted/imported currency code, defaulting when absent/unknown. */
 export function coerceCurrency(value: unknown): string {
-  return typeof value === 'string' && BY_CODE.has(value) ? value : DEFAULT_CURRENCY
+  return typeof value === 'string' && CODE_SET.has(value) ? value : DEFAULT_CURRENCY
+}
+
+/** The device's locale, used for number grouping (independent of currency). */
+export function deviceLocale(): string {
+  if (typeof navigator !== 'undefined' && navigator.language) return navigator.language
+  return 'en'
 }
 
 export interface Money {
   code: string
   symbol: string
-  locale: string
   decimals: number
-  /** Grouped number with fixed decimals (no symbol). */
+  locale: string
+  /** Grouped number with the currency's decimals (no symbol). */
   fmt: (n: number) => string
   /** Grouped number without forced decimals (no symbol). */
   fmtAmount: (n: number) => string
 }
 
-/** Build symbol + formatters for a currency code (non-React contexts). */
-export function money(code: string | null | undefined): Money {
+/**
+ * Build symbol + formatters for a currency code (non-React contexts). Number
+ * grouping uses `locale` (the device locale by default); the currency supplies
+ * the symbol and decimal count.
+ */
+export function money(code: string | null | undefined, locale: string = deviceLocale()): Money {
   const c = getCurrency(code)
   return {
     code: c.code,
     symbol: c.symbol,
-    locale: c.locale,
     decimals: c.decimals,
-    fmt: (n: number) => fmt(n, c.locale, c.decimals),
-    fmtAmount: (n: number) => fmtAmount(n, c.locale, c.decimals),
+    locale,
+    fmt: (n: number) => fmt(n, locale, c.decimals),
+    fmtAmount: (n: number) => fmtAmount(n, locale, c.decimals),
   }
 }

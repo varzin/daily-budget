@@ -3,7 +3,7 @@
  * formatting, and that the chosen currency merges as a synced scalar.
  */
 import { describe, expect, it } from 'vitest'
-import { coerceCurrency, getCurrency, money, DEFAULT_CURRENCY } from '../../src/lib/currency'
+import { coerceCurrency, getCurrency, money, deviceLocale, DEFAULT_CURRENCY } from '../../src/lib/currency'
 import { mergeBudget } from '../../src/sync/merge'
 import type { BudgetState } from '../../src/types'
 
@@ -29,25 +29,30 @@ describe('getCurrency', () => {
 })
 
 describe('money formatting', () => {
-  it('uses the currency symbol and locale grouping', () => {
-    const usd = money('USD')
-    expect(usd.symbol).toBe('$')
-    expect(usd.fmt(1234.5)).toBe('1,234.50')
-
-    const eur = money('EUR')
-    expect(eur.symbol).toBe('€')
-    expect(eur.fmt(1234.5)).toBe('1.234,50')
+  it('groups numbers by the given (device) locale, not the currency', () => {
+    // Same currency, different device locales → different grouping.
+    expect(money('USD', 'en-US').fmt(1234.5)).toBe('1,234.50')
+    expect(money('USD', 'de-DE').fmt(1234.5)).toBe('1.234,50')
+    // Symbol comes from the currency regardless of locale.
+    expect(money('USD', 'de-DE').symbol).toBe('$')
+    expect(money('EUR', 'en-US').symbol).toBe('€')
   })
 
-  it('respects zero-decimal currencies', () => {
-    const jpy = money('JPY')
-    expect(jpy.symbol).toBe('¥')
-    expect(jpy.fmt(1234)).toBe('1,234')
+  it('takes decimal count from the currency (via Intl)', () => {
+    expect(money('EUR', 'en-US').decimals).toBe(2)
+    expect(money('JPY', 'en-US').decimals).toBe(0)
+    // Zero-decimal currency rounds to whole numbers.
+    expect(money('JPY', 'en-US').fmt(1234)).toBe('1,234')
+    expect(money('JPY', 'en-US').fmt(1234.6)).toBe('1,235')
   })
 
   it('fmtAmount drops forced decimals', () => {
-    expect(money('USD').fmtAmount(200)).toBe('200')
-    expect(money('EUR').fmtAmount(12.5)).toBe('12,5')
+    expect(money('USD', 'en-US').fmtAmount(200)).toBe('200')
+    expect(money('EUR', 'de-DE').fmtAmount(12.5)).toBe('12,5')
+  })
+
+  it('defaults to the device locale when none is passed', () => {
+    expect(money('USD').locale).toBe(deviceLocale())
   })
 })
 
