@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
-import { fmt, currentMonthKey } from '../../lib/utils'
+import { currentMonthKey } from '../../lib/utils'
+import { useMoney } from '../../lib/useMoney'
 import { obligatoryTotal, currentSavingsTotal } from '../../lib/math'
 import SavingsTable from './SavingsTable'
 import SavingsChart from './SavingsChart'
@@ -14,6 +15,7 @@ export default function SavingsTab() {
   const bank = useBudgetStore(s => s.bank)
   const categories = useBudgetStore(s => s.categories)
   const savings = useBudgetStore(s => s.savings)
+  const money = useMoney()
 
   const handleAddRow = () => {
     useBudgetStore.getState().addSavingsRow()
@@ -35,7 +37,7 @@ export default function SavingsTab() {
       existingNote +
       `\nThis will add a new row to the Savings table with:\n\n` +
       `  • Saved this month = current balance − fixed expenses − prior savings\n` +
-      `      €${fmt(bank)} − €${fmt(oblig)} − €${fmt(prevPool)} = €${fmt(saved)}\n\n` +
+      `      ${money.symbol}${money.fmt(bank)} − ${money.symbol}${money.fmt(oblig)} − ${money.symbol}${money.fmt(prevPool)} = ${money.symbol}${money.fmt(saved)}\n\n` +
       `  • Balance at end is auto-derived as previous row's balance + this value.\n\n` +
       `Tip: update "Current balance" on the Dashboard first if you've made any payments since.`
 

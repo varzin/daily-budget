@@ -7,9 +7,15 @@ export function live<T extends { deletedAt?: string }>(items: T[]): T[] {
   return items.filter((e) => !e.deletedAt)
 }
 
-export function fmt(n: number): string {
+export function fmt(n: number, locale = 'de-DE', decimals = 2): string {
   const v = Number(n) || 0
-  return v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return v.toLocaleString(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+}
+
+/** Money formatter without forced decimals — "200", "12,50" — for settings/labels. */
+export function fmtAmount(n: number, locale = 'de-DE', decimals = 2): string {
+  const v = Number(n) || 0
+  return v.toLocaleString(locale, { maximumFractionDigits: decimals })
 }
 
 // ISO 8601 year-month (e.g. "2026-01") — the value format used by

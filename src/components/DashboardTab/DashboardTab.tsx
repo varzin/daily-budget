@@ -5,12 +5,12 @@ import {
   obligatoryTotal,
   currentSavingsTotal,
   computeDaysLeft,
-  perDayYellow,
-  perDayGreen,
-  perDayAll,
-  type BudgetResult,
+  computeSituation,
+  type Situation,
 } from '../../lib/math'
-import { fmt, pluralDays } from '../../lib/utils'
+import { pluralDays } from '../../lib/utils'
+import { useMoney } from '../../lib/useMoney'
+import type { Money } from '../../lib/currency'
 import Modal from '../ui/Modal/Modal'
 import Inputs from './Inputs'
 import MetricCard from './MetricCard'
@@ -21,43 +21,72 @@ interface BreakdownItem {
   label: string
   value: number
   help: string
+  /** Render a "/day" unit — used for the three daily-spend figures. */
+  perDay?: boolean
 }
 
-function perDayCardProps(
-  result: BudgetResult,
-  normalSub: string,
-  tone: 'yellow' | 'green' | 'blue',
-  featured = false,
-): {
-  featured: boolean
-  tone: 'yellow' | 'green' | 'blue' | 'deficit'
+interface CardProps {
+  tone: 'teal' | 'green' | 'orange' | 'deficit'
+  label: string
   symbol: string
   value: string
   subtitle: string
-} {
-  if (result.kind === 'ok') {
-    return {
-      featured,
-      tone,
-      symbol: '€',
-      value: fmt(result.perDay),
-      subtitle: normalSub,
+}
+
+/** Map a situational state to the single widget's tone, headline and copy. */
+function situationProps(s: Situation, buffer: number, daysLeft: number, money: Money): CardProps {
+  const until = `${daysLeft} ${pluralDays(daysLeft)} until income`
+  const perDay = s.result.kind === 'ok' ? money.fmt(s.result.perDay) : '0'
+
+  switch (s.state) {
+    case 'ahead':
+      return {
+        tone: 'teal',
+        label: 'Daily budget',
+        symbol: money.symbol,
+        value: perDay,
+        subtitle:
+          buffer > 0
+            ? `Ahead — keeps your ${money.symbol}${money.fmtAmount(buffer)} cushion · ${until}`
+            : `You're ahead of plan · ${until}`,
+      }
+    case 'onTrack':
+      return {
+        tone: 'green',
+        label: 'Daily budget',
+        symbol: money.symbol,
+        value: perDay,
+        subtitle: `Savings stay untouched · ${until}`,
+      }
+    case 'intoSavings':
+      return {
+        tone: 'orange',
+        label: 'Daily budget',
+        symbol: money.symbol,
+        value: perDay,
+        subtitle: `Dips into savings · ${until}`,
+      }
+    case 'over': {
+      const deficit = s.result.kind === 'deficit' ? s.result.deficit : 0
+      const days = s.result.kind === 'deficit' ? s.result.daysNoSpend : daysLeft
+      return {
+        tone: 'deficit',
+        label: 'Over budget',
+        symbol: `−${money.symbol}`,
+        value: money.fmt(deficit),
+        subtitle: `Deficit · ${days} ${pluralDays(days)} of no spending`,
+      }
     }
-  }
-  return {
-    featured,
-    tone: 'deficit',
-    symbol: '−€',
-    value: fmt(result.deficit),
-    subtitle: `Deficit · ${result.daysNoSpend} ${pluralDays(result.daysNoSpend)} of no spending`,
   }
 }
 
 export default function DashboardTab() {
   const bank = useBudgetStore(s => s.bank)
   const incomeDay = useBudgetStore(s => s.incomeDay)
+  const buffer = useBudgetStore(s => s.buffer)
   const categories = useBudgetStore(s => s.categories)
   const savings = useBudgetStore(s => s.savings)
+  const money = useMoney()
   const [helpItem, setHelpItem] = useState<BreakdownItem | null>(null)
 
   const m = useMemo(() => {
@@ -65,6 +94,7 @@ export default function DashboardTab() {
     const oblig = obligatoryTotal(categories)
     const savingsPool = currentSavingsTotal(savings)
     const daysLeft = computeDaysLeft(Number(incomeDay))
+    const perDay = (available: number) => (daysLeft > 0 ? available / daysLeft : 0)
 
     return {
       bank: b,
@@ -74,26 +104,17 @@ export default function DashboardTab() {
       withoutSavings: b - savingsPool,
       afterObligNoSavings: b - oblig - savingsPool,
       afterObligAll: b - oblig,
-      yellow: perDayYellow(b, oblig, savingsPool, daysLeft),
-      green: perDayGreen(b, oblig, savingsPool, daysLeft),
-      all: perDayAll(b, oblig, daysLeft),
+      greenPerDay: perDay(b - oblig - savingsPool - buffer),
+      yellowPerDay: perDay(b - oblig - savingsPool),
+      allPerDay: perDay(b - oblig),
+      situation: computeSituation(b, oblig, savingsPool, buffer, daysLeft),
     }
-  }, [bank, incomeDay, categories, savings])
+  }, [bank, incomeDay, buffer, categories, savings])
 
-  const yellowProps = perDayCardProps(
-    m.yellow,
-    `Without touching savings · ${m.daysLeft} ${pluralDays(m.daysLeft)} until income`,
-    'yellow',
-  )
-  const greenProps = perDayCardProps(
-    m.green,
-    '+€200 to savings by month end',
-    'green',
-    /* featured */ true,
-  )
-  const allProps = perDayCardProps(m.all, 'Including savings', 'blue')
+  const card = situationProps(m.situation, buffer, m.daysLeft, money)
 
-  // Ordered from raw building blocks → derived "free to spend" sums.
+  // Ordered from raw building blocks → derived "free to spend" sums → the three
+  // daily figures (kept here now that the dashboard shows a single widget).
   const breakdownItems: BreakdownItem[] = [
     {
       key: 'savings',
@@ -125,6 +146,27 @@ export default function DashboardTab() {
       value: m.afterObligAll,
       help: 'What\'s left after fixed expenses if you allow yourself to dip into savings. This drives the "spend everything" daily figure. Formula: balance − fixed expenses.',
     },
+    {
+      key: 'greenPerDay',
+      label: 'Green zone (per day)',
+      value: m.greenPerDay,
+      perDay: true,
+      help: 'What you can spend each day and still keep both your savings and your cushion by your next income day. Formula: (balance − fixed − savings − cushion) ÷ days left.',
+    },
+    {
+      key: 'yellowPerDay',
+      label: 'Break even (per day)',
+      value: m.yellowPerDay,
+      perDay: true,
+      help: 'What you can spend each day while keeping savings whole (no cushion). Formula: (balance − fixed − savings) ÷ days left.',
+    },
+    {
+      key: 'allPerDay',
+      label: 'Spend everything (per day)',
+      value: m.allPerDay,
+      perDay: true,
+      help: 'What you can spend each day if you allow yourself to dip into savings. Formula: (balance − fixed) ÷ days left.',
+    },
   ]
 
   const hasData = m.bank > 0
@@ -155,31 +197,13 @@ export default function DashboardTab() {
         <>
           <div className={styles.metrics}>
             <MetricCard
-              id="metric-green"
-              featured={greenProps.featured}
-              tone={greenProps.tone}
-              label="Green zone (per day)"
-              symbol={greenProps.symbol}
-              value={greenProps.value}
-              subtitle={greenProps.subtitle}
-            />
-            <MetricCard
-              id="metric-yellow"
-              featured={yellowProps.featured}
-              tone={yellowProps.tone}
-              label="Daily spend to break even"
-              symbol={yellowProps.symbol}
-              value={yellowProps.value}
-              subtitle={yellowProps.subtitle}
-            />
-            <MetricCard
-              id="metric-all"
-              featured={allProps.featured}
-              tone={allProps.tone}
-              label="Spend everything (per day)"
-              symbol={allProps.symbol}
-              value={allProps.value}
-              subtitle={allProps.subtitle}
+              id="metric-daily"
+              featured
+              tone={card.tone}
+              label={card.label}
+              symbol={card.symbol}
+              value={card.value}
+              subtitle={card.subtitle}
             />
           </div>
 
@@ -205,7 +229,10 @@ export default function DashboardTab() {
                       <HelpCircle size={15} strokeWidth={2} />
                     </button>
                   </dt>
-                  <dd>€{fmt(item.value)}</dd>
+                  <dd>
+                    {money.symbol}{money.fmt(item.value)}
+                    {item.perDay && <span className={styles.perDayUnit}> /day</span>}
+                  </dd>
                 </div>
               ))}
             </dl>

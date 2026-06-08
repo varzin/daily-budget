@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { Plus, HelpCircle, List, ListFilter } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { obligatoryTotal, categoryAmount } from '../../lib/math'
-import { fmt, live } from '../../lib/utils'
+import { live } from '../../lib/utils'
+import { useMoney } from '../../lib/useMoney'
 import Button from '../ui/Button/Button'
 import Modal from '../ui/Modal/Modal'
 import CategoryEditModal from './CategoryEditModal'
@@ -30,6 +31,7 @@ export default function CategoriesTab() {
   const allCategories = useBudgetStore(s => s.categories)
   const categories = useMemo(() => live(allCategories), [allCategories])
   const total = useMemo(() => obligatoryTotal(categories), [categories])
+  const money = useMoney()
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' })
   const [helpOpen, setHelpOpen] = useState(false)
   const [filter, setFilter] = useState<Filter>('all')
@@ -110,9 +112,9 @@ export default function CategoriesTab() {
               aria-label={`Edit ${cat.name}`}
             >
               <span className={styles.name}>{cat.name}</span>
-              <span className={styles.num}>{fmt(cat.budget || 0)}</span>
-              <span className={styles.num}>{fmt(cat.spent || 0)}</span>
-              <span className={styles.left}>{fmt(categoryAmount(cat))}</span>
+              <span className={styles.num}>{money.fmt(cat.budget || 0)}</span>
+              <span className={styles.num}>{money.fmt(cat.spent || 0)}</span>
+              <span className={styles.left}>{money.fmt(categoryAmount(cat))}</span>
             </button>
           ))}
         </div>
@@ -123,7 +125,7 @@ export default function CategoriesTab() {
           <Plus size={16} strokeWidth={2.5} />
           <span>Add expense</span>
         </Button>
-        <span className={styles.totalValue}>€{fmt(total)}</span>
+        <span className={styles.totalValue}>{money.symbol}{money.fmt(total)}</span>
       </div>
 
       <CategoryEditModal

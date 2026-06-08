@@ -3,15 +3,21 @@ import { X } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { computeBalances, savedIndicator } from '../../lib/math'
 import type { SavedIndicator } from '../../lib/math'
-import { fmt, live } from '../../lib/utils'
+import { live } from '../../lib/utils'
+import { useMoney } from '../../lib/useMoney'
 import styles from './SavingsTable.module.css'
 
-const INDICATOR_TIERS: Array<{ tier: SavedIndicator; label: string }> = [
-  { tier: 'blue',   label: '€500+' },
-  { tier: 'green',  label: '€200+' },
-  { tier: 'yellow', label: '€1+' },
-  { tier: 'red',    label: '< €1' },
-]
+// Tier boundaries are absolute amounts in the user's currency (see savedIndicator).
+const INDICATOR_TIERS: SavedIndicator[] = ['blue', 'green', 'yellow', 'red']
+
+const tierLabel = (tier: SavedIndicator, symbol: string): string => {
+  switch (tier) {
+    case 'blue':   return `${symbol}500+`
+    case 'green':  return `${symbol}200+`
+    case 'yellow': return `${symbol}1+`
+    case 'red':    return `< ${symbol}1`
+  }
+}
 
 const indClassFor = (tier: SavedIndicator): string => {
   switch (tier) {
@@ -22,15 +28,15 @@ const indClassFor = (tier: SavedIndicator): string => {
   }
 }
 
-function IndicatorCell({ tier }: { tier: SavedIndicator }) {
+function IndicatorCell({ tier, symbol }: { tier: SavedIndicator; symbol: string }) {
   return (
     <span className={styles.indicatorWrap} tabIndex={0}>
       <span className={`${styles.indicator} ${indClassFor(tier)}`} />
       <span className={styles.indicatorTooltip} role="tooltip">
         {INDICATOR_TIERS.map(t => (
-          <span key={t.tier} className={styles.legendRow}>
-            <span className={`${styles.indicator} ${indClassFor(t.tier)}`} />
-            {t.label}
+          <span key={t} className={styles.legendRow}>
+            <span className={`${styles.indicator} ${indClassFor(t)}`} />
+            {tierLabel(t, symbol)}
           </span>
         ))}
       </span>
@@ -42,6 +48,7 @@ export default function SavingsTable() {
   const allSavings = useBudgetStore(s => s.savings)
   const savings = useMemo(() => live(allSavings), [allSavings])
   const balances = useMemo(() => computeBalances(savings), [savings])
+  const money = useMoney()
 
   if (savings.length === 0) {
     return (
@@ -95,7 +102,7 @@ export default function SavingsTable() {
           return (
             <tr key={row.id}>
               <td>
-                <IndicatorCell tier={tier} />
+                <IndicatorCell tier={tier} symbol={money.symbol} />
               </td>
               <td>
                 <input
@@ -114,7 +121,7 @@ export default function SavingsTable() {
                   onChange={e => onSavedChange(row.id, e.target.value)}
                 />
               </td>
-              <td className={styles.savingsBankCell}>€{fmt(balance)}</td>
+              <td className={styles.savingsBankCell}>{money.symbol}{money.fmt(balance)}</td>
               <td>
                 <button
                   type="button"
