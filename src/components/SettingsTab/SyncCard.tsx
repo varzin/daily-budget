@@ -1,22 +1,16 @@
-import { useEffect, useState } from 'react'
 import type { SyncStatus } from '../../types'
 import {
   connectDropbox,
   disconnectDropbox,
   syncNow,
 } from '../../sync/dropbox'
-import { useSyncStatus, relativeTime } from '../Header/SyncIndicator'
+import {
+  SYNC_STATUS_LABELS,
+  relativeTime,
+  useSyncStatus,
+  useTimeTick,
+} from '../../lib/useSyncStatus'
 import styles from './SyncCard.module.css'
-
-/** STATUS_LABELS ported from js/app.js:118-125 */
-const STATUS_LABELS: Record<SyncStatus, string> = {
-  not_connected: 'Dropbox not connected',
-  connecting: 'Connecting Dropbox…',
-  syncing: 'Dropbox syncing…',
-  synced: 'Dropbox synced',
-  offline: 'Dropbox offline',
-  error: 'Dropbox sync error',
-}
 
 function dotClass(status: SyncStatus): string {
   switch (status) {
@@ -31,13 +25,8 @@ function dotClass(status: SyncStatus): string {
 
 export default function SyncCard() {
   const status = useSyncStatus()
-
   // Periodically re-render so "X min ago" stays fresh.
-  const [, setTick] = useState(0)
-  useEffect(() => {
-    const id = window.setInterval(() => setTick((n) => n + 1), 30_000)
-    return () => window.clearInterval(id)
-  }, [])
+  useTimeTick()
 
   const handleConnect = () => {
     const proceed = window.confirm(
@@ -102,7 +91,7 @@ export default function SyncCard() {
       <div className={styles.statusRow}>
         <span className={dotClassName} />
         <span className={styles.statusText}>
-          {STATUS_LABELS[status.status]}
+          {SYNC_STATUS_LABELS[status.status]}
         </span>
         <span className={styles.statusTime}>
           {status.lastSyncAt ? `· ${relativeTime(status.lastSyncAt)}` : ''}

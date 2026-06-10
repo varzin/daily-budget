@@ -15,7 +15,7 @@ export default function App() {
   const [tab, setTab] = useState<TabName>('dashboard')
   useApplyTheme()
   useEffect(() => {
-    initSync()
+    void initSync()
     initStoragePersistence()
   }, [])
   return (

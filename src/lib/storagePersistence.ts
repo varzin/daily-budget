@@ -106,7 +106,7 @@ export function initStoragePersistence(
   storage?: StorageLike | null,
 ): void {
   let done = false
-  let unsubscribe: (() => void) | undefined
+  let unsubscribe: (() => void) | null = null
 
   const attempt = (): void => {
     if (done || !hasMeaningfulData(store.getState())) return

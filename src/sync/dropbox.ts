@@ -1,5 +1,6 @@
 import type { BudgetState, SyncInfo, SyncStatus } from '../types'
 import { useBudgetStore, wasLastChangeRemote } from '../store/budgetStore'
+import { coerceBudgetState, selectBudgetState } from '../store/persist'
 import {
   mergeBudget,
   sameDocument,
@@ -23,17 +24,7 @@ const replaceLocalState = (s: BudgetState) =>
   useBudgetStore.getState().replaceState(s, { fromRemote: true })
 
 function snapshotPayload(): BudgetState {
-  const s = getLocalState()
-  return {
-    bank: s.bank,
-    incomeDay: s.incomeDay,
-    buffer: s.buffer,
-    currency: s.currency,
-    categories: s.categories,
-    savings: s.savings,
-    updatedAt: s.updatedAt,
-    meta: s.meta,
-  }
+  return selectBudgetState(getLocalState())
 }
 
 // ---------- compare-and-swap state ----------
@@ -80,11 +71,13 @@ let lastSyncAt: number | null = null
 let lastError: string | null = null
 let account: { email?: string; name?: string } | null = null
 
-const statusListeners: Array<(s: SyncInfo) => void> = []
+const statusListeners = new Set<(s: SyncInfo) => void>()
 
-export function onSyncStatusChange(fn: (s: SyncInfo) => void): void {
-  statusListeners.push(fn)
+/** Subscribe to status updates (fires immediately). Returns an unsubscribe. */
+export function onSyncStatusChange(fn: (s: SyncInfo) => void): () => void {
+  statusListeners.add(fn)
   fn(getSyncStatus())
+  return () => statusListeners.delete(fn)
 }
 
 export function getSyncStatus(): SyncInfo {
@@ -124,10 +117,15 @@ function base64url(bytes: Uint8Array): string {
 }
 
 // ---------- OAuth: kick off ----------
+const PKCE_VERIFIER_KEY = 'dbx_pkce_verifier'
+const OAUTH_STATE_KEY = 'dbx_oauth_state'
+
 export async function connectDropbox(): Promise<void> {
   const verifier = randomString(64)
   const challenge = await sha256(verifier)
-  sessionStorage.setItem('dbx_pkce_verifier', verifier)
+  const state = randomString(32)
+  sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier)
+  sessionStorage.setItem(OAUTH_STATE_KEY, state)
   const params = new URLSearchParams({
     client_id: DROPBOX_APP_KEY,
     response_type: 'code',
@@ -135,6 +133,7 @@ export async function connectDropbox(): Promise<void> {
     code_challenge_method: 'S256',
     redirect_uri: getRedirectUri(),
     token_access_type: 'offline', // needed to get a refresh_token
+    state, // round-tripped by Dropbox; verified on callback against this session
   })
   window.location.href = `https://www.dropbox.com/oauth2/authorize?${params}`
 }
@@ -145,13 +144,18 @@ async function handleOAuthCallback(): Promise<boolean> {
   const code = url.searchParams.get('code')
   if (!code) return false
 
-  const verifier = sessionStorage.getItem('dbx_pkce_verifier')
+  const returnedState = url.searchParams.get('state')
+  const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY)
+  const expectedState = sessionStorage.getItem(OAUTH_STATE_KEY)
+  sessionStorage.removeItem(OAUTH_STATE_KEY)
   // Clear URL params immediately so a reload doesn't try to re-redeem the code
   url.searchParams.delete('code')
   url.searchParams.delete('state')
   window.history.replaceState({}, '', url.toString())
 
-  if (!verifier) {
+  if (!verifier || !expectedState || returnedState !== expectedState) {
+    // Missing session state (e.g. callback opened in another tab) or a state
+    // mismatch — refuse the code rather than redeem one we didn't request.
     setStatus('error', { lastError: 'OAuth state lost. Try connecting again.' })
     return true
   }
@@ -176,7 +180,7 @@ async function handleOAuthCallback(): Promise<boolean> {
       refresh_token: data.refresh_token,
       expires_at: Date.now() + data.expires_in * 1000,
     })
-    sessionStorage.removeItem('dbx_pkce_verifier')
+    sessionStorage.removeItem(PKCE_VERIFIER_KEY)
     // Fire-and-forget: get account info, then do the initial sync
     fetchAccountInfo().catch(() => {})
     return true
@@ -274,7 +278,17 @@ async function mergeFromRemote(): Promise<{ needsPush: boolean }> {
   }
   if (!res.ok) throw new Error(`Download failed: ${res.status}`)
 
-  const remote = JSON.parse(await res.text()) as BudgetState
+  // Never trust the remote file blindly: it may be hand-edited, truncated by a
+  // partial write, or written by a different tool. Sanitize before it can
+  // reach the merge logic or the store; a hopeless document fails the sync
+  // with a clear error instead of corrupting local data.
+  const text = await res.text()
+  let remote: BudgetState
+  try {
+    remote = coerceBudgetState(JSON.parse(text))
+  } catch {
+    throw new Error('Remote budget.json is not a valid budget document')
+  }
   lastRev = readRev(res)
 
   const local = snapshotPayload()
@@ -297,14 +311,31 @@ function readRev(res: Response): string | null {
   }
 }
 
+// ---------- operation serialization ----------
+// Remote operations run strictly one at a time: a push's CAS loop must never
+// interleave with a pull's merge step, and two pushes (debounce timer firing
+// while "Sync now" is in flight) must not race each other's rev tracking.
+let opQueue: Promise<void> = Promise.resolve()
+function enqueue(op: () => Promise<void>): Promise<void> {
+  const run = opQueue.then(op)
+  // doPull/doPush report their own errors; keep the queue alive regardless.
+  opQueue = run.catch(() => {})
+  return run
+}
+
 // ---------- pull ----------
-export async function pull(): Promise<void> {
+export function pull(): Promise<void> {
+  if (!loadTokens()) return Promise.resolve()
+  return enqueue(doPull)
+}
+
+async function doPull(): Promise<void> {
   if (!loadTokens()) return
   setStatus('syncing')
   try {
     const { needsPush } = await mergeFromRemote()
     if (needsPush) {
-      await pushNow()
+      await doPush()
     } else {
       setStatus('synced', { lastSyncAt: Date.now(), lastError: null })
     }
@@ -320,7 +351,7 @@ function schedulePush(immediate = false): void {
   if (pushTimer) clearTimeout(pushTimer)
   pushTimer = setTimeout(() => {
     pushTimer = null
-    void pushNow()
+    void enqueue(doPush)
   }, immediate ? 0 : PUSH_DEBOUNCE_MS)
 }
 
@@ -330,15 +361,15 @@ function schedulePush(immediate = false): void {
  * re-pull + merge to fold in that change, then retry against the new rev — so
  * the other device's write is never lost (CLAUDE.md layer 1 + 2).
  */
-export async function push(): Promise<void> {
+export function push(): Promise<void> {
   if (pushTimer) {
     clearTimeout(pushTimer)
     pushTimer = null
   }
-  await pushNow()
+  return enqueue(doPush)
 }
 
-async function pushNow(): Promise<void> {
+async function doPush(): Promise<void> {
   if (!loadTokens()) return
   setStatus('syncing')
   try {
@@ -462,7 +493,13 @@ export function disconnectDropbox(): void {
 }
 
 // ---------- init ----------
+let initStarted = false
+
 export async function initSync(): Promise<void> {
+  // Idempotent: App mounts effects twice under React StrictMode, and nothing
+  // good comes from redeeming the OAuth code or pulling twice in parallel.
+  if (initStarted) return
+  initStarted = true
   const wasCallback = await handleOAuthCallback()
   if (!loadTokens()) {
     setStatus('not_connected')

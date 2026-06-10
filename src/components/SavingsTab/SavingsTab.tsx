@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { currentMonthKey } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
-import { obligatoryTotal, currentSavingsTotal } from '../../lib/math'
+import { computeFinalize } from '../../lib/math'
 import SavingsTable from './SavingsTable'
 import SavingsChart from './SavingsChart'
 import styles from './SavingsTab.module.css'
@@ -22,9 +22,8 @@ export default function SavingsTab() {
   }
 
   const handleFinalize = () => {
-    const oblig = obligatoryTotal(categories)
-    const prevPool = currentSavingsTotal(savings)
-    const saved = Math.round((bank - oblig - prevPool) * 100) / 100
+    // The same formula finalizeMonth applies — shown here as a preview.
+    const { oblig, prevPool, saved } = computeFinalize(bank, categories, savings)
     const month = currentMonthKey()
 
     const existingIdx = savings.findIndex(r => r.month === month && !r.deletedAt)

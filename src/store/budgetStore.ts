@@ -1,13 +1,15 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { BudgetState, Category, SavingsRow } from '../types'
-import { uid, currentMonthKey, round2 } from '../lib/utils'
+import { uid, currentMonthKey } from '../lib/utils'
+import { computeFinalize } from '../lib/math'
 import {
   STORAGE_KEY,
   defaultState,
   migrateSavings,
   coerceBudgetState,
-  coerceBuffer,
+  normalizeBudgetState,
+  selectBudgetState,
 } from './persist'
 import { coerceCurrency } from '../lib/currency'
 
@@ -20,21 +22,6 @@ import { coerceCurrency } from '../lib/currency'
 let lastChangeWasRemote = false
 export function wasLastChangeRemote(): boolean {
   return lastChangeWasRemote
-}
-
-// ---------- math helpers used by finalizeMonth ----------
-// Tombstoned entities (deletedAt set) are excluded from all sums.
-function categoryAmount(cat: Category): number {
-  if (cat.done || cat.deletedAt) return 0
-  const budget = Number(cat.budget) || 0
-  const spent = Number(cat.spent) || 0
-  return Math.max(0, budget - spent)
-}
-function obligatoryTotal(categories: Category[]): number {
-  return categories.reduce((sum, c) => sum + categoryAmount(c), 0)
-}
-function currentSavingsTotal(savings: SavingsRow[]): number {
-  return savings.reduce((sum, r) => sum + (r.deletedAt ? 0 : Number(r.saved) || 0), 0)
 }
 
 // ---------- store types ----------
@@ -145,10 +132,7 @@ export const useBudgetStore = create<BudgetStore>()(
       },
       finalizeMonth: (bankAtFinalize) => {
         const { categories, savings } = get()
-        const bank = Number(bankAtFinalize) || 0
-        const oblig = obligatoryTotal(categories)
-        const prevPool = currentSavingsTotal(savings)
-        const saved = round2(bank - oblig - prevPool)
+        const { saved } = computeFinalize(bankAtFinalize, categories, savings)
         const month = currentMonthKey()
 
         const t = now()
@@ -166,17 +150,7 @@ export const useBudgetStore = create<BudgetStore>()(
 
       // ---------- import / export ----------
       exportData: () => {
-        const s = get()
-        const payload: BudgetState = {
-          bank: s.bank,
-          incomeDay: s.incomeDay,
-          buffer: s.buffer,
-          currency: s.currency,
-          categories: s.categories,
-          savings: s.savings,
-          updatedAt: s.updatedAt,
-          meta: s.meta,
-        }
+        const payload = selectBudgetState(get())
         const blob = new Blob([JSON.stringify(payload, null, 2)], {
           type: 'application/json',
         })
@@ -184,7 +158,9 @@ export const useBudgetStore = create<BudgetStore>()(
         const a = document.createElement('a')
         a.href = url
         a.download = `budget-${new Date().toISOString().slice(0, 10)}.json`
+        document.body.appendChild(a)
         a.click()
+        a.remove()
         URL.revokeObjectURL(url)
       },
       importData: async (file) => {
@@ -209,23 +185,11 @@ export const useBudgetStore = create<BudgetStore>()(
       // ---------- replace (remote pull or import) ----------
       replaceState: (s, opts) => {
         const fromRemote = !!opts?.fromRemote
+        const normalized = normalizeBudgetState(s)
         const next: BudgetState = {
-          bank: Number(s.bank) || 0,
-          incomeDay: Number(s.incomeDay) || defaultState.incomeDay,
-          buffer: coerceBuffer(s.buffer),
-          currency: coerceCurrency(s.currency),
-          categories: Array.isArray(s.categories) ? s.categories : [],
-          savings: migrateSavings(s.savings),
+          ...normalized,
           // Preserve remote's updatedAt; bump it for local imports.
-          updatedAt: fromRemote
-            ? (s.updatedAt ?? null)
-            : now(),
-          meta: {
-            bank: s.meta?.bank ?? null,
-            incomeDay: s.meta?.incomeDay ?? null,
-            buffer: s.meta?.buffer ?? null,
-            currency: s.meta?.currency ?? null,
-          },
+          updatedAt: fromRemote ? normalized.updatedAt : now(),
         }
         lastChangeWasRemote = fromRemote
         try {
@@ -246,16 +210,7 @@ export const useBudgetStore = create<BudgetStore>()(
       name: STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
       // Only persist the data — never the action functions.
-      partialize: (state): BudgetState => ({
-        bank: state.bank,
-        incomeDay: state.incomeDay,
-        buffer: state.buffer,
-        currency: state.currency,
-        categories: state.categories,
-        savings: state.savings,
-        updatedAt: state.updatedAt,
-        meta: state.meta,
-      }),
+      partialize: (state): BudgetState => selectBudgetState(state),
       // Run the legacy-month migration exactly once on rehydrate.
       onRehydrateStorage: () => (rehydrated) => {
         if (!rehydrated) return
