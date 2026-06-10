@@ -87,7 +87,13 @@ describe('normalizeBudgetState', () => {
     expect(s.categories).toEqual([])
     expect(s.savings).toEqual([])
     expect(s.updatedAt).toBeNull()
-    expect(s.meta).toEqual({ bank: null, incomeDay: null, buffer: null, currency: null })
+    expect(s.meta).toEqual({
+      bank: null,
+      incomeDay: null,
+      buffer: null,
+      currency: null,
+      monthlyIncome: null,
+    })
   })
 
   it('sanitizes meta timestamps to strings or null', () => {

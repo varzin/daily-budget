@@ -3,9 +3,13 @@ import { HelpCircle } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import {
   obligatoryTotal,
+  plannedObligatoryTotal,
   currentSavingsTotal,
   computeDaysLeft,
+  computeCycleLength,
   computeSituation,
+  computePace,
+  type Pace,
   type Situation,
 } from '../../lib/math'
 import { pluralDays } from '../../lib/utils'
@@ -31,6 +35,18 @@ interface CardProps {
   symbol: string
   value: string
   subtitle: string
+}
+
+/**
+ * Pace indicator line (CLAUDE.md "Future ideas" #2): how far ahead/behind the
+ * income-derived plan the user is, in money until the next income day. Null
+ * when the indicator is off (monthly income not set in Settings).
+ */
+function paceText(pace: Pace | null, money: Money): string | null {
+  if (!pace) return null
+  if (Math.abs(pace.ahead) < 1) return 'On pace with your plan'
+  const amount = `${money.symbol}${money.fmt(Math.abs(pace.ahead))}`
+  return pace.ahead > 0 ? `≈ ${amount} ahead of plan` : `≈ ${amount} behind plan`
 }
 
 /** Map a situational state to the single widget's tone, headline and copy. */
@@ -84,6 +100,7 @@ export default function DashboardTab() {
   const bank = useBudgetStore(s => s.bank)
   const incomeDay = useBudgetStore(s => s.incomeDay)
   const buffer = useBudgetStore(s => s.buffer)
+  const monthlyIncome = useBudgetStore(s => s.monthlyIncome)
   const categories = useBudgetStore(s => s.categories)
   const savings = useBudgetStore(s => s.savings)
   const money = useMoney()
@@ -108,10 +125,21 @@ export default function DashboardTab() {
       yellowPerDay: perDay(b - oblig - savingsPool),
       allPerDay: perDay(b - oblig),
       situation: computeSituation(b, oblig, savingsPool, buffer, daysLeft),
+      pace: computePace({
+        bank: b,
+        oblig,
+        plannedOblig: plannedObligatoryTotal(categories),
+        savingsPool,
+        buffer,
+        monthlyIncome,
+        daysLeft,
+        cycleDays: computeCycleLength(Number(incomeDay)),
+      }),
     }
-  }, [bank, incomeDay, buffer, categories, savings])
+  }, [bank, incomeDay, buffer, monthlyIncome, categories, savings])
 
   const card = situationProps(m.situation, buffer, m.daysLeft, money)
+  const pace = paceText(m.pace, money)
 
   // Ordered from raw building blocks → derived "free to spend" sums → the three
   // daily figures (kept here now that the dashboard shows a single widget).
@@ -167,6 +195,17 @@ export default function DashboardTab() {
       perDay: true,
       help: 'What you can spend each day if you allow yourself to dip into savings. Formula: (balance − fixed) ÷ days left.',
     },
+    ...(m.pace
+      ? [
+          {
+            key: 'pace',
+            label: 'Pace vs plan',
+            value: m.pace.ahead,
+            help:
+              'How far you are ahead (+) or behind (−) the plan derived from your monthly income: extra money you could spend before your next income day while still landing on plan. The planned daily rate is (monthly income − fixed budgets − cushion) ÷ days in the cycle; the figure is (actual daily budget − planned) × days left. Set or clear the income in Settings → Budget.',
+          },
+        ]
+      : []),
   ]
 
   const hasData = m.bank > 0
@@ -203,7 +242,16 @@ export default function DashboardTab() {
               label={card.label}
               symbol={card.symbol}
               value={card.value}
-              subtitle={card.subtitle}
+              subtitle={
+                pace ? (
+                  <>
+                    {card.subtitle}
+                    <span className={styles.paceLine}>{pace}</span>
+                  </>
+                ) : (
+                  card.subtitle
+                )
+              }
             />
           </div>
 

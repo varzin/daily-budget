@@ -97,6 +97,14 @@
   color: var(--accent);
 }
 
+/* Pace indicator — second line of the featured widget's subtitle. Same muted
+   register as the rest of the subtitle: the card tone already signals health,
+   the line just quantifies it. */
+.paceLine {
+  display: block;
+  margin-top: 6px;
+}
+
 /* ---------- Metrics grid ---------- */
 .metrics {
   display: grid;
