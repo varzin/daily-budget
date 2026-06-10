@@ -1,4 +1,5 @@
 import type { Category, SavingsRow } from '../types'
+import { round2 } from './utils'
 
 export type BudgetResult =
   | { kind: 'ok'; perDay: number }
@@ -47,6 +48,22 @@ export function obligatoryTotal(categories: Category[]): number {
 export function currentSavingsTotal(savings: SavingsRow[]): number {
   if (!savings || savings.length === 0) return 0
   return savings.reduce((sum, row) => sum + (row.deletedAt ? 0 : Number(row.saved) || 0), 0)
+}
+
+/**
+ * What "Finalize month" will record: this month's savings as the current
+ * balance minus what's still to pay and what was already set aside. Single
+ * source for both the store action and the confirmation preview.
+ */
+export function computeFinalize(
+  bank: number,
+  categories: Category[],
+  savings: SavingsRow[],
+): { oblig: number; prevPool: number; saved: number } {
+  const oblig = obligatoryTotal(categories)
+  const prevPool = currentSavingsTotal(savings)
+  const saved = round2((Number(bank) || 0) - oblig - prevPool)
+  return { oblig, prevPool, saved }
 }
 
 /** Per-row cumulative balance: balance[i] = balance[i-1] + saved[i], starting from 0. */
