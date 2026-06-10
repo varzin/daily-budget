@@ -1,4 +1,8 @@
 export function uid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  // Non-secure-context fallback (crypto.randomUUID requires HTTPS/localhost).
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 }
 
