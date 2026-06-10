@@ -216,10 +216,12 @@ export default function SavingsChart() {
     const canvas = canvasRef.current
     if (!canvas) return
     const palette = readPalette()
+    // Created with a placeholder symbol: the update effect below runs right
+    // after mount and installs the real options (palette + currency symbol).
     const instance = new Chart(canvas, {
       type: 'line',
       data: buildData([], palette),
-      options: chartOptions(palette, money.symbol),
+      options: chartOptions(palette, ''),
     })
     chartRef.current = instance
     return () => {
