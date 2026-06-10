@@ -69,3 +69,14 @@
   transform: translateX(16px);
   background: var(--on-accent);
 }
+
+/* a11y: the visual switch stays 38×22, but on touch devices the (invisible)
+   checkbox input is stretched to a ≥44×44 hit area around it. */
+@media (pointer: coarse) {
+  .input {
+    top: -11px;
+    bottom: -11px;
+    left: -3px;
+    right: -3px;
+  }
+}

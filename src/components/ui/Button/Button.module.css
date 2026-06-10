@@ -72,3 +72,12 @@
   color: var(--text);
   background: var(--bg-card);
 }
+
+/* a11y: comfortable touch targets on touch devices (≥44px) — desktop keeps
+   the denser look, coarse pointers get a taller hit area. */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

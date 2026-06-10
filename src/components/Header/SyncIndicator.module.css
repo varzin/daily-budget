@@ -30,3 +30,13 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* a11y: expand the hit area to 44×44 on touch devices without changing the
+   26px visual footprint. */
+@media (pointer: coarse) {
+  .indicator::after {
+    content: '';
+    position: absolute;
+    inset: -9px;
+  }
+}

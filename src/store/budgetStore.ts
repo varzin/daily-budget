@@ -34,10 +34,12 @@ type BudgetActions = {
   addCategory: (input: Omit<Category, 'id'>) => void
   updateCategory: (id: string, patch: Partial<Category>) => void
   deleteCategory: (id: string) => void
+  restoreCategory: (id: string) => void
   toggleCategoryDone: (id: string) => void
   addSavingsRow: () => void
   updateSavingsRow: (id: string, patch: Partial<SavingsRow>) => void
   deleteSavingsRow: (id: string) => void
+  restoreSavingsRow: (id: string) => void
   finalizeMonth: (bankAtFinalize: number) => void
   exportData: () => void
   importData: (file: File) => Promise<void>
@@ -108,6 +110,19 @@ export const useBudgetStore = create<BudgetStore>()(
           ),
         }))
       },
+      // Undo of a delete (toast action): drop the tombstone and bump
+      // updatedAt, so the restore wins the entity merge against the stale
+      // tombstoned copy on other devices.
+      restoreCategory: (id) => {
+        const t = now()
+        set(touch({
+          categories: get().categories.map((c) => {
+            if (c.id !== id) return c
+            const { deletedAt: _d, ...rest } = c
+            return { ...rest, updatedAt: t }
+          }),
+        }))
+      },
       toggleCategoryDone: (id) => {
         const t = now()
         set(touch({
@@ -136,6 +151,16 @@ export const useBudgetStore = create<BudgetStore>()(
           savings: get().savings.map((r) =>
             r.id === id ? { ...r, deletedAt: t, updatedAt: t } : r,
           ),
+        }))
+      },
+      restoreSavingsRow: (id) => {
+        const t = now()
+        set(touch({
+          savings: get().savings.map((r) => {
+            if (r.id !== id) return r
+            const { deletedAt: _d, ...rest } = r
+            return { ...rest, updatedAt: t }
+          }),
         }))
       },
       finalizeMonth: (bankAtFinalize) => {

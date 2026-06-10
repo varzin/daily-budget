@@ -234,3 +234,18 @@
 .hint em { font-family: var(--display); font-style: italic; color: var(--text); }
 .hint strong { color: var(--text); font-weight: 500; }
 .hint .mono { font-family: var(--mono); color: var(--text); }
+
+/* a11y: comfortable touch targets (≥44px) on touch devices. The help button
+   keeps its 28px visual size — the hit area is expanded invisibly. */
+@media (pointer: coarse) {
+  .helpBtn { position: relative; }
+  .helpBtn::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+  .viewToggle button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { SyncStatus } from '../../types'
 import {
   connectDropbox,
@@ -10,7 +11,10 @@ import {
   useSyncStatus,
   useTimeTick,
 } from '../../lib/useSyncStatus'
+import ConfirmModal from '../ui/ConfirmModal/ConfirmModal'
 import styles from './SyncCard.module.css'
+
+type Dialog = 'none' | 'connect' | 'disconnect'
 
 function dotClass(status: SyncStatus): string {
   switch (status) {
@@ -27,28 +31,42 @@ export default function SyncCard() {
   const status = useSyncStatus()
   // Periodically re-render so "X min ago" stays fresh.
   useTimeTick()
+  const [dialog, setDialog] = useState<Dialog>('none')
+  const closeDialog = () => setDialog('none')
 
-  const handleConnect = () => {
-    const proceed = window.confirm(
-      'Connect to Dropbox?\n\n' +
-        'Your budget will be saved to a private "Apps/daily-budget" folder in your Dropbox. ' +
-        'If both this device and your Dropbox already contain data, the newer version wins. ' +
-        'Export a backup first if you want a safety copy.',
-    )
-    if (proceed) {
-      void connectDropbox()
-    }
-  }
-
-  const handleDisconnect = () => {
-    if (
-      window.confirm(
-        'Disconnect from Dropbox? Local data stays on this device. The file in Dropbox is not deleted.',
-      )
-    ) {
-      disconnectDropbox()
-    }
-  }
+  // Both confirmations share the themed dialog (no window.confirm).
+  const dialogs = (
+    <>
+      <ConfirmModal
+        open={dialog === 'connect'}
+        onClose={closeDialog}
+        title="Connect to Dropbox?"
+        confirmLabel="Connect"
+        onConfirm={() => void connectDropbox()}
+      >
+        <p>
+          Your budget will be saved to a private{' '}
+          <strong>Apps/daily-budget</strong> folder in your Dropbox.
+        </p>
+        <p>
+          If both this device and your Dropbox already contain data, the newer
+          version wins. Export a backup first if you want a safety copy.
+        </p>
+      </ConfirmModal>
+      <ConfirmModal
+        open={dialog === 'disconnect'}
+        onClose={closeDialog}
+        title="Disconnect from Dropbox?"
+        confirmLabel="Disconnect"
+        danger
+        onConfirm={disconnectDropbox}
+      >
+        <p>
+          Local data stays on this device. The file in Dropbox is not deleted.
+        </p>
+      </ConfirmModal>
+    </>
+  )
 
   if (!status.connected) {
     return (
@@ -68,11 +86,12 @@ export default function SyncCard() {
           <button
             type="button"
             className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={handleConnect}
+            onClick={() => setDialog('connect')}
           >
             Connect Dropbox
           </button>
         </div>
+        {dialogs}
       </div>
     )
   }
@@ -118,7 +137,7 @@ export default function SyncCard() {
         <button
           type="button"
           className={`${styles.btn} ${styles.btnDanger}`}
-          onClick={handleDisconnect}
+          onClick={() => setDialog('disconnect')}
         >
           Disconnect
         </button>
@@ -126,6 +145,7 @@ export default function SyncCard() {
       {showError && (
         <p className={styles.syncError}>{status.lastError}</p>
       )}
+      {dialogs}
     </div>
   )
 }

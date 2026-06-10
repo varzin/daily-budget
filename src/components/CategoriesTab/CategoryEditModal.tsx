@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
 import type { Category } from '../../types'
 import { useBudgetStore } from '../../store/budgetStore'
+import { showToast } from '../../store/toastStore'
 import { evaluateLenient, hasMathOps } from '../../lib/evalExpr'
 import { useMoney } from '../../lib/useMoney'
 import Modal from '../ui/Modal/Modal'
@@ -154,12 +155,18 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
     onClose()
   }
 
+  // No blocking confirm — delete right away and offer Undo in a toast
+  // (the delete is a tombstone, so undo simply restores the row).
   const onDelete = () => {
     if (!isEdit || !category) return
-    if (window.confirm(`Delete "${category.name}"?`)) {
-      useBudgetStore.getState().deleteCategory(category.id)
-      onClose()
-    }
+    const { id, name } = category
+    useBudgetStore.getState().deleteCategory(id)
+    onClose()
+    showToast({
+      message: `Deleted “${name}”`,
+      actionLabel: 'Undo',
+      onAction: () => useBudgetStore.getState().restoreCategory(id),
+    })
   }
 
   const onAllSpent = () => {

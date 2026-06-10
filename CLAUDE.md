@@ -102,9 +102,17 @@ storage», Safari ITP вычищает его так же (7 дней без о�
    подключить синк / скачать бэкап тем, кто синк не подключил.
 
 ### Замена нативных диалогов
-`confirm()`/`alert()` (удаление категории/строки, Finalize month, connect/
-disconnect Dropbox, ошибки импорта) → внутренний темизируемый `Modal` + тосты с
-Undo. Консистентный mobile-вид, доступность для screen reader, отмена удалений.
+**Статус: реализовано** (ветка `claude/remaining-features-zzi7ou`). Все
+`confirm()`/`alert()` убраны. Подтверждения (Finalize month с превью формулы,
+connect/disconnect Dropbox) — `ui/ConfirmModal` поверх общего `Modal` (focus
+trap, мобильный sheet). Удаления (категория, строка сбережений) — **без
+блокирующего подтверждения**: мгновенный tombstone + тост с Undo;
+`restoreCategory`/`restoreSavingsRow` снимают tombstone и бампают `updatedAt`,
+поэтому restore выигрывает merge у устаревшей tombstone-копии с другого
+устройства. Ошибки/успех импорта — тосты. Тост-система: `store/toastStore.ts`
+(очередь ≤3, авто-дисмисс, error-тон живёт дольше) + `ui/Toast/Toasts` (стек над
+нижней навигацией, `role="status"`), смонтирован в `App`. Тесты —
+`test/storage/toast.test.ts`, `test/storage/restore.test.ts`.
 
 ### «Актуально на <дата>»
 **Статус: реализовано** (ветка `daily-limit-improvements`). `src/lib/freshness.ts`
@@ -119,9 +127,19 @@ Undo. Консистентный mobile-вид, доступность для sc
 
 ### Доступность (a11y)
 - ✅ убрать `maximum-scale=1.0` из viewport — сделано (ветка рефакторинга);
-- довести тач-таргеты до ≥44×44px (Toggle, иконки-тоглы, sm-кнопки, SyncIndicator);
+- ✅ тач-таргеты ≥44×44px — сделано (ветка `claude/remaining-features-zzi7ou`):
+  везде под `@media (pointer: coarse)`, чтобы не раздувать десктоп; визуальный
+  размер сохранён — мелкие иконки получают невидимое расширение хит-зоны
+  (`::after`/растянутый невидимый input у Toggle), кнопки — `min-height: 44px`.
+  Покрыты: Button (вкл. sm), Toggle, SyncIndicator, чип BackupNudge, Segmented,
+  иконки-тоглы вкладок (chart/filter), `rowDel`, help-кнопки, кнопки карточек
+  Settings;
 - ✅ focus-trap + возврат фокуса на триггер в `Modal` — сделано;
-- цифровая клавиатура для денежных полей (компромисс с MathField-выражениями).
+- ✅ цифровая клавиатура для денежных полей — сделано: все «чистые» денежные
+  поля имеют `inputMode="decimal"` (баланс, буфер, доход, savings-строка) /
+  `numeric` (день дохода). Компромисс: `MathField` (Budget/Spent в модалке
+  категории) сознательно остаётся с полной клавиатурой — decimal-клавиатура
+  iOS не имеет операторов `+−*`, выражения стали бы недоступны на мобильном.
 
 ### Рефакторинг 2026-06 (безопасность/стабильность)
 Ветка `claude/app-refactoring-anibo7`. Ключевое:

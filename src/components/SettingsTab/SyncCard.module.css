@@ -119,3 +119,8 @@
 }
 .btnPrimary:hover { background: var(--accent-hover); }
 .btnDanger:hover { color: var(--red); border-color: var(--red); }
+
+/* a11y: comfortable touch targets (≥44px) on touch devices. */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+}
