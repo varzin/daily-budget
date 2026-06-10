@@ -108,11 +108,25 @@ Undo. Консистентный mobile-вид, доступность для sc
 между вводами прогноз устаревает, но выглядит достоверным.
 
 ### Доступность (a11y)
-- убрать `maximum-scale=1.0` из viewport — сейчас блокирует зум (нарушение WCAG
-  1.4.4), чинится одной строкой;
+- ✅ убрать `maximum-scale=1.0` из viewport — сделано (ветка рефакторинга);
 - довести тач-таргеты до ≥44×44px (Toggle, иконки-тоглы, sm-кнопки, SyncIndicator);
-- focus-trap + возврат фокуса на триггер в `Modal` (сейчас Tab уходит под backdrop);
+- ✅ focus-trap + возврат фокуса на триггер в `Modal` — сделано;
 - цифровая клавиатура для денежных полей (компромисс с MathField-выражениями).
+
+### Рефакторинг 2026-06 (безопасность/стабильность)
+Ветка `claude/app-refactoring-anibo7`. Ключевое:
+- **Единый слой нормализации** — `store/persist.ts`: `normalizeBudgetState` /
+  `migrateCategories` / `migrateSavings` санитизируют ВСЁ недоверенное
+  (импорт-файл, удалённый `budget.json`, `replaceState`); `selectBudgetState` —
+  единственный селектор data-слайса (partialize / export / sync snapshot).
+  Тесты — `test/storage/coerce.test.ts`, `test/e2e/corruptRemote.e2e.test.ts`.
+- **Sync-движок**: удалённый документ проходит `coerceBudgetState` до merge;
+  OAuth с проверкой `state`; операции pull/push сериализованы одной очередью
+  (CAS-циклы не перемешиваются); `onSyncStatusChange` возвращает unsubscribe
+  (общий хук `lib/useSyncStatus.ts`); `initSync` идемпотентен (StrictMode).
+- **UI**: ErrorBoundary вокруг приложения; типизированный `lib/pwa.ts` вместо
+  `window.__pwaUpdateSW`; `uid()` через `crypto.randomUUID`.
+- **ESLint** (flat config, recommended + react-hooks) — `npm run lint`, шаг в CI.
 
 ### Выбор валюты
 **Статус: реализовано** (ветка `daily-limit-improvements`). Валюта — синхронизируемый
