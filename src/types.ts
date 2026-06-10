@@ -34,6 +34,7 @@ export interface BudgetMeta {
   incomeDay: string | null
   buffer: string | null
   currency: string | null
+  monthlyIncome: string | null
 }
 
 export interface BudgetState {
@@ -41,6 +42,12 @@ export interface BudgetState {
   incomeDay: number
   /** Desired positive balance to keep by month end — the green-zone cushion. */
   buffer: number
+  /**
+   * Optional monthly income, used ONLY for the dashboard pace indicator
+   * (planned daily rate vs the actual one). 0 means "not set" — the indicator
+   * is hidden and nothing else depends on this field.
+   */
+  monthlyIncome: number
   /** ISO 4217 currency code (e.g. "EUR"); see lib/currency.ts for the set. */
   currency: string
   categories: Category[]

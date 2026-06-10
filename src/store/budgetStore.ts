@@ -30,6 +30,7 @@ type BudgetActions = {
   setIncomeDay: (n: number) => void
   setBuffer: (n: number) => void
   setCurrency: (code: string) => void
+  setMonthlyIncome: (n: number) => void
   addCategory: (input: Omit<Category, 'id'>) => void
   updateCategory: (id: string, patch: Partial<Category>) => void
   deleteCategory: (id: string) => void
@@ -75,6 +76,13 @@ export const useBudgetStore = create<BudgetStore>()(
       setCurrency: (code) => {
         const t = now()
         set(touch({ currency: coerceCurrency(code), meta: { ...get().meta, currency: t } }))
+      },
+      setMonthlyIncome: (n) => {
+        const t = now()
+        set(touch({
+          monthlyIncome: Math.max(0, Number(n) || 0),
+          meta: { ...get().meta, monthlyIncome: t },
+        }))
       },
 
       // ---------- categories ----------

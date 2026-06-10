@@ -13,10 +13,11 @@ export const defaultState: BudgetState = {
   incomeDay: 26,
   buffer: DEFAULT_BUFFER,
   currency: DEFAULT_CURRENCY,
+  monthlyIncome: 0,
   categories: [],
   savings: [],
   updatedAt: null,
-  meta: { bank: null, incomeDay: null, buffer: null, currency: null },
+  meta: { bank: null, incomeDay: null, buffer: null, currency: null, monthlyIncome: null },
 }
 
 /** The synced/persisted data slice of the store — no action functions. */
@@ -26,6 +27,7 @@ export function selectBudgetState(s: BudgetState): BudgetState {
     incomeDay: s.incomeDay,
     buffer: s.buffer,
     currency: s.currency,
+    monthlyIncome: s.monthlyIncome,
     categories: s.categories,
     savings: s.savings,
     updatedAt: s.updatedAt,
@@ -116,6 +118,7 @@ function coerceMeta(meta: unknown): BudgetMeta {
     incomeDay: stringOrNull(m.incomeDay),
     buffer: stringOrNull(m.buffer),
     currency: stringOrNull(m.currency),
+    monthlyIncome: stringOrNull(m.monthlyIncome),
   }
 }
 
@@ -130,6 +133,7 @@ export function normalizeBudgetState(input: Partial<BudgetState>): BudgetState {
     incomeDay: finiteNumber(input.incomeDay) || defaultState.incomeDay,
     buffer: coerceBuffer(input.buffer),
     currency: coerceCurrency(input.currency),
+    monthlyIncome: coerceMonthlyIncome(input.monthlyIncome),
     categories: migrateCategories(input.categories),
     savings: migrateSavings(input.savings),
     updatedAt: stringOrNull(input.updatedAt),
@@ -161,4 +165,14 @@ export function coerceBuffer(value: unknown): number {
   if (value === undefined || value === null || value === '') return DEFAULT_BUFFER
   const n = Number(value)
   return Number.isFinite(n) ? Math.max(0, n) : DEFAULT_BUFFER
+}
+
+/**
+ * Coerce a persisted/imported monthly income. Unlike the buffer there is no
+ * meaningful default: 0 means "not set" (pace indicator hidden), so anything
+ * absent, non-numeric or negative collapses to 0.
+ */
+export function coerceMonthlyIncome(value: unknown): number {
+  const n = Number(value)
+  return Number.isFinite(n) ? Math.max(0, n) : 0
 }

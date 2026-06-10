@@ -34,6 +34,27 @@ export function computeDaysLeft(incomeDay: number, today: Date = new Date()): nu
   return Math.max(1, diff)
 }
 
+/**
+ * Length of the current income cycle in days: from the previous income day to
+ * the next one (28–31 depending on the months involved). Companion to
+ * computeDaysLeft, which counts the remaining part of the same cycle.
+ */
+export function computeCycleLength(incomeDay: number, today: Date = new Date()): number {
+  if (!incomeDay || incomeDay < 1 || incomeDay > 31) return 0
+
+  const y = today.getFullYear()
+  const m = today.getMonth()
+  const d = today.getDate()
+
+  const prev = d < incomeDay ? safeDate(y, m - 1, incomeDay) : safeDate(y, m, incomeDay)
+  const next = d < incomeDay ? safeDate(y, m, incomeDay) : safeDate(y, m + 1, incomeDay)
+
+  const msPerDay = 24 * 60 * 60 * 1000
+  const startOfPrev = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate()).getTime()
+  const startOfNext = new Date(next.getFullYear(), next.getMonth(), next.getDate()).getTime()
+  return Math.max(1, Math.round((startOfNext - startOfPrev) / msPerDay))
+}
+
 export function categoryAmount(cat: Category): number {
   if (cat.done || cat.deletedAt) return 0
   const budget = Number(cat.budget) || 0
@@ -43,6 +64,20 @@ export function categoryAmount(cat: Category): number {
 
 export function obligatoryTotal(categories: Category[]): number {
   return categories.reduce((sum, c) => sum + categoryAmount(c), 0)
+}
+
+/**
+ * The full fixed-expense plan for the cycle: the sum of category budgets,
+ * regardless of what's been spent or marked paid (a paid bill is still part of
+ * the month's plan). Tombstoned categories are excluded. This is the baseline
+ * the pace indicator measures against, unlike obligatoryTotal which is the
+ * remaining-to-pay amount.
+ */
+export function plannedObligatoryTotal(categories: Category[]): number {
+  return categories.reduce(
+    (sum, c) => sum + (c.deletedAt ? 0 : Math.max(0, Number(c.budget) || 0)),
+    0,
+  )
 }
 
 export function currentSavingsTotal(savings: SavingsRow[]): number {
@@ -143,6 +178,49 @@ export function computeSituation(
   // Below the savings line: feature the "spend everything" figure — it's an ok
   // perDay while fixed expenses are still covered, and a deficit once they're not.
   return { state: afterFixed >= 0 ? 'intoSavings' : 'over', result: perDayAll(bank, oblig, daysLeft) }
+}
+
+export interface Pace {
+  /** The planned daily rate: (income − planned fixed − cushion) / cycle length. */
+  perDayPlan: number
+  /** The actual allowable daily rate today — same formula as the green zone. */
+  perDayActual: number
+  /**
+   * Money ahead (+) / behind (−) of plan: (actual − plan) × days left, i.e.
+   * how much extra can be spent before the next income while staying on plan.
+   */
+  ahead: number
+}
+
+/**
+ * Pace indicator (CLAUDE.md "Future ideas" #2): compare the actual allowable
+ * daily rate against the planned one derived from the optional monthly income.
+ * Stateless on purpose — no snapshots or anchors, so a corrected balance or a
+ * mid-day re-entry instantly re-derives the result like everything else.
+ * Returns null when the income isn't set (0) or the cycle maths is degenerate.
+ */
+export function computePace(args: {
+  bank: number
+  /** Remaining fixed expenses (obligatoryTotal). */
+  oblig: number
+  /** Full fixed-expense plan for the cycle (plannedObligatoryTotal). */
+  plannedOblig: number
+  savingsPool: number
+  buffer: number
+  monthlyIncome: number
+  daysLeft: number
+  cycleDays: number
+}): Pace | null {
+  const { bank, oblig, plannedOblig, savingsPool, buffer, monthlyIncome, daysLeft, cycleDays } = args
+  if (!(monthlyIncome > 0) || daysLeft <= 0 || cycleDays <= 0) return null
+
+  const perDayPlan = (monthlyIncome - plannedOblig - buffer) / cycleDays
+  const perDayActual = (bank - oblig - savingsPool - buffer) / daysLeft
+  return {
+    perDayPlan,
+    perDayActual,
+    ahead: round2((perDayActual - perDayPlan) * daysLeft),
+  }
 }
 
 export function savedIndicator(saved: number): SavedIndicator {
