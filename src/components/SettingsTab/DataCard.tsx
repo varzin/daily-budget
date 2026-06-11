@@ -1,13 +1,13 @@
 import { useRef, type ChangeEvent } from 'react'
 import { useBudgetStore } from '../../store/budgetStore'
+import { showToast } from '../../store/toastStore'
 import styles from './DataCard.module.css'
 
 /**
  * Manual export / import card.
  * - "Export JSON" calls exportData() which triggers a download.
  * - "Import JSON" opens a hidden file picker, then hands the file to
- *   importData(file). Errors surface via window.alert (matching the
- *   coarse UX of the original prototype's `importData` flow).
+ *   importData(file). Outcomes surface via toasts.
  */
 export default function DataCard() {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -27,9 +27,10 @@ export default function DataCard() {
     if (!file) return
     try {
       await useBudgetStore.getState().importData(file)
+      showToast({ message: 'Import complete' })
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      window.alert(`Import failed: ${msg}`)
+      showToast({ message: `Import failed: ${msg}`, tone: 'error' })
     }
   }
 

@@ -34,3 +34,8 @@
   font-family: inherit;
 }
 .btn:hover { color: var(--text); border-color: var(--accent); }
+
+/* a11y: comfortable touch targets (≥44px) on touch devices. */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+}

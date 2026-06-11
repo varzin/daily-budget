@@ -64,3 +64,9 @@
   .actions { justify-content: stretch; }
   .actions .btn { flex: 1; }
 }
+
+/* a11y: comfortable touch targets (≥44px) on touch devices. */
+@media (pointer: coarse) {
+  .chip { min-height: 44px; }
+  .btn { min-height: 44px; }
+}

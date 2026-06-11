@@ -6,6 +6,7 @@ import DashboardTab from './components/DashboardTab/DashboardTab'
 import CategoriesTab from './components/CategoriesTab/CategoriesTab'
 import SavingsTab from './components/SavingsTab/SavingsTab'
 import SettingsTab from './components/SettingsTab/SettingsTab'
+import Toasts from './components/ui/Toast/Toasts'
 import { initSync } from './sync/dropbox'
 import { initStoragePersistence } from './lib/storagePersistence'
 import { useApplyTheme } from './store/themeStore'
@@ -29,6 +30,7 @@ export default function App() {
         {tab === 'settings' && <SettingsTab />}
       </main>
       <BottomNav active={tab} onChange={setTab} />
+      <Toasts />
     </div>
   )
 }

@@ -83,3 +83,24 @@
 }
 .btnPrimary:hover { background: var(--accent-hover); }
 
+
+/* Finalize-month dialog body */
+.finalizeWarning {
+  color: var(--orange);
+}
+.finalizeFormula {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 10px 12px;
+  background: var(--bg-elev);
+  border-radius: 8px;
+}
+
+/* a11y: comfortable touch targets on touch devices (≥44px). */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .chartToggle button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

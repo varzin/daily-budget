@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { X } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
+import { showToast } from '../../store/toastStore'
 import { computeBalances, savedIndicator } from '../../lib/math'
 import type { SavedIndicator } from '../../lib/math'
 import { live } from '../../lib/utils'
@@ -79,9 +80,15 @@ export default function SavingsTable() {
   const onSavedChange = (id: string, value: string) => {
     useBudgetStore.getState().updateSavingsRow(id, { saved: parseFloat(value) || 0 })
   }
-  const onDelete = (id: string) => {
-    if (!confirm('Delete row?')) return
+  // Delete immediately with an Undo toast instead of a blocking confirm —
+  // the delete is a tombstone, so undo simply restores the row.
+  const onDelete = (id: string, month: string) => {
     useBudgetStore.getState().deleteSavingsRow(id)
+    showToast({
+      message: month ? `Deleted ${month}` : 'Row deleted',
+      actionLabel: 'Undo',
+      onAction: () => useBudgetStore.getState().restoreSavingsRow(id),
+    })
   }
 
   return (
@@ -116,6 +123,7 @@ export default function SavingsTable() {
                 <input
                   className={styles.savingsInput}
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   value={row.saved}
                   onChange={e => onSavedChange(row.id, e.target.value)}
@@ -126,7 +134,7 @@ export default function SavingsTable() {
                 <button
                   type="button"
                   className={styles.rowDel}
-                  onClick={() => onDelete(row.id)}
+                  onClick={() => onDelete(row.id, row.month)}
                   aria-label="Delete row"
                 >
                   <X size={18} strokeWidth={2} aria-hidden="true" />

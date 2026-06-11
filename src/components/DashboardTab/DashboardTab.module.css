@@ -283,3 +283,14 @@
   .emptyTitle { font-size: 30px; }
   .empty { padding: 32px 4px 16px; }
 }
+
+/* a11y: the (?) help buttons keep their 22px visual size; on touch devices
+   the hit area is expanded invisibly to 44×44. */
+@media (pointer: coarse) {
+  .helpBtn { position: relative; }
+  .helpBtn::after {
+    content: '';
+    position: absolute;
+    inset: -11px;
+  }
+}

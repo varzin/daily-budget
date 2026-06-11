@@ -68,3 +68,8 @@
   width: 16px;
   height: 16px;
 }
+
+/* a11y: comfortable touch targets (≥44px) on touch devices. */
+@media (pointer: coarse) {
+  .option { min-height: 44px; }
+}

@@ -4,6 +4,7 @@ import { useBudgetStore } from '../../store/budgetStore'
 import { currentMonthKey } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
 import { computeFinalize } from '../../lib/math'
+import ConfirmModal from '../ui/ConfirmModal/ConfirmModal'
 import SavingsTable from './SavingsTable'
 import SavingsChart from './SavingsChart'
 import styles from './SavingsTab.module.css'
@@ -12,6 +13,7 @@ type View = 'table' | 'chart'
 
 export default function SavingsTab() {
   const [view, setView] = useState<View>('table')
+  const [finalizeOpen, setFinalizeOpen] = useState(false)
   const bank = useBudgetStore(s => s.bank)
   const categories = useBudgetStore(s => s.categories)
   const savings = useBudgetStore(s => s.savings)
@@ -21,28 +23,10 @@ export default function SavingsTab() {
     useBudgetStore.getState().addSavingsRow()
   }
 
-  const handleFinalize = () => {
-    // The same formula finalizeMonth applies — shown here as a preview.
-    const { oblig, prevPool, saved } = computeFinalize(bank, categories, savings)
-    const month = currentMonthKey()
-
-    const existingIdx = savings.findIndex(r => r.month === month && !r.deletedAt)
-    const existingNote = existingIdx >= 0
-      ? `\n⚠ An entry for ${month} already exists — its "Saved this month" will be overwritten.\n`
-      : ''
-
-    const message =
-      `Finalize ${month}?\n` +
-      existingNote +
-      `\nThis will add a new row to the Savings table with:\n\n` +
-      `  • Saved this month = current balance − fixed expenses − prior savings\n` +
-      `      ${money.symbol}${money.fmt(bank)} − ${money.symbol}${money.fmt(oblig)} − ${money.symbol}${money.fmt(prevPool)} = ${money.symbol}${money.fmt(saved)}\n\n` +
-      `  • Balance at end is auto-derived as previous row's balance + this value.\n\n` +
-      `Tip: update "Current balance" on the Dashboard first if you've made any payments since.`
-
-    if (!confirm(message)) return
-    useBudgetStore.getState().finalizeMonth(bank)
-  }
+  // The same formula finalizeMonth applies — shown in the dialog as a preview.
+  const { oblig, prevPool, saved } = computeFinalize(bank, categories, savings)
+  const month = currentMonthKey()
+  const monthExists = savings.some(r => r.month === month && !r.deletedAt)
 
   return (
     <section
@@ -111,7 +95,7 @@ export default function SavingsTab() {
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary}`}
-          onClick={handleFinalize}
+          onClick={() => setFinalizeOpen(true)}
         >
           Finalize month
         </button>
@@ -120,6 +104,35 @@ export default function SavingsTab() {
           <span>Row</span>
         </button>
       </div>
+
+      <ConfirmModal
+        open={finalizeOpen}
+        onClose={() => setFinalizeOpen(false)}
+        title={`Finalize ${month}?`}
+        confirmLabel="Finalize"
+        onConfirm={() => useBudgetStore.getState().finalizeMonth(bank)}
+      >
+        {monthExists && (
+          <p className={styles.finalizeWarning}>
+            ⚠ An entry for {month} already exists — its “Saved this month” will
+            be overwritten.
+          </p>
+        )}
+        <p>
+          This records what this month left over as savings:{' '}
+          <strong>current balance − fixed expenses − prior savings</strong>.
+        </p>
+        <p className={styles.finalizeFormula}>
+          {money.symbol}{money.fmt(bank)} − {money.symbol}{money.fmt(oblig)} −{' '}
+          {money.symbol}{money.fmt(prevPool)} ={' '}
+          <strong>{money.symbol}{money.fmt(saved)}</strong>
+        </p>
+        <p>
+          “Balance at end” is derived automatically as the previous row's
+          balance plus this value. Tip: update <em>Current balance</em> on the
+          Dashboard first if you've made any payments since.
+        </p>
+      </ConfirmModal>
     </section>
   )
 }

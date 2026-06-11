@@ -152,3 +152,9 @@
   .savingsTable th, .savingsTable td { padding: 10px 6px; }
   .savingsInput { width: 80px; padding: 6px 6px; }
 }
+
+/* a11y: 44×44 touch target for the row-delete icon on touch devices
+   (18px icon + 13px padding each side). */
+@media (pointer: coarse) {
+  .rowDel { padding: 13px; }
+}
