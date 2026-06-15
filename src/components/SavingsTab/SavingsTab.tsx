@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
+import { useUiPrefsStore } from '../../store/uiPrefsStore'
 import { currentMonthKey } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
 import { computeFinalize } from '../../lib/math'
@@ -9,10 +10,9 @@ import SavingsTable from './SavingsTable'
 import SavingsChart from './SavingsChart'
 import styles from './SavingsTab.module.css'
 
-type View = 'table' | 'chart'
-
 export default function SavingsTab() {
-  const [view, setView] = useState<View>('table')
+  const view = useUiPrefsStore(s => s.savingsView)
+  const setView = useUiPrefsStore(s => s.setSavingsView)
   const [finalizeOpen, setFinalizeOpen] = useState(false)
   const bank = useBudgetStore(s => s.bank)
   const categories = useBudgetStore(s => s.categories)

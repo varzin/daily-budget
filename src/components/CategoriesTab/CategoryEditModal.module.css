@@ -5,9 +5,9 @@
 }
 
 .numRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .errorRow {
