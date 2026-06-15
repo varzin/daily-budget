@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Plus, HelpCircle, List, ListFilter } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
+import { useUiPrefsStore } from '../../store/uiPrefsStore'
 import { obligatoryTotal, categoryAmount } from '../../lib/math'
 import { live } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
@@ -14,8 +15,6 @@ type ModalState =
   | { kind: 'closed' }
   | { kind: 'add' }
   | { kind: 'edit'; category: Category }
-
-type Filter = 'all' | 'unpaid'
 
 /** Everything budgeted is already spent — nothing left to pay (but not marked paid). */
 function isFullySpent(cat: Category): boolean {
@@ -34,7 +33,8 @@ export default function CategoriesTab() {
   const money = useMoney()
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' })
   const [helpOpen, setHelpOpen] = useState(false)
-  const [filter, setFilter] = useState<Filter>('all')
+  const filter = useUiPrefsStore(s => s.categoryFilter)
+  const setFilter = useUiPrefsStore(s => s.setCategoryFilter)
 
   const visibleCategories = useMemo(
     () => (filter === 'unpaid' ? categories.filter(c => !isFullyPaid(c)) : categories),

@@ -62,8 +62,9 @@
 .featured .sym {
   font-family: var(--display);
   font-style: italic;
-  color: var(--accent-text);
-  opacity: 0.55;
+  /* Same color as the number — inherit the tone from .value instead of the
+     dimmed accent. */
+  color: inherit;
   font-size: 0.55em;
   vertical-align: 0.35em;
   margin-right: 6px;
