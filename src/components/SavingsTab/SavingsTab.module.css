@@ -95,6 +95,14 @@
   background: var(--bg-elev);
   border-radius: 8px;
 }
+/* Optional reset opt-in, set apart from the explanatory copy as an action. */
+.resetOption {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
 
 /* a11y: comfortable touch targets on touch devices (≥44px). */
 @media (pointer: coarse) {

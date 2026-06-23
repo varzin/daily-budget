@@ -6,6 +6,7 @@ import { currentMonthKey } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
 import { computeFinalize } from '../../lib/math'
 import ConfirmModal from '../ui/ConfirmModal/ConfirmModal'
+import Toggle from '../ui/Toggle/Toggle'
 import SavingsTable from './SavingsTable'
 import SavingsChart from './SavingsChart'
 import styles from './SavingsTab.module.css'
@@ -14,6 +15,8 @@ export default function SavingsTab() {
   const view = useUiPrefsStore(s => s.savingsView)
   const setView = useUiPrefsStore(s => s.setSavingsView)
   const [finalizeOpen, setFinalizeOpen] = useState(false)
+  // Always starts off each time the dialog opens — an explicit per-finalize opt-in.
+  const [resetSpent, setResetSpent] = useState(false)
   const bank = useBudgetStore(s => s.bank)
   const categories = useBudgetStore(s => s.categories)
   const savings = useBudgetStore(s => s.savings)
@@ -95,7 +98,10 @@ export default function SavingsTab() {
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary}`}
-          onClick={() => setFinalizeOpen(true)}
+          onClick={() => {
+            setResetSpent(false)
+            setFinalizeOpen(true)
+          }}
         >
           Finalize month
         </button>
@@ -110,7 +116,9 @@ export default function SavingsTab() {
         onClose={() => setFinalizeOpen(false)}
         title={`Finalize ${month}?`}
         confirmLabel="Finalize"
-        onConfirm={() => useBudgetStore.getState().finalizeMonth(bank)}
+        onConfirm={() =>
+          useBudgetStore.getState().finalizeMonth(bank, { resetSpent })
+        }
       >
         {monthExists && (
           <p className={styles.finalizeWarning}>
@@ -132,6 +140,14 @@ export default function SavingsTab() {
           balance plus this value. Tip: update <em>Current balance</em> on the
           Dashboard first if you've made any payments since.
         </p>
+        <div className={styles.resetOption}>
+          <Toggle
+            checked={resetSpent}
+            onChange={setResetSpent}
+            label="Reset spent for fixed expenses"
+            description="Clears the Spent value of every fixed-expense category, so the new month starts fresh. Budgets are kept."
+          />
+        </div>
       </ConfirmModal>
     </section>
   )
