@@ -81,7 +81,11 @@
   border-color: var(--accent);
   font-weight: 500;
 }
-.btnPrimary:hover { background: var(--accent-hover); }
+.btnPrimary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
+}
 
 
 /* Finalize-month dialog body */
