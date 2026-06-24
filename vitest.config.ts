@@ -8,6 +8,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    setupFiles: ['./test/setup.ts'],
     include: ['test/**/*.test.ts'],
     // Each test file gets a fresh module registry so the Dropbox sync
     // singleton (module-level status/timers) and the Zustand store start clean.
