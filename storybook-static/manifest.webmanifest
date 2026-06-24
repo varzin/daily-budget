@@ -1,0 +1,11 @@
+{
+  "name": "daily-budget",
+  "short_name": "Budget",
+  "description": "Daily spending budget across the month.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d0e0c",
+  "theme_color": "#0d0e0c",
+  "orientation": "portrait"
+}

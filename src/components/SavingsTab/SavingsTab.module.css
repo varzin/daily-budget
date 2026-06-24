@@ -81,7 +81,11 @@
   border-color: var(--accent);
   font-weight: 500;
 }
-.btnPrimary:hover { background: var(--accent-hover); }
+.btnPrimary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
+}
 
 
 /* Finalize-month dialog body */
@@ -93,6 +97,14 @@
   font-size: 13px;
   padding: 10px 12px;
   background: var(--bg-elev);
+  border-radius: 8px;
+}
+/* Optional reset opt-in, set apart from the explanatory copy as an action. */
+.resetOption {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 

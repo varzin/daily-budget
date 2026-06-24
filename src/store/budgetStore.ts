@@ -40,7 +40,7 @@ type BudgetActions = {
   updateSavingsRow: (id: string, patch: Partial<SavingsRow>) => void
   deleteSavingsRow: (id: string) => void
   restoreSavingsRow: (id: string) => void
-  finalizeMonth: (bankAtFinalize: number) => void
+  finalizeMonth: (bankAtFinalize: number, opts?: { resetSpent?: boolean }) => void
   exportData: () => void
   importData: (file: File) => Promise<void>
   replaceState: (s: BudgetState, opts?: { fromRemote?: boolean }) => void
@@ -163,8 +163,11 @@ export const useBudgetStore = create<BudgetStore>()(
           }),
         }))
       },
-      finalizeMonth: (bankAtFinalize) => {
+      finalizeMonth: (bankAtFinalize, opts) => {
         const { categories, savings } = get()
+        // `saved` is computed from the CURRENT categories (their spent included)
+        // before any optional reset below, so the recorded figure matches the
+        // month that just ended.
         const { saved } = computeFinalize(bankAtFinalize, categories, savings)
         const month = currentMonthKey()
 
@@ -178,7 +181,19 @@ export const useBudgetStore = create<BudgetStore>()(
         } else {
           nextSavings = [...savings, { id: uid(), month, saved, updatedAt: t }]
         }
-        set(touch({ savings: nextSavings }))
+
+        const patch: Partial<BudgetState> = { savings: nextSavings }
+        // Optional: zero out the Spent of every live fixed-expense category to
+        // start the new month fresh. Bump each row's updatedAt so the reset
+        // wins the entity merge against stale copies on other devices.
+        if (opts?.resetSpent) {
+          patch.categories = categories.map((c) =>
+            c.deletedAt || (!c.spent && !c.spentExpr)
+              ? c
+              : { ...c, spent: 0, spentExpr: undefined, updatedAt: t },
+          )
+        }
+        set(touch(patch))
       },
 
       // ---------- import / export ----------
