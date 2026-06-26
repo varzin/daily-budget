@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { showToast } from '../../store/toastStore'
@@ -27,6 +27,66 @@ const indClassFor = (tier: SavedIndicator): string => {
     case 'yellow': return styles.indYellow ?? ''
     case 'red':    return styles.indRed    ?? ''
   }
+}
+
+/**
+ * Parse a signed-decimal draft. Returns null for in-progress states that aren't
+ * yet a number ("-", ".", "-.") so the store isn't clobbered mid-typing; an
+ * empty field commits 0.
+ */
+function parseSigned(raw: string): number | null {
+  const s = raw.trim()
+  if (s === '') return 0
+  if (s === '-' || s === '.' || s === '-.') return null
+  const n = Number(s)
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Money input for the savings table that accepts negative amounts (an overspend
+ * month is a valid, now-possible value). A controlled `type="number"` can't hold
+ * a leading "-" — the browser reports it as empty — so we keep a local string
+ * draft while editing and commit parseable values to the store. Uses the full
+ * keyboard on mobile because the decimal keypad has no minus key (same tradeoff
+ * as MathField, see CLAUDE.md a11y notes).
+ */
+function SavedInput({
+  value,
+  onCommit,
+  className,
+}: {
+  value: number
+  onCommit: (n: number) => void
+  className?: string
+}) {
+  const [draft, setDraft] = useState<string>(() => String(value))
+  const [editing, setEditing] = useState(false)
+
+  // Reflect external changes (e.g. Finalize overwrote this row) when not editing,
+  // so the draft never fights the user mid-typing.
+  useEffect(() => {
+    if (!editing) setDraft(String(value))
+  }, [value, editing])
+
+  return (
+    <input
+      className={className}
+      type="text"
+      inputMode="text"
+      value={draft}
+      onFocus={() => setEditing(true)}
+      onChange={e => {
+        const raw = e.target.value
+        setDraft(raw)
+        const n = parseSigned(raw)
+        if (n !== null) onCommit(n)
+      }}
+      onBlur={() => {
+        setEditing(false)
+        setDraft(String(value))
+      }}
+    />
+  )
 }
 
 function IndicatorCell({ tier, symbol }: { tier: SavedIndicator; symbol: string }) {
@@ -77,8 +137,8 @@ export default function SavingsTable() {
   const onMonthChange = (id: string, value: string) => {
     useBudgetStore.getState().updateSavingsRow(id, { month: value })
   }
-  const onSavedChange = (id: string, value: string) => {
-    useBudgetStore.getState().updateSavingsRow(id, { saved: parseFloat(value) || 0 })
+  const onSavedCommit = (id: string, saved: number) => {
+    useBudgetStore.getState().updateSavingsRow(id, { saved })
   }
   // Delete immediately with an Undo toast instead of a blocking confirm —
   // the delete is a tombstone, so undo simply restores the row.
@@ -120,13 +180,10 @@ export default function SavingsTable() {
                 />
               </td>
               <td>
-                <input
+                <SavedInput
                   className={styles.savingsInput}
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
                   value={row.saved}
-                  onChange={e => onSavedChange(row.id, e.target.value)}
+                  onCommit={n => onSavedCommit(row.id, n)}
                 />
               </td>
               <td className={styles.savingsBankCell}>{money.symbol}{money.fmt(balance)}</td>

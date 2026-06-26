@@ -31,6 +31,7 @@ type BudgetActions = {
   setBuffer: (n: number) => void
   setCurrency: (code: string) => void
   setMonthlyIncome: (n: number) => void
+  setResetSpentOnFinalize: (on: boolean) => void
   addCategory: (input: Omit<Category, 'id'>) => void
   updateCategory: (id: string, patch: Partial<Category>) => void
   deleteCategory: (id: string) => void
@@ -84,6 +85,13 @@ export const useBudgetStore = create<BudgetStore>()(
         set(touch({
           monthlyIncome: Math.max(0, Number(n) || 0),
           meta: { ...get().meta, monthlyIncome: t },
+        }))
+      },
+      setResetSpentOnFinalize: (on) => {
+        const t = now()
+        set(touch({
+          resetSpentOnFinalize: Boolean(on),
+          meta: { ...get().meta, resetSpentOnFinalize: t },
         }))
       },
 
@@ -165,10 +173,10 @@ export const useBudgetStore = create<BudgetStore>()(
       },
       finalizeMonth: (bankAtFinalize, opts) => {
         const { categories, savings } = get()
-        // `saved` is computed from the CURRENT categories (their spent included)
-        // before any optional reset below, so the recorded figure matches the
-        // month that just ended.
-        const { saved } = computeFinalize(bankAtFinalize, categories, savings)
+        // `saved` is the current balance minus the prior savings pool — fixed
+        // expenses are no longer subtracted, so the figure is what actually
+        // remained this month regardless of any still-unpaid bills.
+        const { saved } = computeFinalize(bankAtFinalize, savings)
         const month = currentMonthKey()
 
         const t = now()
