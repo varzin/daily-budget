@@ -8,16 +8,27 @@ export const STORAGE_KEY = 'budget_app_v1'
 /** Default green-zone cushion (€) when the user hasn't customized it. */
 export const DEFAULT_BUFFER = 200
 
+/** Finalize resets the fixed-expense Spent by default — the common housekeeping. */
+export const DEFAULT_RESET_SPENT_ON_FINALIZE = true
+
 export const defaultState: BudgetState = {
   bank: 0,
   incomeDay: 26,
   buffer: DEFAULT_BUFFER,
   currency: DEFAULT_CURRENCY,
   monthlyIncome: 0,
+  resetSpentOnFinalize: DEFAULT_RESET_SPENT_ON_FINALIZE,
   categories: [],
   savings: [],
   updatedAt: null,
-  meta: { bank: null, incomeDay: null, buffer: null, currency: null, monthlyIncome: null },
+  meta: {
+    bank: null,
+    incomeDay: null,
+    buffer: null,
+    currency: null,
+    monthlyIncome: null,
+    resetSpentOnFinalize: null,
+  },
 }
 
 /** The synced/persisted data slice of the store — no action functions. */
@@ -28,6 +39,7 @@ export function selectBudgetState(s: BudgetState): BudgetState {
     buffer: s.buffer,
     currency: s.currency,
     monthlyIncome: s.monthlyIncome,
+    resetSpentOnFinalize: s.resetSpentOnFinalize,
     categories: s.categories,
     savings: s.savings,
     updatedAt: s.updatedAt,
@@ -119,6 +131,7 @@ function coerceMeta(meta: unknown): BudgetMeta {
     buffer: stringOrNull(m.buffer),
     currency: stringOrNull(m.currency),
     monthlyIncome: stringOrNull(m.monthlyIncome),
+    resetSpentOnFinalize: stringOrNull(m.resetSpentOnFinalize),
   }
 }
 
@@ -134,6 +147,7 @@ export function normalizeBudgetState(input: Partial<BudgetState>): BudgetState {
     buffer: coerceBuffer(input.buffer),
     currency: coerceCurrency(input.currency),
     monthlyIncome: coerceMonthlyIncome(input.monthlyIncome),
+    resetSpentOnFinalize: coerceResetSpentOnFinalize(input.resetSpentOnFinalize),
     categories: migrateCategories(input.categories),
     savings: migrateSavings(input.savings),
     updatedAt: stringOrNull(input.updatedAt),
@@ -175,4 +189,13 @@ export function coerceBuffer(value: unknown): number {
 export function coerceMonthlyIncome(value: unknown): number {
   const n = Number(value)
   return Number.isFinite(n) ? Math.max(0, n) : 0
+}
+
+/**
+ * Coerce the persisted/imported "reset spent on finalize" preference. Only an
+ * explicit boolean is honoured; anything absent, legacy or malformed falls back
+ * to the default (true).
+ */
+export function coerceResetSpentOnFinalize(value: unknown): boolean {
+  return typeof value === 'boolean' ? value : DEFAULT_RESET_SPENT_ON_FINALIZE
 }

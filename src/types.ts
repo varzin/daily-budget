@@ -35,6 +35,7 @@ export interface BudgetMeta {
   buffer: string | null
   currency: string | null
   monthlyIncome: string | null
+  resetSpentOnFinalize: string | null
 }
 
 export interface BudgetState {
@@ -50,6 +51,12 @@ export interface BudgetState {
   monthlyIncome: number
   /** ISO 4217 currency code (e.g. "EUR"); see lib/currency.ts for the set. */
   currency: string
+  /**
+   * Whether "Finalize month" resets the Spent of every fixed-expense category
+   * by default. Synced as a preference so the habit follows the user across
+   * devices. Defaults to true.
+   */
+  resetSpentOnFinalize: boolean
   categories: Category[]
   savings: SavingsRow[]
   updatedAt: string | null

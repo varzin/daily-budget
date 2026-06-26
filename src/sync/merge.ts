@@ -98,9 +98,12 @@ function mergeCollection<T extends Entity>(
 function mergeScalars(
   local: BudgetState,
   remote: BudgetState,
-): Pick<BudgetState, 'bank' | 'incomeDay' | 'buffer' | 'currency' | 'monthlyIncome' | 'meta'> {
+): Pick<
+  BudgetState,
+  'bank' | 'incomeDay' | 'buffer' | 'currency' | 'monthlyIncome' | 'resetSpentOnFinalize' | 'meta'
+> {
   // Generic over the field so it works for numeric scalars (bank/incomeDay/
-  // buffer) and the string scalar (currency) alike.
+  // buffer), the string scalar (currency) and the boolean (resetSpentOnFinalize).
   const pick = <K extends keyof BudgetMeta>(
     field: K,
   ): { value: BudgetState[K]; ts: string | null } => {
@@ -118,18 +121,21 @@ function mergeScalars(
   const buffer = pick('buffer')
   const currency = pick('currency')
   const monthlyIncome = pick('monthlyIncome')
+  const resetSpentOnFinalize = pick('resetSpentOnFinalize')
   return {
     bank: bank.value,
     incomeDay: incomeDay.value,
     buffer: buffer.value,
     currency: currency.value,
     monthlyIncome: monthlyIncome.value,
+    resetSpentOnFinalize: resetSpentOnFinalize.value,
     meta: {
       bank: bank.ts,
       incomeDay: incomeDay.ts,
       buffer: buffer.ts,
       currency: currency.ts,
       monthlyIncome: monthlyIncome.ts,
+      resetSpentOnFinalize: resetSpentOnFinalize.ts,
     },
   }
 }
@@ -161,6 +167,7 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
       buffer: scalars.buffer,
       currency: scalars.currency,
       monthlyIncome: scalars.monthlyIncome,
+      resetSpentOnFinalize: scalars.resetSpentOnFinalize,
       categories,
       savings,
       updatedAt: updatedAt ?? null,
@@ -174,7 +181,12 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
 function isStamped(d: BudgetState): boolean {
   if (
     d.meta &&
-    (d.meta.bank || d.meta.incomeDay || d.meta.buffer || d.meta.currency || d.meta.monthlyIncome)
+    (d.meta.bank ||
+      d.meta.incomeDay ||
+      d.meta.buffer ||
+      d.meta.currency ||
+      d.meta.monthlyIncome ||
+      d.meta.resetSpentOnFinalize)
   ) {
     return true
   }
@@ -201,12 +213,14 @@ function docKey(d: BudgetState): string {
     buffer: d.buffer,
     currency: d.currency,
     monthlyIncome: d.monthlyIncome,
+    resetSpentOnFinalize: d.resetSpentOnFinalize,
     meta: {
       bank: d.meta?.bank ?? null,
       incomeDay: d.meta?.incomeDay ?? null,
       buffer: d.meta?.buffer ?? null,
       currency: d.meta?.currency ?? null,
       monthlyIncome: d.meta?.monthlyIncome ?? null,
+      resetSpentOnFinalize: d.meta?.resetSpentOnFinalize ?? null,
     },
     cats,
     sav,

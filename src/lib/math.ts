@@ -87,18 +87,20 @@ export function currentSavingsTotal(savings: SavingsRow[]): number {
 
 /**
  * What "Finalize month" will record: this month's savings as the current
- * balance minus what's still to pay and what was already set aside. Single
- * source for both the store action and the confirmation preview.
+ * balance minus what was already set aside in prior months. Fixed expenses are
+ * deliberately NOT subtracted — the recorded figure is what actually remained,
+ * not what would remain after hypothetical unpaid bills. This makes the running
+ * "balance at end" equal the real bank balance at each finalize, so "saved this
+ * month" reads as the genuine month-over-month change (≈ income − all spending).
+ * Single source for both the store action and the confirmation preview.
  */
 export function computeFinalize(
   bank: number,
-  categories: Category[],
   savings: SavingsRow[],
-): { oblig: number; prevPool: number; saved: number } {
-  const oblig = obligatoryTotal(categories)
+): { prevPool: number; saved: number } {
   const prevPool = currentSavingsTotal(savings)
-  const saved = round2((Number(bank) || 0) - oblig - prevPool)
-  return { oblig, prevPool, saved }
+  const saved = round2((Number(bank) || 0) - prevPool)
+  return { prevPool, saved }
 }
 
 /** Per-row cumulative balance: balance[i] = balance[i-1] + saved[i], starting from 0. */

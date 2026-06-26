@@ -15,10 +15,11 @@ export default function SavingsTab() {
   const view = useUiPrefsStore(s => s.savingsView)
   const setView = useUiPrefsStore(s => s.setSavingsView)
   const [finalizeOpen, setFinalizeOpen] = useState(false)
-  // Always starts off each time the dialog opens — an explicit per-finalize opt-in.
-  const [resetSpent, setResetSpent] = useState(false)
+  // The reset-spent choice is a synced preference (follows the user across
+  // devices), pre-filled here and editable in the dialog.
+  const resetSpent = useBudgetStore(s => s.resetSpentOnFinalize)
+  const setResetSpent = useBudgetStore(s => s.setResetSpentOnFinalize)
   const bank = useBudgetStore(s => s.bank)
-  const categories = useBudgetStore(s => s.categories)
   const savings = useBudgetStore(s => s.savings)
   const money = useMoney()
 
@@ -27,7 +28,7 @@ export default function SavingsTab() {
   }
 
   // The same formula finalizeMonth applies — shown in the dialog as a preview.
-  const { oblig, prevPool, saved } = computeFinalize(bank, categories, savings)
+  const { prevPool, saved } = computeFinalize(bank, savings)
   const month = currentMonthKey()
   const monthExists = savings.some(r => r.month === month && !r.deletedAt)
 
@@ -98,10 +99,7 @@ export default function SavingsTab() {
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary}`}
-          onClick={() => {
-            setResetSpent(false)
-            setFinalizeOpen(true)
-          }}
+          onClick={() => setFinalizeOpen(true)}
         >
           Finalize month
         </button>
@@ -128,11 +126,10 @@ export default function SavingsTab() {
         )}
         <p>
           This records what this month left over as savings:{' '}
-          <strong>current balance − fixed expenses − prior savings</strong>.
+          <strong>current balance − prior savings</strong>.
         </p>
         <p className={styles.finalizeFormula}>
-          {money.symbol}{money.fmt(bank)} − {money.symbol}{money.fmt(oblig)} −{' '}
-          {money.symbol}{money.fmt(prevPool)} ={' '}
+          {money.symbol}{money.fmt(bank)} − {money.symbol}{money.fmt(prevPool)} ={' '}
           <strong>{money.symbol}{money.fmt(saved)}</strong>
         </p>
         <p>
