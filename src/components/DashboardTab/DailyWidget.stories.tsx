@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import MetricCard from './MetricCard'
+import PacePill from './PacePill'
 import Segmented from '../ui/Segmented/Segmented'
 import {
   WIDGET_MODES,
   availableWidgetModes,
+  type Pace,
   type SituationState,
   type WidgetMode,
 } from '../../lib/math'
@@ -51,10 +53,16 @@ function Frame({ children }: { children: React.ReactNode }) {
   )
 }
 
-function DailyWidget({ situation, pace }: { situation: SituationState; pace?: string }) {
+/** Pace fixture: only `ahead` matters to the pill. */
+function paceOf(ahead: number): Pace {
+  return { perDayPlan: 20, perDayActual: 20 + ahead / 10, ahead }
+}
+
+function DailyWidget({ situation, ahead }: { situation: SituationState; ahead?: number }) {
   const available = availableWidgetModes(situation)
   const [choice, setChoice] = useState<WidgetMode | null>(null)
   const mode = choice && available.includes(choice) ? choice : available[0] ?? null
+  const badge = ahead !== undefined ? <PacePill pace={paceOf(ahead)} /> : undefined
 
   if (mode === null) {
     return (
@@ -66,6 +74,7 @@ function DailyWidget({ situation, pace }: { situation: SituationState; pace?: st
           symbol="−€"
           value="20.00"
           subtitle="Deficit · 10 days of no spending"
+          badge={badge}
         />
       </Frame>
     )
@@ -80,16 +89,8 @@ function DailyWidget({ situation, pace }: { situation: SituationState; pace?: st
         label="Daily budget"
         symbol="€"
         value={card.value}
-        subtitle={
-          pace ? (
-            <>
-              {card.subtitle}
-              <span style={{ display: 'block', marginTop: 6 }}>{pace}</span>
-            </>
-          ) : (
-            card.subtitle
-          )
-        }
+        subtitle={card.subtitle}
+        badge={badge}
         tabs={
           <Segmented
             value={mode}
@@ -127,9 +128,19 @@ export const OverBudget: Story = {
   render: () => <DailyWidget situation="over" />,
 }
 
-/** With a monthly income set, the pace line joins the subtitle. */
-export const WithPaceLine: Story = {
-  render: () => <DailyWidget situation="ahead" pace="≈ €200.00 behind plan" />,
+/** With a monthly income set, the pace pill joins the label row: ahead of plan. */
+export const PaceAhead: Story = {
+  render: () => <DailyWidget situation="ahead" ahead={110} />,
+}
+
+/** Behind the income-derived plan — the pill flips red. */
+export const PaceBehind: Story = {
+  render: () => <DailyWidget situation="onTrack" ahead={-200} />,
+}
+
+/** Within ±1 of the plan — neutral "on plan" pill. */
+export const PaceOnPlan: Story = {
+  render: () => <DailyWidget situation="onTrack" ahead={0.4} />,
 }
 
 /** All four situations stacked for a side-by-side sweep. */

@@ -97,14 +97,6 @@
   color: var(--accent);
 }
 
-/* Pace indicator — second line of the featured widget's subtitle. Same muted
-   register as the rest of the subtitle: the card tone already signals health,
-   the line just quantifies it. */
-.paceLine {
-  display: block;
-  margin-top: 6px;
-}
-
 /* ---------- Metrics grid ---------- */
 .metrics {
   display: grid;
@@ -248,10 +240,20 @@
   font-size: 15px;
   color: var(--text);
   white-space: nowrap;
+  text-align: right;
 }
 .perDayUnit {
   color: var(--text-faint);
   font-size: 12px;
+}
+
+/* Planned daily rate under an actual per-day figure — faint on purpose: the
+   actual number is the answer, the plan is the reference it drifts from. */
+.planLine {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-faint);
 }
 
 /* ---------- Hint sidebar ---------- */

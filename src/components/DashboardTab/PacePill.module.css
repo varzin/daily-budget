@@ -1,0 +1,38 @@
+/* Pace-vs-plan pill living in the daily widget's label row. Status color
+   carries the verdict (green = money to spare, red = behind plan); the tinted
+   background keeps it legible on every card tone, including the featured
+   gradients. */
+.pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.good {
+  color: var(--green);
+  background: var(--green-tint);
+}
+.bad {
+  color: var(--red);
+  background: var(--red-tint);
+}
+.neutral {
+  color: var(--text-dim);
+  background: var(--bg-elev);
+}
+
+/* "vs plan" suffix — quieter than the amount, body face. */
+.vs {
+  font-family: var(--body);
+  font-size: 11px;
+  opacity: 0.75;
+}

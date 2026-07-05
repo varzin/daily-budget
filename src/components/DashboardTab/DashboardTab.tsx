@@ -11,7 +11,6 @@ import {
   computePace,
   availableWidgetModes,
   WIDGET_MODES,
-  type Pace,
   type Situation,
   type WidgetMode,
 } from '../../lib/math'
@@ -22,6 +21,7 @@ import Modal from '../ui/Modal/Modal'
 import Segmented from '../ui/Segmented/Segmented'
 import Inputs from './Inputs'
 import MetricCard from './MetricCard'
+import PacePill from './PacePill'
 import styles from './DashboardTab.module.css'
 
 interface BreakdownItem {
@@ -31,6 +31,9 @@ interface BreakdownItem {
   help: string
   /** Render a "/day" unit — used for the three daily-spend figures. */
   perDay?: boolean
+  /** Planned daily rate for this goal (when monthly income is set) — rendered
+      as a faint second line so the gap to the actual figure is visible. */
+  plan?: number
 }
 
 interface CardProps {
@@ -39,18 +42,6 @@ interface CardProps {
   symbol: string
   value: string
   subtitle: string
-}
-
-/**
- * Pace indicator line (CLAUDE.md "Future ideas" #2): how far ahead/behind the
- * income-derived plan the user is, in money until the next income day. Null
- * when the indicator is off (monthly income not set in Settings).
- */
-function paceText(pace: Pace | null, money: Money): string | null {
-  if (!pace) return null
-  if (Math.abs(pace.ahead) < 1) return 'On pace with your plan'
-  const amount = `${money.symbol}${money.fmt(Math.abs(pace.ahead))}`
-  return pace.ahead > 0 ? `≈ ${amount} ahead of plan` : `≈ ${amount} behind plan`
 }
 
 /** Tab captions for the widget's three spending modes, strictest → loosest. */
@@ -138,6 +129,21 @@ export default function DashboardTab() {
     const daysLeft = computeDaysLeft(Number(incomeDay))
     const perDay = (available: number) => (daysLeft > 0 ? available / daysLeft : 0)
 
+    // Pace is measured against the selected tab's goal, i.e. the free balance
+    // it aims to land on by the next income day: savings + cushion (grow),
+    // savings (keep), or zero — savings spent too (spend). computePace's
+    // buffer term is exactly `target − savingsPool`, so the three goals map to
+    // buffer / 0 / −savingsPool.
+    const paceArgs = {
+      bank: b,
+      oblig,
+      plannedOblig: plannedObligatoryTotal(categories),
+      savingsPool,
+      monthlyIncome,
+      daysLeft,
+      cycleDays: computeCycleLength(Number(incomeDay)),
+    }
+
     return {
       bank: b,
       oblig,
@@ -150,16 +156,9 @@ export default function DashboardTab() {
       yellowPerDay: perDay(b - oblig - savingsPool),
       allPerDay: perDay(b - oblig),
       situation: computeSituation(b, oblig, savingsPool, buffer, daysLeft),
-      pace: computePace({
-        bank: b,
-        oblig,
-        plannedOblig: plannedObligatoryTotal(categories),
-        savingsPool,
-        buffer,
-        monthlyIncome,
-        daysLeft,
-        cycleDays: computeCycleLength(Number(incomeDay)),
-      }),
+      paceGrow: computePace({ ...paceArgs, buffer }),
+      paceKeep: computePace({ ...paceArgs, buffer: 0 }),
+      paceSpend: computePace({ ...paceArgs, buffer: -savingsPool }),
     }
   }, [bank, incomeDay, buffer, monthlyIncome, categories, savings])
 
@@ -177,7 +176,10 @@ export default function DashboardTab() {
   const card = mode
     ? modeProps(mode, modePerDay[mode], buffer, m.daysLeft, money)
     : deficitProps(m.situation, m.daysLeft, money)
-  const pace = paceText(m.pace, money)
+  // The pill measures against the selected tab's goal; the deficit card gets
+  // the loosest benchmark (spend everything), matching its daily figure.
+  const pace =
+    mode === 'ahead' ? m.paceGrow : mode === 'onTrack' ? m.paceKeep : m.paceSpend
 
   // Ordered from raw building blocks → derived "free to spend" sums → the three
   // daily figures (kept here now that the dashboard shows a single widget).
@@ -217,30 +219,33 @@ export default function DashboardTab() {
       label: 'Green zone (per day)',
       value: m.greenPerDay,
       perDay: true,
-      help: 'What you can spend each day and still keep both your savings and your cushion by your next income day. Formula: (balance − fixed − savings − cushion) ÷ days left.',
+      plan: m.paceGrow?.perDayPlan,
+      help: 'What you can spend each day and still keep both your savings and your cushion by your next income day. Formula: (balance − fixed − savings − cushion) ÷ days left. With a monthly income set, the faint line shows the planned rate for this goal — the gap between the two is what the pace pill measures.',
     },
     {
       key: 'yellowPerDay',
       label: 'Break even (per day)',
       value: m.yellowPerDay,
       perDay: true,
-      help: 'What you can spend each day while keeping savings whole (no cushion). Formula: (balance − fixed − savings) ÷ days left.',
+      plan: m.paceKeep?.perDayPlan,
+      help: 'What you can spend each day while keeping savings whole (no cushion). Formula: (balance − fixed − savings) ÷ days left. With a monthly income set, the faint line shows the planned rate for this goal — the gap between the two is what the pace pill measures.',
     },
     {
       key: 'allPerDay',
       label: 'Spend everything (per day)',
       value: m.allPerDay,
       perDay: true,
-      help: 'What you can spend each day if you allow yourself to dip into savings. Formula: (balance − fixed) ÷ days left.',
+      plan: m.paceSpend?.perDayPlan,
+      help: 'What you can spend each day if you allow yourself to dip into savings. Formula: (balance − fixed) ÷ days left. With a monthly income set, the faint line shows the planned rate for this goal — the gap between the two is what the pace pill measures.',
     },
-    ...(m.pace
+    ...(pace
       ? [
           {
             key: 'pace',
             label: 'Pace vs plan',
-            value: m.pace.ahead,
+            value: pace.ahead,
             help:
-              'How far you are ahead (+) or behind (−) the plan derived from your monthly income: extra money you could spend before your next income day while still landing on plan. The planned daily rate is (monthly income − fixed budgets − cushion) ÷ days in the cycle; the figure is (actual daily budget − planned) × days left. Set or clear the income in Settings → Budget.',
+              'How far you are ahead (+) or behind (−) the plan derived from your monthly income: extra money you could spend before your next income day while still landing on plan. The plan follows the selected tab\'s goal — the free balance to land on by the next income day: savings + cushion ("Grow savings"), savings ("Keep savings"), or zero, spending savings evenly too ("Spend savings"). The figure is (actual daily budget − planned) × days left. Set or clear the income in Settings → Budget.',
           },
         ]
       : []),
@@ -280,6 +285,7 @@ export default function DashboardTab() {
               label={card.label}
               symbol={card.symbol}
               value={card.value}
+              badge={<PacePill pace={pace} />}
               tabs={
                 mode !== null ? (
                   <Segmented
@@ -294,16 +300,7 @@ export default function DashboardTab() {
                   />
                 ) : undefined
               }
-              subtitle={
-                pace ? (
-                  <>
-                    {card.subtitle}
-                    <span className={styles.paceLine}>{pace}</span>
-                  </>
-                ) : (
-                  card.subtitle
-                )
-              }
+              subtitle={card.subtitle}
             />
           </div>
 
@@ -332,6 +329,12 @@ export default function DashboardTab() {
                   <dd>
                     {money.symbol}{money.fmt(item.value)}
                     {item.perDay && <span className={styles.perDayUnit}> /day</span>}
+                    {item.plan !== undefined && (
+                      <span className={styles.planLine}>
+                        plan {money.symbol}{money.fmt(item.plan)}
+                        <span className={styles.perDayUnit}> /day</span>
+                      </span>
+                    )}
                   </dd>
                 </div>
               ))}

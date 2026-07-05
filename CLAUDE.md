@@ -27,8 +27,15 @@
    задан», индикатор скрыт), редактируется в **Settings → Budget**
    (`SettingsTab/BufferCard`). Математика — `computePace` /
    `computeCycleLength` / `plannedObligatoryTotal` (`src/lib/math.ts`); UI —
-   вторая строка сабтайтла виджета (`DashboardTab/paceText`) + строка «Pace vs
-   plan» в «Show breakdown». Тесты — `test/lib/pace.test.ts`,
+   pill в строке лейбла виджета (`DashboardTab/PacePill`: зелёный — опережение,
+   красный — отставание, нейтральный «on plan» при |ahead| < 1; токен
+   `--green-tint`) + строка «Pace vs plan» в «Show breakdown». План **следует
+   цели выбранной вкладки** (ветка `daily-widget-improvement`) — целевому
+   свободному остатку к зарплате: savings+buffer (Grow), savings (Keep), 0 —
+   копилка тратится равномерно (Spend; та же метрика у deficit-карточки).
+   Параметр `buffer` в `computePace` ≡ `target − savingsPool`, поэтому три цели
+   = `buffer` / `0` / `−savingsPool`; соседние варианты расходятся на
+   `(buffer|pool) × daysPassed / cycle`. Тесты — `test/lib/pace.test.ts`,
    `test/storage/monthlyIncome.test.ts`.
 3. **Один виджет по ситуации** — ✅ **реализовано** (ветка
    `daily-limit-improvements`). Три карточки заменены одним адаптивным виджетом;

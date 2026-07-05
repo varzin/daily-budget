@@ -58,6 +58,7 @@
   --danger: #e25555;
 
   /* Tinted backgrounds derived from status colors */
+  --green-tint: #6af0a318;
   --red-tint: #f06a6a18;
   --danger-tint: #e2555520;
 
@@ -115,6 +116,7 @@
   --red: #d23b3b;
   --danger: #cf3b3b;
 
+  --green-tint: #1f9d5718;
   --red-tint: #d23b3b18;
   --danger-tint: #cf3b3b18;
 

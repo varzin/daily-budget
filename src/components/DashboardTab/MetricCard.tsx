@@ -13,6 +13,8 @@ interface MetricCardProps {
   subtitle?: ReactNode
   /** Optional control row (e.g. mode tabs) rendered inside the card, above the label. */
   tabs?: ReactNode
+  /** Optional pill/indicator rendered on the label row, opposite the label. */
+  badge?: ReactNode
   id?: string
 }
 
@@ -28,6 +30,7 @@ export default function MetricCard({
   value,
   subtitle,
   tabs,
+  badge,
   id,
 }: MetricCardProps) {
   return (
@@ -40,7 +43,10 @@ export default function MetricCard({
       id={id}
     >
       {tabs !== undefined && <div className={styles.tabs}>{tabs}</div>}
-      <div className={styles.label}>{label}</div>
+      <div className={styles.labelRow}>
+        <div className={styles.label}>{label}</div>
+        {badge}
+      </div>
       <div className={styles.value}>
         <span className={styles.sym}>{symbol}</span>
         <span>{value}</span>
