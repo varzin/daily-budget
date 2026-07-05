@@ -71,3 +71,19 @@ export const WithIcons: Story = {
 export const MiddleSelected: Story = {
   render: () => <Controlled initial="light" options={THREE_ICONS} ariaLabel="Theme" />,
 }
+
+const WITH_DISABLED: SegmentedOption<'grow' | 'keep' | 'spend'>[] = [
+  { value: 'grow', label: 'Grow savings', disabled: true },
+  { value: 'keep', label: 'Keep savings' },
+  { value: 'spend', label: 'Spend savings' },
+]
+
+/**
+ * Disabled options render dimmed, ignore clicks and are skipped by arrow-key
+ * navigation (the dashboard widget blocks modes this way). Long labels also
+ * show the measured thumb: segments may grow past an equal split, the
+ * highlight still hugs the active one.
+ */
+export const WithDisabledOption: Story = {
+  render: () => <Controlled initial="keep" options={WITH_DISABLED} ariaLabel="Daily budget mode" />,
+}

@@ -43,15 +43,15 @@ export const ToneGreen: Story = {
 }
 
 export const ToneTeal: Story = {
-  args: { tone: 'teal', featured: true, label: 'Ahead of plan', value: '55.00', subtitle: 'keeping the full cushion' },
+  args: { tone: 'teal', featured: true, label: 'Daily budget', value: '55.00', subtitle: 'Adds €50 to savings · Income in 10 days' },
 }
 
 export const ToneOrange: Story = {
-  args: { tone: 'orange', featured: true, label: 'Dipping into savings', value: '28.00' },
+  args: { tone: 'orange', featured: true, label: 'Daily budget', value: '28.00', subtitle: 'Spends savings · Income in 10 days' },
 }
 
 export const Deficit: Story = {
-  args: { tone: 'deficit', featured: true, label: 'Over budget', value: '-12.00', subtitle: 'spending exceeds plan + cushion' },
+  args: { tone: 'deficit', featured: true, label: 'Over budget', symbol: '−€', value: '12.00', subtitle: 'Deficit · 10 days of no spending' },
 }
 
 export const WithSubtitle: Story = {
