@@ -27,8 +27,15 @@
    задан», индикатор скрыт), редактируется в **Settings → Budget**
    (`SettingsTab/BufferCard`). Математика — `computePace` /
    `computeCycleLength` / `plannedObligatoryTotal` (`src/lib/math.ts`); UI —
-   вторая строка сабтайтла виджета (`DashboardTab/paceText`) + строка «Pace vs
-   plan» в «Show breakdown». Тесты — `test/lib/pace.test.ts`,
+   pill в строке лейбла виджета (`DashboardTab/PacePill`: зелёный — опережение,
+   красный — отставание, нейтральный «on plan» при |ahead| < 1; токен
+   `--green-tint`) + строка «Pace vs plan» в «Show breakdown». План **следует
+   цели выбранной вкладки** (ветка `daily-widget-improvement`) — целевому
+   свободному остатку к зарплате: savings+buffer (Grow), savings (Keep), 0 —
+   копилка тратится равномерно (Spend; та же метрика у deficit-карточки).
+   Параметр `buffer` в `computePace` ≡ `target − savingsPool`, поэтому три цели
+   = `buffer` / `0` / `−savingsPool`; соседние варианты расходятся на
+   `(buffer|pool) × daysPassed / cycle`. Тесты — `test/lib/pace.test.ts`,
    `test/storage/monthlyIncome.test.ts`.
 3. **Один виджет по ситуации** — ✅ **реализовано** (ветка
    `daily-limit-improvements`). Три карточки заменены одним адаптивным виджетом;
@@ -39,6 +46,17 @@
    - зелёный — не залезает в копилку;
    - оранжевый — залезает в копилку;
    - красный — превышает все траты, включая копилку.
+
+   Два инварианта корректности (аудит формул, ветка `daily-widget-improvement`):
+   - **день зарплаты 29–31 в коротком месяце** — «зарплата уже пришла?»
+     сравнивается с клампнутым днём (`effectiveIncomeDay` в `math.ts`), иначе
+     последний день короткого месяца давал `daysLeft = 1` вместо полного нового
+     цикла. Тесты — `test/lib/daysLeft.test.ts` (вкл. свип по всем дням года);
+   - **отрицательная суммарная копилка** — дашборд резервирует
+     `reservedSavingsPool = max(0, currentSavingsTotal)`: отрицательный pool
+     ломал порядок состояний и советовал тратить больше, чем есть на счету.
+     Леджер (финализация, таблица) остаётся знаковым. Тесты —
+     `test/lib/situation.test.ts`.
 
 ## Финализация месяца
 **Статус: реализовано** (ветка `adjustments`). Финализация фиксирует прирост

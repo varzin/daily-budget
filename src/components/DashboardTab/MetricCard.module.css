@@ -2,12 +2,31 @@
   background: var(--bg-card);
   padding: 22px 22px;
 }
+
+/* Control row (mode tabs) living inside the card, above the label. Lifted over
+   the featured card's decorative ::after glow so it stays clickable-looking
+   (the glow is pointer-events: none, this is just stacking). */
+.tabs {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 22px;
+}
+/* Label row: label on the left, optional badge (pace pill) on the right.
+   Lifted over the featured card's decorative ::after glow like .tabs. */
+.labelRow {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
 .label {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--text-faint);
-  margin-bottom: 10px;
   font-weight: 500;
 }
 .value {
@@ -45,9 +64,11 @@
   opacity: 0.4;
   pointer-events: none;
 }
+.featured .labelRow {
+  margin-bottom: 18px;
+}
 .featured .label {
   color: var(--accent-text);
-  margin-bottom: 18px;
   letter-spacing: 0.18em;
 }
 .featured .value {
