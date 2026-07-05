@@ -2,6 +2,15 @@
   background: var(--bg-card);
   padding: 22px 22px;
 }
+
+/* Control row (mode tabs) living inside the card, above the label. Lifted over
+   the featured card's decorative ::after glow so it stays clickable-looking
+   (the glow is pointer-events: none, this is just stacking). */
+.tabs {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 22px;
+}
 .label {
   font-size: 11px;
   text-transform: uppercase;

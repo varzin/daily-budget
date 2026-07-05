@@ -9,13 +9,17 @@ import {
   computeCycleLength,
   computeSituation,
   computePace,
+  availableWidgetModes,
+  WIDGET_MODES,
   type Pace,
   type Situation,
+  type WidgetMode,
 } from '../../lib/math'
 import { pluralDays } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
 import type { Money } from '../../lib/currency'
 import Modal from '../ui/Modal/Modal'
+import Segmented from '../ui/Segmented/Segmented'
 import Inputs from './Inputs'
 import MetricCard from './MetricCard'
 import styles from './DashboardTab.module.css'
@@ -49,50 +53,67 @@ function paceText(pace: Pace | null, money: Money): string | null {
   return pace.ahead > 0 ? `≈ ${amount} ahead of plan` : `≈ ${amount} behind plan`
 }
 
-/** Map a situational state to the single widget's tone, headline and copy. */
-function situationProps(s: Situation, buffer: number, daysLeft: number, money: Money): CardProps {
-  const until = `${daysLeft} ${pluralDays(daysLeft)} until income`
-  const perDay = s.result.kind === 'ok' ? money.fmt(s.result.perDay) : '0'
+/** Tab captions for the widget's three spending modes, strictest → loosest. */
+const MODE_LABELS: Record<WidgetMode, string> = {
+  ahead: 'Grow savings',
+  onTrack: 'Keep savings',
+  intoSavings: 'Spend savings',
+}
 
-  switch (s.state) {
+/** Card treatment for one selectable widget mode and its daily figure. */
+function modeProps(
+  mode: WidgetMode,
+  perDay: number,
+  buffer: number,
+  daysLeft: number,
+  money: Money,
+): CardProps {
+  const until = `Income in ${daysLeft} ${pluralDays(daysLeft)}`
+  const value = money.fmt(perDay)
+
+  switch (mode) {
     case 'ahead':
       return {
         tone: 'teal',
         label: 'Daily budget',
         symbol: money.symbol,
-        value: perDay,
+        value,
+        // With no cushion configured the teal figure equals the green one,
+        // so the subtitle honestly collapses to the same promise.
         subtitle:
           buffer > 0
-            ? `Ahead — keeps your ${money.symbol}${money.fmtAmount(buffer)} cushion · ${until}`
-            : `You're ahead of plan · ${until}`,
+            ? `Adds ${money.symbol}${money.fmtAmount(buffer)} to savings · ${until}`
+            : `Savings untouched · ${until}`,
       }
     case 'onTrack':
       return {
         tone: 'green',
         label: 'Daily budget',
         symbol: money.symbol,
-        value: perDay,
-        subtitle: `Savings stay untouched · ${until}`,
+        value,
+        subtitle: `Savings untouched · ${until}`,
       }
     case 'intoSavings':
       return {
         tone: 'orange',
         label: 'Daily budget',
         symbol: money.symbol,
-        value: perDay,
-        subtitle: `Dips into savings · ${until}`,
+        value,
+        subtitle: `Spends savings · ${until}`,
       }
-    case 'over': {
-      const deficit = s.result.kind === 'deficit' ? s.result.deficit : 0
-      const days = s.result.kind === 'deficit' ? s.result.daysNoSpend : daysLeft
-      return {
-        tone: 'deficit',
-        label: 'Over budget',
-        symbol: `−${money.symbol}`,
-        value: money.fmt(deficit),
-        subtitle: `Deficit · ${days} ${pluralDays(days)} of no spending`,
-      }
-    }
+  }
+}
+
+/** The fourth, tab-less card: can't even cover fixed expenses. */
+function deficitProps(s: Situation, daysLeft: number, money: Money): CardProps {
+  const deficit = s.result.kind === 'deficit' ? s.result.deficit : 0
+  const days = s.result.kind === 'deficit' ? s.result.daysNoSpend : daysLeft
+  return {
+    tone: 'deficit',
+    label: 'Over budget',
+    symbol: `−${money.symbol}`,
+    value: money.fmt(deficit),
+    subtitle: `Deficit · ${days} ${pluralDays(days)} of no spending`,
   }
 }
 
@@ -105,6 +126,10 @@ export default function DashboardTab() {
   const savings = useBudgetStore(s => s.savings)
   const money = useMoney()
   const [helpItem, setHelpItem] = useState<BreakdownItem | null>(null)
+  // The user's explicit tab pick; null = follow the situation. When the pick
+  // becomes unavailable (balance dropped), we fall back to the strictest
+  // available mode instead of clearing it, so it re-applies if money returns.
+  const [modeChoice, setModeChoice] = useState<WidgetMode | null>(null)
 
   const m = useMemo(() => {
     const b = Number(bank) || 0
@@ -138,7 +163,20 @@ export default function DashboardTab() {
     }
   }, [bank, incomeDay, buffer, monthlyIncome, categories, savings])
 
-  const card = situationProps(m.situation, buffer, m.daysLeft, money)
+  // Tabs: every mode at or below the current situation is selectable; stricter
+  // ones (their daily figure would be negative) render blocked. No modes at all
+  // means deficit — the widget drops the tabs and shows the fourth, red card.
+  const availableModes = availableWidgetModes(m.situation.state)
+  const mode =
+    modeChoice && availableModes.includes(modeChoice) ? modeChoice : availableModes[0] ?? null
+  const modePerDay: Record<WidgetMode, number> = {
+    ahead: m.greenPerDay,
+    onTrack: m.yellowPerDay,
+    intoSavings: m.allPerDay,
+  }
+  const card = mode
+    ? modeProps(mode, modePerDay[mode], buffer, m.daysLeft, money)
+    : deficitProps(m.situation, m.daysLeft, money)
   const pace = paceText(m.pace, money)
 
   // Ordered from raw building blocks → derived "free to spend" sums → the three
@@ -242,6 +280,20 @@ export default function DashboardTab() {
               label={card.label}
               symbol={card.symbol}
               value={card.value}
+              tabs={
+                mode !== null ? (
+                  <Segmented
+                    value={mode}
+                    onChange={setModeChoice}
+                    ariaLabel="Daily budget mode"
+                    options={WIDGET_MODES.map(value => ({
+                      value,
+                      label: MODE_LABELS[value],
+                      disabled: !availableModes.includes(value),
+                    }))}
+                  />
+                ) : undefined
+              }
               subtitle={
                 pace ? (
                   <>

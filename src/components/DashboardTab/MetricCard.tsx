@@ -11,6 +11,8 @@ interface MetricCardProps {
   symbol?: string
   value: string
   subtitle?: ReactNode
+  /** Optional control row (e.g. mode tabs) rendered inside the card, above the label. */
+  tabs?: ReactNode
   id?: string
 }
 
@@ -25,6 +27,7 @@ export default function MetricCard({
   symbol = '€',
   value,
   subtitle,
+  tabs,
   id,
 }: MetricCardProps) {
   return (
@@ -36,6 +39,7 @@ export default function MetricCard({
       )}
       id={id}
     >
+      {tabs !== undefined && <div className={styles.tabs}>{tabs}</div>}
       <div className={styles.label}>{label}</div>
       <div className={styles.value}>
         <span className={styles.sym}>{symbol}</span>

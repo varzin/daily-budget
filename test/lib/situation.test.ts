@@ -4,7 +4,7 @@
  * the daily figure that state should feature.
  */
 import { describe, expect, it } from 'vitest'
-import { computeSituation } from '../../src/lib/math'
+import { availableWidgetModes, computeSituation } from '../../src/lib/math'
 
 // Common fixture: 100 fixed still to pay, 200 in savings, 50 cushion, 10 days.
 const OBLIG = 100
@@ -49,5 +49,31 @@ describe('computeSituation', () => {
     const s = sit(300, 0)
     expect(s.state).toBe('ahead')
     expect(s.result).toEqual({ kind: 'ok', perDay: 0 })
+  })
+})
+
+describe('availableWidgetModes', () => {
+  it('ahead — every mode is selectable', () => {
+    expect(availableWidgetModes('ahead')).toEqual(['ahead', 'onTrack', 'intoSavings'])
+  })
+
+  it('onTrack — the cushion mode is blocked', () => {
+    expect(availableWidgetModes('onTrack')).toEqual(['onTrack', 'intoSavings'])
+  })
+
+  it('intoSavings — only spend-everything remains', () => {
+    expect(availableWidgetModes('intoSavings')).toEqual(['intoSavings'])
+  })
+
+  it('over — nothing selectable, the widget falls back to the deficit card', () => {
+    expect(availableWidgetModes('over')).toEqual([])
+  })
+
+  it('mirrors computeSituation: the strictest available mode is the situation itself', () => {
+    for (const bank of [400, 320, 150]) {
+      const s = sit(bank)
+      expect(availableWidgetModes(s.state)[0]).toBe(s.state)
+    }
+    expect(availableWidgetModes(sit(80).state)).toHaveLength(0)
   })
 })

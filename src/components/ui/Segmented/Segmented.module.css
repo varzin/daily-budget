@@ -16,16 +16,17 @@
   position: absolute;
   top: 3px;
   bottom: 3px;
+  /* left/width are set inline from the active button's measured geometry —
+     segments aren't guaranteed equal (nowrap labels can grow a 1fr track past
+     the even split on narrow screens). */
   left: 3px;
-  /* Exactly one segment wide. With a gapless grid each segment is the inner
-     track width (100% of the padding-box minus the 3px padding on each side)
-     divided by the count, so translateX(index * 100%) lands precisely. */
   width: calc((100% - 6px) / var(--seg-count));
   border-radius: 7px;
   background: var(--bg-card);
   border: 1px solid var(--border-strong);
   box-shadow: 0 1px 3px rgba(var(--shadow-rgb), 0.25);
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
 
@@ -58,6 +59,12 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+.option.disabled,
+.option.disabled:hover {
+  color: var(--text-faint);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 .icon {
   display: inline-flex;
@@ -72,4 +79,22 @@
 /* a11y: comfortable touch targets (≥44px) on touch devices. */
 @media (pointer: coarse) {
   .option { min-height: 44px; }
+}
+
+/* Narrow phones: tighten type and padding so three worded segments
+   ("Replenish savings") still fit side by side. */
+@media (max-width: 400px) {
+  .option {
+    font-size: 13px;
+    padding: 9px 6px;
+  }
+}
+
+/* Very narrow phones (~320px): even tightened, the nowrap labels overflow the
+   card — let them wrap to two lines instead; the measured thumb follows. */
+@media (max-width: 344px) {
+  .option {
+    white-space: normal;
+    line-height: 1.25;
+  }
 }

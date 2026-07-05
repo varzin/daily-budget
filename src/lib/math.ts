@@ -182,6 +182,26 @@ export function computeSituation(
   return { state: afterFixed >= 0 ? 'intoSavings' : 'over', result: perDayAll(bank, oblig, daysLeft) }
 }
 
+/**
+ * The three spending modes the dashboard widget can feature as tabs, ordered
+ * strictest → loosest. Each successive mode stops reserving one more thing
+ * (cushion, then savings), so its daily figure is always ≥ the previous one.
+ */
+export const WIDGET_MODES = ['ahead', 'onTrack', 'intoSavings'] as const
+export type WidgetMode = (typeof WIDGET_MODES)[number]
+
+/**
+ * Which widget modes are selectable for a situation: a mode is available when
+ * its daily figure is ≥ 0, which — since the figures only grow down the list —
+ * is exactly the current situation's mode and everything looser. Empty when
+ * even fixed expenses aren't covered (deficit: the widget shows the fourth,
+ * tab-less "over" card instead).
+ */
+export function availableWidgetModes(state: SituationState): WidgetMode[] {
+  if (state === 'over') return []
+  return WIDGET_MODES.slice(WIDGET_MODES.indexOf(state))
+}
+
 export interface Pace {
   /** The planned daily rate: (income − planned fixed − cushion) / cycle length. */
   perDayPlan: number
