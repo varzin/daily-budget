@@ -4,7 +4,7 @@ import { useBudgetStore } from '../../store/budgetStore'
 import {
   obligatoryTotal,
   plannedObligatoryTotal,
-  currentSavingsTotal,
+  reservedSavingsPool,
   computeDaysLeft,
   computeCycleLength,
   computeSituation,
@@ -125,7 +125,7 @@ export default function DashboardTab() {
   const m = useMemo(() => {
     const b = Number(bank) || 0
     const oblig = obligatoryTotal(categories)
-    const savingsPool = currentSavingsTotal(savings)
+    const savingsPool = reservedSavingsPool(savings)
     const daysLeft = computeDaysLeft(Number(incomeDay))
     const perDay = (available: number) => (daysLeft > 0 ? available / daysLeft : 0)
 
@@ -188,7 +188,7 @@ export default function DashboardTab() {
       key: 'savings',
       label: 'Savings',
       value: m.savingsPool,
-      help: 'Your set-aside pool — the sum of every "Saved this month" row in the Savings tab. It stays reserved, so the green and yellow daily budgets leave it untouched.',
+      help: 'Your set-aside pool — the sum of every "Saved this month" row in the Savings tab. It stays reserved, so the green and yellow daily budgets leave it untouched. If the overall history is negative, it counts as zero here: the daily budget never plans around a reserve that doesn\'t exist.',
     },
     {
       key: 'fixed',

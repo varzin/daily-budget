@@ -12,6 +12,16 @@ function safeDate(year: number, month: number, day: number): Date {
   return new Date(year, month, Math.min(day, lastDay))
 }
 
+/**
+ * The day income actually arrives this month: day 29–31 clamps to the last day
+ * of shorter months (matching safeDate). Comparisons of "has income come yet"
+ * must use this, not the raw incomeDay — otherwise the last day of a short
+ * month reads as "income still ahead" and the cycle maths collapses to 1 day.
+ */
+function effectiveIncomeDay(incomeDay: number, y: number, m: number): number {
+  return Math.min(incomeDay, new Date(y, m + 1, 0).getDate())
+}
+
 /** Days until next income day; if today is on/after it, count to next month. */
 export function computeDaysLeft(incomeDay: number, today: Date = new Date()): number {
   if (!incomeDay || incomeDay < 1 || incomeDay > 31) return 0
@@ -21,7 +31,7 @@ export function computeDaysLeft(incomeDay: number, today: Date = new Date()): nu
   const d = today.getDate()
 
   let target: Date
-  if (d < incomeDay) {
+  if (d < effectiveIncomeDay(incomeDay, y, m)) {
     target = safeDate(y, m, incomeDay)
   } else {
     target = safeDate(y, m + 1, incomeDay)
@@ -46,8 +56,9 @@ export function computeCycleLength(incomeDay: number, today: Date = new Date()):
   const m = today.getMonth()
   const d = today.getDate()
 
-  const prev = d < incomeDay ? safeDate(y, m - 1, incomeDay) : safeDate(y, m, incomeDay)
-  const next = d < incomeDay ? safeDate(y, m, incomeDay) : safeDate(y, m + 1, incomeDay)
+  const upcoming = d < effectiveIncomeDay(incomeDay, y, m)
+  const prev = upcoming ? safeDate(y, m - 1, incomeDay) : safeDate(y, m, incomeDay)
+  const next = upcoming ? safeDate(y, m, incomeDay) : safeDate(y, m + 1, incomeDay)
 
   const msPerDay = 24 * 60 * 60 * 1000
   const startOfPrev = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate()).getTime()
@@ -83,6 +94,18 @@ export function plannedObligatoryTotal(categories: Category[]): number {
 export function currentSavingsTotal(savings: SavingsRow[]): number {
   if (!savings || savings.length === 0) return 0
   return savings.reduce((sum, row) => sum + (row.deletedAt ? 0 : Number(row.saved) || 0), 0)
+}
+
+/**
+ * The savings pool as the dashboard reserves it: the cumulative total clamped
+ * at zero. History may be net negative (overspent months are recorded
+ * honestly), but a negative reserve would tell the daily budget to spend more
+ * than the bank holds and break the situation ordering (bank − oblig − pool
+ * would exceed bank − oblig). Finalize keeps using the signed total
+ * (computeFinalize) so the ledger itself stays truthful.
+ */
+export function reservedSavingsPool(savings: SavingsRow[]): number {
+  return Math.max(0, currentSavingsTotal(savings))
 }
 
 /**

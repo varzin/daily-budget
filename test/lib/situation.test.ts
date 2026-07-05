@@ -4,7 +4,13 @@
  * the daily figure that state should feature.
  */
 import { describe, expect, it } from 'vitest'
-import { availableWidgetModes, computeSituation } from '../../src/lib/math'
+import {
+  availableWidgetModes,
+  computeSituation,
+  currentSavingsTotal,
+  reservedSavingsPool,
+} from '../../src/lib/math'
+import type { SavingsRow } from '../../src/types'
 
 // Common fixture: 100 fixed still to pay, 200 in savings, 50 cushion, 10 days.
 const OBLIG = 100
@@ -75,5 +81,34 @@ describe('availableWidgetModes', () => {
       expect(availableWidgetModes(s.state)[0]).toBe(s.state)
     }
     expect(availableWidgetModes(sit(80).state)).toHaveLength(0)
+  })
+})
+
+describe('reservedSavingsPool', () => {
+  const row = (saved: number, deletedAt?: string): SavingsRow => ({
+    month: '2026-01',
+    saved,
+    ...(deletedAt ? { deletedAt } : {}),
+  })
+
+  it('passes a positive cumulative pool through unchanged', () => {
+    expect(reservedSavingsPool([row(300), row(-100)])).toBe(200)
+  })
+
+  it('clamps a net-negative history to zero for the dashboard', () => {
+    // A negative reserve would break the situation ordering: with pool −500
+    // the "after savings" line would sit above "after fixed" and a bank that
+    // cannot even cover fixed expenses would still read as ahead/onTrack.
+    const savings = [row(-200), row(-300)]
+    expect(currentSavingsTotal(savings)).toBe(-500) // ledger stays signed
+    expect(reservedSavingsPool(savings)).toBe(0)
+
+    const s = computeSituation(100, 200, reservedSavingsPool(savings), 0, 10)
+    expect(s.state).toBe('over')
+    expect(s.result.kind).toBe('deficit')
+  })
+
+  it('ignores tombstoned rows like currentSavingsTotal does', () => {
+    expect(reservedSavingsPool([row(500), row(-200, '2026-02-01')])).toBe(500)
   })
 })
