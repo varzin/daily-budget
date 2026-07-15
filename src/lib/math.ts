@@ -110,9 +110,11 @@ export function computeCategoryPace(
   const cycle = computeCycleLength(incomeDay, today)
   if (cycle <= 0) return null
 
+  // daysLeft is in [1, cycle] (== cycle on payday), so cycle − daysLeft is
+  // naturally in [0, cycle); the single [0,1] clamp is just cheap insurance for
+  // the CSS marker position, not a real branch.
   const daysLeft = computeDaysLeft(incomeDay, today)
-  const daysPassed = Math.max(0, Math.min(cycle, cycle - daysLeft))
-  const elapsed = Math.max(0, Math.min(1, daysPassed / cycle))
+  const elapsed = Math.max(0, Math.min(1, (cycle - daysLeft) / cycle))
 
   const rawSpentRatio = (Number(cat.spent) || 0) / budget
   const spentRatio = Math.max(0, Math.min(1, rawSpentRatio))

@@ -91,13 +91,18 @@
   overflow: hidden;
 }
 
-/* Shared column template — header + row must align. */
+/* Shared column template — header + row must align. The Pace column only
+   exists when at least one visible category is ongoing (see .withPace). */
 .header,
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 68px 68px 78px 52px;
+  grid-template-columns: minmax(0, 1fr) 72px 72px 84px;
   align-items: center;
   gap: 12px;
+}
+.withPace .header,
+.withPace .row {
+  grid-template-columns: minmax(0, 1fr) 68px 68px 78px 52px;
 }
 
 .header {
@@ -253,6 +258,11 @@
 @media (max-width: 540px) {
   .header,
   .row {
+    grid-template-columns: minmax(0, 1fr) 56px 56px 68px;
+    gap: 8px;
+  }
+  .withPace .header,
+  .withPace .row {
     grid-template-columns: minmax(0, 1fr) 52px 52px 60px 40px;
     gap: 7px;
   }

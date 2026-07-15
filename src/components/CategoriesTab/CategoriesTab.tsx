@@ -8,7 +8,7 @@ import { useMoney } from '../../lib/useMoney'
 import Button from '../ui/Button/Button'
 import Modal from '../ui/Modal/Modal'
 import CategoryEditModal from './CategoryEditModal'
-import PaceBar from './PaceBar'
+import PaceBar, { paceSummary } from './PaceBar'
 import type { Category } from '../../types'
 import styles from './CategoriesTab.module.css'
 
@@ -41,6 +41,12 @@ export default function CategoriesTab() {
   const visibleCategories = useMemo(
     () => (filter === 'unpaid' ? categories.filter(c => !isFullyPaid(c)) : categories),
     [categories, filter]
+  )
+
+  // The Pace column only earns its width when something ongoing is on screen.
+  const hasOngoing = useMemo(
+    () => visibleCategories.some(c => c.ongoing),
+    [visibleCategories]
   )
 
   const openAdd = () => setModal({ kind: 'add' })
@@ -96,13 +102,13 @@ export default function CategoriesTab() {
           anything you owe every month.
         </div>
       ) : (
-        <div className={styles.grid}>
+        <div className={`${styles.grid} ${hasOngoing ? styles.withPace : ''}`}>
           <div className={styles.header}>
             <span>Category</span>
             <span>Budget</span>
             <span>Spent</span>
             <span>Left</span>
-            <span>Pace</span>
+            {hasOngoing && <span>Pace</span>}
           </div>
           {visibleCategories.length === 0 ? (
             <div className={styles.emptyRow}>Everything's paid. 🎉</div>
@@ -114,13 +120,15 @@ export default function CategoriesTab() {
                 type="button"
                 className={`${styles.row} ${cat.done ? styles.rowDone : ''} ${isFullySpent(cat) ? styles.rowSpent : ''}`}
                 onClick={() => openEdit(cat)}
-                aria-label={`Edit ${cat.name}`}
+                aria-label={pace ? `Edit ${cat.name} — ${paceSummary(pace)}` : `Edit ${cat.name}`}
               >
                 <span className={styles.name}>{cat.name}</span>
                 <span className={styles.num}>{money.fmt(cat.budget || 0)}</span>
                 <span className={styles.num}>{money.fmt(cat.spent || 0)}</span>
                 <span className={styles.left}>{money.fmt(categoryAmount(cat))}</span>
-                <span className={styles.paceCell}>{pace && <PaceBar pace={pace} />}</span>
+                {hasOngoing && (
+                  <span className={styles.paceCell}>{pace && <PaceBar pace={pace} />}</span>
+                )}
               </button>
             )
           })}
