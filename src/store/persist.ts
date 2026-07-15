@@ -114,6 +114,7 @@ export function migrateCategories(categories: unknown): Category[] {
     if (budgetExpr) item.budgetExpr = budgetExpr
     if (spentExpr) item.spentExpr = spentExpr
     if (note) item.note = note
+    if (r.ongoing === true) item.ongoing = true
     if (updatedAt) item.updatedAt = updatedAt
     if (deletedAt) item.deletedAt = deletedAt
     out.push(item)
