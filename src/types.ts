@@ -20,6 +20,13 @@ export interface Category extends EntityMeta {
   spentExpr?: string
   note?: string
   done: boolean
+  /**
+   * Ongoing expense: the money is spent gradually across the whole pay period
+   * (food, transport…) rather than as a single bill. Purely presentational —
+   * it only enables the spending-pace bar in the table; the daily-budget maths
+   * still treats it as budget − spent like any other fixed expense.
+   */
+  ongoing?: boolean
 }
 
 export interface SavingsRow extends EntityMeta {

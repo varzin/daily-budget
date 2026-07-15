@@ -77,6 +77,52 @@ export function obligatoryTotal(categories: Category[]): number {
   return categories.reduce((sum, c) => sum + categoryAmount(c), 0)
 }
 
+export type PaceState = 'green' | 'orange' | 'red'
+
+export interface CategoryPace {
+  /** Bar fill: share of the budget already spent, clamped to 0..1. */
+  spentRatio: number
+  /** Day marker: share of the pay period elapsed, clamped to 0..1. */
+  elapsed: number
+  /**
+   * Colour of the fill. Compares actual spend against the elapsed pace:
+   * green while spending keeps up with (or under) the calendar, orange when
+   * it runs moderately ahead, red when it runs well ahead — so a full bar in
+   * mid-cycle reads as "you've burned the whole month's budget already".
+   */
+  state: PaceState
+}
+
+/**
+ * Spending pace for an "ongoing" fixed expense — the money for it is meant to
+ * be spread across the whole pay period, so we compare spent/budget against how
+ * much of the cycle has elapsed. Returns null when there's nothing to measure
+ * (no budget, or no income day set). The over-pace comparison uses the *raw*
+ * (uncapped) spent ratio so overspending past 100% still reads red.
+ */
+export function computeCategoryPace(
+  cat: Category,
+  incomeDay: number,
+  today: Date = new Date(),
+): CategoryPace | null {
+  const budget = Number(cat.budget) || 0
+  if (budget <= 0) return null
+  const cycle = computeCycleLength(incomeDay, today)
+  if (cycle <= 0) return null
+
+  const daysLeft = computeDaysLeft(incomeDay, today)
+  const daysPassed = Math.max(0, Math.min(cycle, cycle - daysLeft))
+  const elapsed = Math.max(0, Math.min(1, daysPassed / cycle))
+
+  const rawSpentRatio = (Number(cat.spent) || 0) / budget
+  const spentRatio = Math.max(0, Math.min(1, rawSpentRatio))
+
+  const over = rawSpentRatio - elapsed
+  const state: PaceState = over <= 0.1 ? 'green' : over <= 0.25 ? 'orange' : 'red'
+
+  return { spentRatio, elapsed, state }
+}
+
 /**
  * The full fixed-expense plan for the cycle: the sum of category budgets,
  * regardless of what's been spent or marked paid (a paid bill is still part of

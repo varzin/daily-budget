@@ -9,6 +9,7 @@ import Modal from '../ui/Modal/Modal'
 import Button from '../ui/Button/Button'
 import TextField from '../ui/TextField/TextField'
 import MathField from '../ui/MathField/MathField'
+import Toggle from '../ui/Toggle/Toggle'
 import styles from './CategoryEditModal.module.css'
 
 interface CategoryEditModalProps {
@@ -24,6 +25,7 @@ interface Draft {
   note: string
   noteVisible: boolean
   done: boolean
+  ongoing: boolean
 }
 
 function exprFromCategory(expr: string | undefined, num: number): string {
@@ -33,7 +35,7 @@ function exprFromCategory(expr: string | undefined, num: number): string {
 
 function draftFrom(category: Category | null): Draft {
   if (!category) {
-    return { name: '', budgetExpr: '', spentExpr: '', note: '', noteVisible: false, done: false }
+    return { name: '', budgetExpr: '', spentExpr: '', note: '', noteVisible: false, done: false, ongoing: false }
   }
   const note = category.note ?? ''
   return {
@@ -43,6 +45,7 @@ function draftFrom(category: Category | null): Draft {
     note,
     noteVisible: note.length > 0,
     done: category.done,
+    ongoing: category.ongoing ?? false,
   }
 }
 
@@ -145,6 +148,7 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
       spentExpr: hasMathOps(draft.spentExpr) ? draft.spentExpr.trim() : undefined,
       note: note || undefined,
       done: draft.done,
+      ongoing: draft.ongoing,
     }
     const store = useBudgetStore.getState()
     if (isEdit && category) {
@@ -255,6 +259,15 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
             />
           </label>
         )}
+
+        <div className={styles.ongoingRow}>
+          <Toggle
+            checked={draft.ongoing}
+            onChange={next => setDraft(d => ({ ...d, ongoing: next }))}
+            label="Ongoing expense"
+            description="Spent gradually across the pay period — shows a spending-pace bar."
+          />
+        </div>
 
         {(budgetInvalid || spentInvalid) && (
           <div className={styles.errorRow}>

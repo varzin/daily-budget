@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react'
 import { Plus, HelpCircle, List, ListFilter } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { useUiPrefsStore } from '../../store/uiPrefsStore'
-import { obligatoryTotal, categoryAmount } from '../../lib/math'
+import { obligatoryTotal, categoryAmount, computeCategoryPace } from '../../lib/math'
 import { live } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
 import Button from '../ui/Button/Button'
 import Modal from '../ui/Modal/Modal'
 import CategoryEditModal from './CategoryEditModal'
+import PaceBar from './PaceBar'
 import type { Category } from '../../types'
 import styles from './CategoriesTab.module.css'
 
@@ -28,6 +29,7 @@ function isFullyPaid(cat: Category): boolean {
 
 export default function CategoriesTab() {
   const allCategories = useBudgetStore(s => s.categories)
+  const incomeDay = useBudgetStore(s => s.incomeDay)
   const categories = useMemo(() => live(allCategories), [allCategories])
   const total = useMemo(() => obligatoryTotal(categories), [categories])
   const money = useMoney()
@@ -100,23 +102,28 @@ export default function CategoriesTab() {
             <span>Budget</span>
             <span>Spent</span>
             <span>Left</span>
+            <span>Pace</span>
           </div>
           {visibleCategories.length === 0 ? (
             <div className={styles.emptyRow}>Everything's paid. 🎉</div>
-          ) : visibleCategories.map(cat => (
-            <button
-              key={cat.id}
-              type="button"
-              className={`${styles.row} ${cat.done ? styles.rowDone : ''} ${isFullySpent(cat) ? styles.rowSpent : ''}`}
-              onClick={() => openEdit(cat)}
-              aria-label={`Edit ${cat.name}`}
-            >
-              <span className={styles.name}>{cat.name}</span>
-              <span className={styles.num}>{money.fmt(cat.budget || 0)}</span>
-              <span className={styles.num}>{money.fmt(cat.spent || 0)}</span>
-              <span className={styles.left}>{money.fmt(categoryAmount(cat))}</span>
-            </button>
-          ))}
+          ) : visibleCategories.map(cat => {
+            const pace = cat.ongoing ? computeCategoryPace(cat, incomeDay) : null
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                className={`${styles.row} ${cat.done ? styles.rowDone : ''} ${isFullySpent(cat) ? styles.rowSpent : ''}`}
+                onClick={() => openEdit(cat)}
+                aria-label={`Edit ${cat.name}`}
+              >
+                <span className={styles.name}>{cat.name}</span>
+                <span className={styles.num}>{money.fmt(cat.budget || 0)}</span>
+                <span className={styles.num}>{money.fmt(cat.spent || 0)}</span>
+                <span className={styles.left}>{money.fmt(categoryAmount(cat))}</span>
+                <span className={styles.paceCell}>{pace && <PaceBar pace={pace} />}</span>
+              </button>
+            )
+          })}
         </div>
       )}
 
