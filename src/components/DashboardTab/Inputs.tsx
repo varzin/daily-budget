@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { computeDaysLeft } from '../../lib/math'
-import { evaluateLenient } from '../../lib/evalExpr'
+import { evaluateLenient, formatEvalResult, hasMathOps } from '../../lib/evalExpr'
 import { formatUpdatedAgo, isStale } from '../../lib/freshness'
 import { useMoney } from '../../lib/useMoney'
 import { pluralDays } from '../../lib/utils'
@@ -10,31 +10,42 @@ import styles from './DashboardTab.module.css'
 
 /**
  * Current-balance input that accepts an arithmetic expression (e.g. "1200+30")
- * like the Budget/Spent fields, evaluating it to the stored numeric balance.
- * We keep a local string draft so the formula survives while typing, committing
- * the evaluated value live (the store only holds a number). On blur the draft
- * collapses to the computed number. Uses the full keyboard on mobile because the
- * decimal keypad has no operators (same tradeoff as MathField, see CLAUDE.md).
+ * like the Budget/Spent fields. The formula string is the source of truth: while
+ * focused you see the whole formula, on blur it shows the evaluated result (same
+ * as MathField). The store only holds a number, so we commit the evaluated value
+ * (rounded to 2 decimals) live and pull external changes (sync/import/finalize)
+ * back into the formula. Uses the full keyboard on mobile because the decimal
+ * keypad has no operators (same tradeoff as MathField, see CLAUDE.md).
  */
 function BankInput() {
   const bank = useBudgetStore(s => s.bank)
-  const [draft, setDraft] = useState<string>(() => (bank ? String(bank) : ''))
-  const [editing, setEditing] = useState(false)
+  const [expr, setExpr] = useState<string>(() => (bank ? String(bank) : ''))
+  const [focused, setFocused] = useState(false)
 
-  // Reflect external changes (sync, import) when not mid-edit.
+  // When the stored balance changes from outside this field (sync, import,
+  // finalize) the formula no longer reflects it — replace it with the number.
+  // Our own live commits round-trip to the same value, so the formula is kept.
   useEffect(() => {
-    if (!editing) setDraft(bank ? String(bank) : '')
-  }, [bank, editing])
+    const r = evaluateLenient(expr)
+    const current = r.ok ? Math.round(r.value * 100) / 100 : NaN
+    if (current !== bank) setExpr(bank ? String(bank) : '')
+    // Intentionally only on `bank`: reacting to `expr` would clobber an
+    // in-progress invalid formula (which doesn't commit) with the old number.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bank])
 
-  const invalid = draft.trim() !== '' && !evaluateLenient(draft).ok
+  const result = evaluateLenient(expr)
+  const invalid = expr.trim() !== '' && !result.ok
+  const showResult = !focused && result.ok && hasMathOps(expr)
+  const display = showResult ? formatEvalResult(result.value) : expr
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value
-    setDraft(raw)
+    setExpr(raw)
     // Original `js/state.js` stored a raw number; empty input → 0. Commit the
-    // evaluated value live; leave the store untouched on a mid-typing garble.
+    // rounded value live; leave the store untouched on a mid-typing garble.
     const r = evaluateLenient(raw)
-    if (r.ok) useBudgetStore.getState().setBank(r.value)
+    if (r.ok) useBudgetStore.getState().setBank(Math.round(r.value * 100) / 100)
   }
 
   return (
@@ -43,15 +54,11 @@ function BankInput() {
       id="bank"
       inputMode="text"
       placeholder="0.00"
-      value={draft}
+      value={display}
       aria-invalid={invalid || undefined}
-      onFocus={() => setEditing(true)}
+      onFocus={() => setFocused(true)}
       onChange={onChange}
-      onBlur={() => {
-        setEditing(false)
-        // Collapse the formula to its evaluated number.
-        setDraft(bank ? String(bank) : '')
-      }}
+      onBlur={() => setFocused(false)}
     />
   )
 }
