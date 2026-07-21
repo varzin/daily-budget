@@ -94,7 +94,7 @@ function MoreMenu({ canAllSpent, canDelete, onAllSpent, onAddNote, onDelete }: M
             disabled={!canAllSpent}
             onClick={run(onAllSpent)}
           >
-            All spent
+            Complete
           </button>
           <button
             type="button"
