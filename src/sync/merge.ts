@@ -100,21 +100,26 @@ function mergeScalars(
   remote: BudgetState,
 ): Pick<
   BudgetState,
-  'bank' | 'incomeDay' | 'buffer' | 'currency' | 'monthlyIncome' | 'resetSpentOnFinalize' | 'meta'
+  | 'bank'
+  | 'bankExpr'
+  | 'incomeDay'
+  | 'buffer'
+  | 'currency'
+  | 'monthlyIncome'
+  | 'resetSpentOnFinalize'
+  | 'meta'
 > {
   // Generic over the field so it works for numeric scalars (bank/incomeDay/
   // buffer), the string scalar (currency) and the boolean (resetSpentOnFinalize).
   const pick = <K extends keyof BudgetMeta>(
     field: K,
-  ): { value: BudgetState[K]; ts: string | null } => {
+  ): { value: BudgetState[K]; ts: string | null; from: BudgetState } => {
     const lt = time(local.meta?.[field])
     const rt = time(remote.meta?.[field])
     // Strictly-newer wins; tie keeps local (scalars don't get conflict-copies).
     const useRemote = rt > lt
-    return {
-      value: useRemote ? remote[field] : local[field],
-      ts: (useRemote ? remote.meta?.[field] : local.meta?.[field]) ?? null,
-    }
+    const from = useRemote ? remote : local
+    return { value: from[field], ts: from.meta?.[field] ?? null, from }
   }
   const bank = pick('bank')
   const incomeDay = pick('incomeDay')
@@ -124,6 +129,9 @@ function mergeScalars(
   const resetSpentOnFinalize = pick('resetSpentOnFinalize')
   return {
     bank: bank.value,
+    // The formula belongs to the balance, so it comes from whichever side won
+    // `bank` — never mixing one device's number with another's expression.
+    bankExpr: bank.from.bankExpr,
     incomeDay: incomeDay.value,
     buffer: buffer.value,
     currency: currency.value,
@@ -163,6 +171,7 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
   return {
     merged: {
       bank: scalars.bank,
+      ...(scalars.bankExpr ? { bankExpr: scalars.bankExpr } : {}),
       incomeDay: scalars.incomeDay,
       buffer: scalars.buffer,
       currency: scalars.currency,

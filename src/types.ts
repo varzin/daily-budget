@@ -47,6 +47,15 @@ export interface BudgetMeta {
 
 export interface BudgetState {
   bank: number
+  /**
+   * The arithmetic expression the balance was entered as (e.g. "1200+30" — a
+   * split across accounts), kept so it stays editable instead of collapsing to
+   * a number. Absent when the balance was typed as a plain number. Carries NO
+   * timestamp of its own: it travels with `bank` under `meta.bank`, the same way
+   * `budgetExpr` travels with a category's `updatedAt` — so a merge can never
+   * pair one device's number with another device's formula.
+   */
+  bankExpr?: string
   incomeDay: number
   /** Desired positive balance to keep by month end — the green-zone cushion. */
   buffer: number
