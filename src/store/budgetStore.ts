@@ -26,7 +26,8 @@ export function wasLastChangeRemote(): boolean {
 
 // ---------- store types ----------
 type BudgetActions = {
-  setBank: (n: number) => void
+  /** `expr` is the formula the amount was typed as; omit/empty to clear it. */
+  setBank: (n: number, expr?: string) => void
   setIncomeDay: (n: number) => void
   setBuffer: (n: number) => void
   setCurrency: (code: string) => void
@@ -64,9 +65,15 @@ export const useBudgetStore = create<BudgetStore>()(
       ...defaultState,
 
       // ---------- bank / income ----------
-      setBank: (n) => {
+      setBank: (n, expr) => {
         const t = now()
-        set(touch({ bank: Number(n) || 0, meta: { ...get().meta, bank: t } }))
+        // `bankExpr` shares `meta.bank` — it is part of the balance, not a
+        // scalar of its own. Passing no expression drops any stored formula.
+        set(touch({
+          bank: Number(n) || 0,
+          bankExpr: expr || undefined,
+          meta: { ...get().meta, bank: t },
+        }))
       },
       setIncomeDay: (n) => {
         const t = now()

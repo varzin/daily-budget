@@ -8,31 +8,36 @@ import { useMoney } from '../../lib/useMoney'
 import { pluralDays } from '../../lib/utils'
 import styles from './DashboardTab.module.css'
 
+/** The balance as text: the stored formula if there is one, else the number. */
+function bankText(bank: number, bankExpr?: string): string {
+  if (bankExpr) return bankExpr
+  return bank ? String(bank) : ''
+}
+
 /**
- * Current-balance input that accepts an arithmetic expression (e.g. "1200+30")
- * like the Budget/Spent fields. The formula string is the source of truth: while
- * focused you see the whole formula, on blur it shows the evaluated result (same
- * as MathField). The store only holds a number, so we commit the evaluated value
- * (rounded to 2 decimals) live and pull external changes (sync/import/finalize)
- * back into the formula. Uses the full keyboard on mobile because the decimal
- * keypad has no operators (same tradeoff as MathField, see CLAUDE.md).
+ * Current-balance input that accepts an arithmetic expression (e.g. "1200+30" —
+ * a split across accounts), like the Budget/Spent fields. While focused you see
+ * the whole formula, on blur the evaluated result (same as MathField). The
+ * formula is persisted as `bankExpr` alongside the number, so it survives a
+ * reload and syncs across devices — the point of a formula field is that it
+ * stays editable. Uses the full keyboard on mobile because the decimal keypad
+ * has no operators (same tradeoff as MathField, see CLAUDE.md).
  */
 function BankInput() {
   const bank = useBudgetStore(s => s.bank)
-  const [expr, setExpr] = useState<string>(() => (bank ? String(bank) : ''))
+  const bankExpr = useBudgetStore(s => s.bankExpr)
+  const [expr, setExpr] = useState<string>(() => bankText(bank, bankExpr))
   const [focused, setFocused] = useState(false)
 
-  // When the stored balance changes from outside this field (sync, import,
-  // finalize) the formula no longer reflects it — replace it with the number.
-  // Our own live commits round-trip to the same value, so the formula is kept.
+  // Pull in changes that didn't come from this field (sync, import): if what's
+  // stored no longer matches what's typed, adopt the stored value. Our own
+  // commits write back the same text, so typing is never interrupted.
   useEffect(() => {
-    const r = evaluateLenient(expr)
-    const current = r.ok ? Math.round(r.value * 100) / 100 : NaN
-    if (current !== bank) setExpr(bank ? String(bank) : '')
-    // Intentionally only on `bank`: reacting to `expr` would clobber an
-    // in-progress invalid formula (which doesn't commit) with the old number.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bank])
+    // Keyed on the stored value only — an in-progress invalid formula doesn't
+    // commit, so this doesn't run and can't clobber what's being typed.
+    const stored = bankText(bank, bankExpr)
+    setExpr(cur => (cur.trim() === stored.trim() ? cur : stored))
+  }, [bank, bankExpr])
 
   const result = evaluateLenient(expr)
   const invalid = expr.trim() !== '' && !result.ok
@@ -45,7 +50,10 @@ function BankInput() {
     // Original `js/state.js` stored a raw number; empty input → 0. Commit the
     // rounded value live; leave the store untouched on a mid-typing garble.
     const r = evaluateLenient(raw)
-    if (r.ok) useBudgetStore.getState().setBank(Math.round(r.value * 100) / 100)
+    if (!r.ok) return
+    useBudgetStore
+      .getState()
+      .setBank(Math.round(r.value * 100) / 100, hasMathOps(raw) ? raw.trim() : undefined)
   }
 
   return (

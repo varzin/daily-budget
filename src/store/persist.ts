@@ -35,6 +35,7 @@ export const defaultState: BudgetState = {
 export function selectBudgetState(s: BudgetState): BudgetState {
   return {
     bank: s.bank,
+    ...(s.bankExpr ? { bankExpr: s.bankExpr } : {}),
     incomeDay: s.incomeDay,
     buffer: s.buffer,
     currency: s.currency,
@@ -142,8 +143,10 @@ function coerceMeta(meta: unknown): BudgetMeta {
  * path for imports, remote pulls and replaceState.
  */
 export function normalizeBudgetState(input: Partial<BudgetState>): BudgetState {
+  const bankExpr = optionalString(input.bankExpr)
   return {
     bank: finiteNumber(input.bank),
+    ...(bankExpr ? { bankExpr } : {}),
     incomeDay: finiteNumber(input.incomeDay) || defaultState.incomeDay,
     buffer: coerceBuffer(input.buffer),
     currency: coerceCurrency(input.currency),
