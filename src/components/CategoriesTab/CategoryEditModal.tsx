@@ -3,8 +3,9 @@ import { MoreHorizontal } from 'lucide-react'
 import type { Category } from '../../types'
 import { useBudgetStore } from '../../store/budgetStore'
 import { showToast } from '../../store/toastStore'
-import { evaluateLenient, hasMathOps } from '../../lib/evalExpr'
+import { evaluateLenient, hasMathOps, hasCurrencyToken } from '../../lib/evalExpr'
 import { useMoney } from '../../lib/useMoney'
+import { useRateResolver } from '../../lib/rates'
 import Modal from '../ui/Modal/Modal'
 import Button from '../ui/Button/Button'
 import TextField from '../ui/TextField/TextField'
@@ -31,6 +32,15 @@ interface Draft {
 function exprFromCategory(expr: string | undefined, num: number): string {
   if (expr) return expr
   return num ? String(num) : ''
+}
+
+/**
+ * Keep the raw text as a formula for any arithmetic OR currency entry ("50+10",
+ * "10 AMD"), so it stays editable and re-evaluates; a plain number is stored as
+ * just the number. Returns undefined to clear the stored formula.
+ */
+function keepExpr(raw: string): string | undefined {
+  return hasMathOps(raw) || hasCurrencyToken(raw) ? raw.trim() : undefined
 }
 
 function draftFrom(category: Category | null): Draft {
@@ -122,6 +132,7 @@ function MoreMenu({ canAllSpent, canDelete, onAllSpent, onAddNote, onDelete }: M
 
 export default function CategoryEditModal({ open, category, onClose }: CategoryEditModalProps) {
   const money = useMoney()
+  const rate = useRateResolver()
   const isEdit = category !== null
   const [draft, setDraft] = useState<Draft>(() => draftFrom(category))
   const noteRef = useRef<HTMLTextAreaElement>(null)
@@ -130,8 +141,8 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
     if (open) setDraft(draftFrom(category))
   }, [open, category])
 
-  const budgetEval = evaluateLenient(draft.budgetExpr)
-  const spentEval = evaluateLenient(draft.spentExpr)
+  const budgetEval = evaluateLenient(draft.budgetExpr, { rate })
+  const spentEval = evaluateLenient(draft.spentExpr, { rate })
   const budgetInvalid = !budgetEval.ok
   const spentInvalid = !spentEval.ok
 
@@ -143,9 +154,9 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
     const payload = {
       name,
       budget: budgetEval.value,
-      budgetExpr: hasMathOps(draft.budgetExpr) ? draft.budgetExpr.trim() : undefined,
+      budgetExpr: keepExpr(draft.budgetExpr),
       spent: spentEval.value,
-      spentExpr: hasMathOps(draft.spentExpr) ? draft.spentExpr.trim() : undefined,
+      spentExpr: keepExpr(draft.spentExpr),
       note: note || undefined,
       done: draft.done,
       ongoing: draft.ongoing,

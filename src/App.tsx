@@ -9,6 +9,7 @@ import SettingsTab from './components/SettingsTab/SettingsTab'
 import Toasts from './components/ui/Toast/Toasts'
 import { initSync } from './sync/dropbox'
 import { initStoragePersistence } from './lib/storagePersistence'
+import { ensureRatesFresh } from './lib/rates'
 import { useApplyTheme } from './store/themeStore'
 import type { TabName } from './types'
 
@@ -18,6 +19,7 @@ export default function App() {
   useEffect(() => {
     void initSync()
     initStoragePersistence()
+    ensureRatesFresh()
   }, [])
   return (
     <div className="app">

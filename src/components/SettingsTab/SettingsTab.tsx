@@ -1,4 +1,5 @@
 import BufferCard from './BufferCard'
+import RatesCard from './RatesCard'
 import ThemeCard from './ThemeCard'
 import SyncCard from './SyncCard'
 import StorageCard from './StorageCard'
@@ -24,6 +25,13 @@ export default function SettingsTab() {
           <h2>Budget</h2>
         </div>
         <BufferCard />
+      </div>
+
+      <div className={styles.block}>
+        <div className={styles.blockHead}>
+          <h2>Exchange rates</h2>
+        </div>
+        <RatesCard />
       </div>
 
       <div className={styles.block}>

@@ -75,6 +75,33 @@ export function coerceCurrency(value: unknown): string {
   return typeof value === 'string' && CODE_SET.has(value) ? value : DEFAULT_CURRENCY
 }
 
+/**
+ * Curated map of currency *symbols* → ISO code, for writing amounts inside a
+ * formula (e.g. "10 ₽"). Only unambiguous single-character symbols are listed —
+ * ISO codes ("10 RUB") remain the primary, unambiguous path. Deliberate
+ * compromises: `$` → USD (the most common of many dollar currencies) and `¥` →
+ * JPY (over CNY). For anything else, type the three-letter code.
+ */
+export const SYMBOL_TO_CODE = new Map<string, string>([
+  ['€', 'EUR'],
+  ['$', 'USD'],
+  ['£', 'GBP'],
+  ['¥', 'JPY'],
+  ['₽', 'RUB'],
+  ['₴', 'UAH'],
+  ['₺', 'TRY'],
+  ['₹', 'INR'],
+  ['₩', 'KRW'],
+  ['₪', 'ILS'],
+  ['฿', 'THB'],
+  ['₫', 'VND'],
+  ['₦', 'NGN'],
+  ['₱', 'PHP'],
+  ['₸', 'KZT'],
+  ['₾', 'GEL'],
+  ['֏', 'AMD'],
+])
+
 /** The device's locale, used for number grouping (independent of currency). */
 export function deviceLocale(): string {
   if (typeof navigator !== 'undefined' && navigator.language) return navigator.language

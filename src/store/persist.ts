@@ -1,4 +1,4 @@
-import type { BudgetMeta, BudgetState, Category, SavingsRow } from '../types'
+import type { BudgetMeta, BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
 import { normalizeMonth, uid } from '../lib/utils'
 import { coerceCurrency, DEFAULT_CURRENCY } from '../lib/currency'
 
@@ -18,6 +18,7 @@ export const defaultState: BudgetState = {
   currency: DEFAULT_CURRENCY,
   monthlyIncome: 0,
   resetSpentOnFinalize: DEFAULT_RESET_SPENT_ON_FINALIZE,
+  rates: null,
   categories: [],
   savings: [],
   updatedAt: null,
@@ -28,6 +29,7 @@ export const defaultState: BudgetState = {
     currency: null,
     monthlyIncome: null,
     resetSpentOnFinalize: null,
+    rates: null,
   },
 }
 
@@ -41,6 +43,7 @@ export function selectBudgetState(s: BudgetState): BudgetState {
     currency: s.currency,
     monthlyIncome: s.monthlyIncome,
     resetSpentOnFinalize: s.resetSpentOnFinalize,
+    rates: s.rates,
     categories: s.categories,
     savings: s.savings,
     updatedAt: s.updatedAt,
@@ -134,6 +137,7 @@ function coerceMeta(meta: unknown): BudgetMeta {
     currency: stringOrNull(m.currency),
     monthlyIncome: stringOrNull(m.monthlyIncome),
     resetSpentOnFinalize: stringOrNull(m.resetSpentOnFinalize),
+    rates: stringOrNull(m.rates),
   }
 }
 
@@ -152,6 +156,7 @@ export function normalizeBudgetState(input: Partial<BudgetState>): BudgetState {
     currency: coerceCurrency(input.currency),
     monthlyIncome: coerceMonthlyIncome(input.monthlyIncome),
     resetSpentOnFinalize: coerceResetSpentOnFinalize(input.resetSpentOnFinalize),
+    rates: coerceRates(input.rates),
     categories: migrateCategories(input.categories),
     savings: migrateSavings(input.savings),
     updatedAt: stringOrNull(input.updatedAt),
@@ -202,4 +207,25 @@ export function coerceMonthlyIncome(value: unknown): number {
  */
 export function coerceResetSpentOnFinalize(value: unknown): boolean {
   return typeof value === 'boolean' ? value : DEFAULT_RESET_SPENT_ON_FINALIZE
+}
+
+/**
+ * Coerce an untrusted cached exchange-rate table (from an import or a remote
+ * pull) into a valid ExchangeRates, or null when absent/unusable. Requires a
+ * base code, a date and at least one positive finite value; junk entries are
+ * dropped rather than trusted. Also used by lib/rates.ts to shape API payloads.
+ */
+export function coerceRates(value: unknown): ExchangeRates | null {
+  if (!value || typeof value !== 'object') return null
+  const o = value as Partial<ExchangeRates>
+  if (typeof o.base !== 'string' || o.base === '') return null
+  if (typeof o.date !== 'string' || o.date === '') return null
+  if (!o.values || typeof o.values !== 'object') return null
+  const values: Record<string, number> = {}
+  for (const [k, v] of Object.entries(o.values as Record<string, unknown>)) {
+    const n = Number(v)
+    if (k && Number.isFinite(n) && n > 0) values[k.toLowerCase()] = n
+  }
+  if (Object.keys(values).length === 0) return null
+  return { base: o.base.toUpperCase(), date: o.date, values }
 }

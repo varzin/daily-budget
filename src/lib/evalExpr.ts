@@ -1,24 +1,60 @@
-// Tiny safe expression evaluator for the Spent field.
+// Tiny safe expression evaluator for the amount fields.
 // Grammar:
 //   expr   = term (('+'|'-') term)*
 //   term   = unary (('*'|'/') unary)*
 //   unary  = ('+'|'-') unary | atom
-//   atom   = '(' expr ')' | number
+//   atom   = currency? ('(' expr ')' | number) currency?
 //   number = digits ('.' digits)? | '.' digits
+//
+// A `currency` token converts a foreign amount to the default currency at
+// evaluation time — e.g. "10 AMD", "$10", "10 ₽". It is recognized ONLY when a
+// rate resolver is supplied (via opts.rate); without one the evaluator behaves
+// exactly as before, so unrelated call sites and tests are unaffected.
 
 export type EvalResult =
   | { ok: true; value: number }
   | { ok: false }
 
-export function evaluateExpr(input: string): EvalResult {
+/** Resolve a currency token (ISO code or symbol) to a multiplier into the
+ *  default currency, or null when it can't be resolved. */
+export type Rate = (token: string) => number | null
+
+export interface EvalOptions {
+  rate?: Rate
+}
+
+export function evaluateExpr(input: string, opts: EvalOptions = {}): EvalResult {
   const src = input.replace(/,/g, '.').trim()
   if (src === '') return { ok: true, value: 0 }
 
+  const rate = opts.rate
   let i = 0
 
   const peek = (): string => (i < src.length ? src[i]! : '')
   const eof = () => i >= src.length
   const skipWs = () => { while (i < src.length && /\s/.test(src[i]!)) i++ }
+
+  // A currency symbol is any char that isn't a digit, letter, operator, paren,
+  // dot or whitespace (e.g. €, $, ₽). Letters form ISO-code tokens separately.
+  const isSymbolChar = (ch: string): boolean =>
+    ch !== '' && !/[0-9A-Za-z+\-*/().\s]/.test(ch)
+
+  // Read a trailing currency token: a run of ASCII letters (ISO code) or a
+  // single symbol char. Advances `i` past it, or returns null (no token).
+  function readCurrencyToken(): string | null {
+    skipWs()
+    if (/[A-Za-z]/.test(peek())) {
+      const start = i
+      while (i < src.length && /[A-Za-z]/.test(src[i]!)) i++
+      return src.slice(start, i)
+    }
+    if (isSymbolChar(peek())) {
+      const ch = peek()
+      i++
+      return ch
+    }
+    return null
+  }
 
   function parseNumber(): number | null {
     skipWs()
@@ -37,6 +73,16 @@ export function evaluateExpr(input: string): EvalResult {
 
   function parseAtom(): number | null {
     skipWs()
+    // Optional prefix currency symbol ("$10", "€10"). Letters are never a
+    // prefix — ISO codes always follow the number.
+    let prefix: string | null = null
+    if (rate && isSymbolChar(peek())) {
+      prefix = peek()
+      i++
+      skipWs()
+    }
+
+    let value: number | null
     if (peek() === '(') {
       i++
       const v = parseExpr()
@@ -44,9 +90,20 @@ export function evaluateExpr(input: string): EvalResult {
       skipWs()
       if (peek() !== ')') return null
       i++
-      return v
+      value = v
+    } else {
+      value = parseNumber()
     }
-    return parseNumber()
+    if (value === null) return null
+
+    // At most one currency token per atom: prefix symbol XOR trailing token.
+    const token = prefix ?? (rate ? readCurrencyToken() : null)
+    if (token !== null) {
+      const m = rate ? rate(token) : null
+      if (m === null || m === undefined) return null
+      value = value * m
+    }
+    return value
   }
 
   function parseUnary(): number | null {
@@ -103,7 +160,7 @@ export function formatEvalResult(n: number): string {
 
 // Lenient: trailing operators dropped, unclosed parens auto-closed,
 // empty input → 0. Genuine token garbage ("abc", "5 5") still fails.
-export function evaluateLenient(input: string): EvalResult {
+export function evaluateLenient(input: string, opts: EvalOptions = {}): EvalResult {
   let s = input.replace(/,/g, '.').trim()
   // Drop trailing operators / unmatched openings.
   while (s.length > 0 && /[+\-*/(\s]$/.test(s)) s = s.slice(0, -1).trimEnd()
@@ -114,10 +171,17 @@ export function evaluateLenient(input: string): EvalResult {
     else if (ch === ')') depth = Math.max(0, depth - 1)
   }
   if (depth > 0) s = s + ')'.repeat(depth)
-  return evaluateExpr(s)
+  return evaluateExpr(s, opts)
 }
 
 export function hasMathOps(input: string): boolean {
   // Strip a single leading minus so "-5" alone is not treated as an expression.
   return /[+\-*/()]/.test(input.trim().replace(/^-/, ''))
+}
+
+// A currency token is any char outside the numeric/operator alphabet — an ISO
+// code letter or a currency symbol. Used to decide when the blurred display
+// should show the converted result of an otherwise operator-free entry.
+export function hasCurrencyToken(input: string): boolean {
+  return /[^\d+\-*/().,\s]/.test(input)
 }

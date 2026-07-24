@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { ReactNode, KeyboardEvent } from 'react'
 import TextField from '../TextField/TextField'
-import { evaluateLenient, formatEvalResult, hasMathOps } from '../../../lib/evalExpr'
+import { evaluateLenient, formatEvalResult, hasMathOps, hasCurrencyToken } from '../../../lib/evalExpr'
+import { useRateResolver } from '../../../lib/rates'
 
 interface MathFieldProps {
   label?: string
@@ -27,8 +28,11 @@ export default function MathField({
   onKeyDown,
 }: MathFieldProps) {
   const [focused, setFocused] = useState(false)
-  const result = evaluateLenient(value)
-  const showResult = !focused && result.ok && hasMathOps(value)
+  const rate = useRateResolver()
+  const result = evaluateLenient(value, { rate })
+  // Show the evaluated result on blur for any real formula — arithmetic OR a
+  // currency conversion ("10 AMD" → the default-currency amount).
+  const showResult = !focused && result.ok && (hasMathOps(value) || hasCurrencyToken(value))
   const display = showResult ? formatEvalResult(result.value) : value
   const invalid = !result.ok
 
