@@ -107,6 +107,7 @@ function mergeScalars(
   | 'currency'
   | 'monthlyIncome'
   | 'resetSpentOnFinalize'
+  | 'rates'
   | 'meta'
 > {
   // Generic over the field so it works for numeric scalars (bank/incomeDay/
@@ -127,6 +128,7 @@ function mergeScalars(
   const currency = pick('currency')
   const monthlyIncome = pick('monthlyIncome')
   const resetSpentOnFinalize = pick('resetSpentOnFinalize')
+  const rates = pick('rates')
   return {
     bank: bank.value,
     // The formula belongs to the balance, so it comes from whichever side won
@@ -137,6 +139,7 @@ function mergeScalars(
     currency: currency.value,
     monthlyIncome: monthlyIncome.value,
     resetSpentOnFinalize: resetSpentOnFinalize.value,
+    rates: rates.value,
     meta: {
       bank: bank.ts,
       incomeDay: incomeDay.ts,
@@ -144,6 +147,7 @@ function mergeScalars(
       currency: currency.ts,
       monthlyIncome: monthlyIncome.ts,
       resetSpentOnFinalize: resetSpentOnFinalize.ts,
+      rates: rates.ts,
     },
   }
 }
@@ -177,6 +181,7 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
       currency: scalars.currency,
       monthlyIncome: scalars.monthlyIncome,
       resetSpentOnFinalize: scalars.resetSpentOnFinalize,
+      rates: scalars.rates,
       categories,
       savings,
       updatedAt: updatedAt ?? null,
@@ -195,7 +200,8 @@ function isStamped(d: BudgetState): boolean {
       d.meta.buffer ||
       d.meta.currency ||
       d.meta.monthlyIncome ||
-      d.meta.resetSpentOnFinalize)
+      d.meta.resetSpentOnFinalize ||
+      d.meta.rates)
   ) {
     return true
   }
@@ -223,6 +229,7 @@ function docKey(d: BudgetState): string {
     currency: d.currency,
     monthlyIncome: d.monthlyIncome,
     resetSpentOnFinalize: d.resetSpentOnFinalize,
+    rates: d.rates ?? null,
     meta: {
       bank: d.meta?.bank ?? null,
       incomeDay: d.meta?.incomeDay ?? null,
@@ -230,6 +237,7 @@ function docKey(d: BudgetState): string {
       currency: d.meta?.currency ?? null,
       monthlyIncome: d.meta?.monthlyIncome ?? null,
       resetSpentOnFinalize: d.meta?.resetSpentOnFinalize ?? null,
+      rates: d.meta?.rates ?? null,
     },
     cats,
     sav,

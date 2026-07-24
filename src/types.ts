@@ -43,6 +43,26 @@ export interface BudgetMeta {
   currency: string | null
   monthlyIncome: string | null
   resetSpentOnFinalize: string | null
+  /** When the cached exchange rates were last fetched (drives daily refresh). */
+  rates: string | null
+}
+
+/**
+ * Cached foreign-exchange rates, used to convert currency amounts written inside
+ * a formula (e.g. "10 AMD") into the app's default currency. Fetched once a day
+ * from the free, keyless fawazahmed0 currency-api. `values` is keyed by
+ * lowercase ISO code and reads as "1 `base` = value units of that currency", so
+ * a cross-rate between any two listed currencies is derivable — see
+ * lib/rates.ts `makeRateResolver`. The whole object is a synced scalar (rides
+ * `meta.rates`), so one device's fetch benefits the others, including offline.
+ */
+export interface ExchangeRates {
+  /** ISO 4217 code the rates are relative to (the default currency at fetch). */
+  base: string
+  /** Rate date reported by the provider, ISO "YYYY-MM-DD". */
+  date: string
+  /** Lowercase ISO code → units of that currency per 1 `base`. */
+  values: Record<string, number>
 }
 
 export interface BudgetState {
@@ -73,6 +93,11 @@ export interface BudgetState {
    * devices. Defaults to true.
    */
   resetSpentOnFinalize: boolean
+  /**
+   * Cached FX rates for currency-in-formula conversion (null until first fetch).
+   * A synced scalar carrying its own `meta.rates` timestamp — see ExchangeRates.
+   */
+  rates: ExchangeRates | null
   categories: Category[]
   savings: SavingsRow[]
   updatedAt: string | null

@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { computeDaysLeft } from '../../lib/math'
-import { evaluateLenient, formatEvalResult, hasMathOps } from '../../lib/evalExpr'
+import { evaluateLenient, formatEvalResult, hasMathOps, hasCurrencyToken } from '../../lib/evalExpr'
 import { formatUpdatedAgo, isStale } from '../../lib/freshness'
 import { useMoney } from '../../lib/useMoney'
+import { useRateResolver } from '../../lib/rates'
 import { pluralDays } from '../../lib/utils'
 import styles from './DashboardTab.module.css'
 
@@ -26,6 +27,7 @@ function bankText(bank: number, bankExpr?: string): string {
 function BankInput() {
   const bank = useBudgetStore(s => s.bank)
   const bankExpr = useBudgetStore(s => s.bankExpr)
+  const rate = useRateResolver()
   const [expr, setExpr] = useState<string>(() => bankText(bank, bankExpr))
   const [focused, setFocused] = useState(false)
 
@@ -39,9 +41,9 @@ function BankInput() {
     setExpr(cur => (cur.trim() === stored.trim() ? cur : stored))
   }, [bank, bankExpr])
 
-  const result = evaluateLenient(expr)
+  const result = evaluateLenient(expr, { rate })
   const invalid = expr.trim() !== '' && !result.ok
-  const showResult = !focused && result.ok && hasMathOps(expr)
+  const showResult = !focused && result.ok && (hasMathOps(expr) || hasCurrencyToken(expr))
   const display = showResult ? formatEvalResult(result.value) : expr
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -49,11 +51,15 @@ function BankInput() {
     setExpr(raw)
     // Original `js/state.js` stored a raw number; empty input → 0. Commit the
     // rounded value live; leave the store untouched on a mid-typing garble.
-    const r = evaluateLenient(raw)
+    const r = evaluateLenient(raw, { rate })
     if (!r.ok) return
+    // Persist the raw text as a formula for any arithmetic OR currency entry, so
+    // "10 AMD" stays editable (and re-evaluates) instead of collapsing to the
+    // converted number — a plain number keeps living as just `bank`.
+    const keepExpr = hasMathOps(raw) || hasCurrencyToken(raw)
     useBudgetStore
       .getState()
-      .setBank(Math.round(r.value * 100) / 100, hasMathOps(raw) ? raw.trim() : undefined)
+      .setBank(Math.round(r.value * 100) / 100, keepExpr ? raw.trim() : undefined)
   }
 
   return (

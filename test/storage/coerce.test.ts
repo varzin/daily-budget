@@ -94,6 +94,7 @@ describe('normalizeBudgetState', () => {
       currency: null,
       monthlyIncome: null,
       resetSpentOnFinalize: null,
+      rates: null,
     })
   })
 

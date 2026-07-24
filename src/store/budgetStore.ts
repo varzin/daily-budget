@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { BudgetState, Category, SavingsRow } from '../types'
+import type { BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
 import { uid, currentMonthKey } from '../lib/utils'
 import { computeFinalize } from '../lib/math'
 import {
@@ -33,6 +33,7 @@ type BudgetActions = {
   setCurrency: (code: string) => void
   setMonthlyIncome: (n: number) => void
   setResetSpentOnFinalize: (on: boolean) => void
+  setRates: (rates: ExchangeRates) => void
   addCategory: (input: Omit<Category, 'id'>) => void
   updateCategory: (id: string, patch: Partial<Category>) => void
   deleteCategory: (id: string) => void
@@ -100,6 +101,12 @@ export const useBudgetStore = create<BudgetStore>()(
           resetSpentOnFinalize: Boolean(on),
           meta: { ...get().meta, resetSpentOnFinalize: t },
         }))
+      },
+      // Cached FX rates for currency-in-formula conversion — a synced scalar
+      // (rides meta.rates), refreshed daily by lib/rates.ts.
+      setRates: (rates) => {
+        const t = now()
+        set(touch({ rates, meta: { ...get().meta, rates: t } }))
       },
 
       // ---------- categories ----------
