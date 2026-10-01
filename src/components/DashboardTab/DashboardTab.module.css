@@ -1,15 +1,4 @@
-/* Section wrapper (mirrors .section / .section.active from styles/layout.css).
-   The parent <App> only renders the active tab, so we treat the section as
-   always-active here — but keep the fade-in animation for parity. */
-.section {
-  display: block;
-  animation: fadeIn 0.3s ease;
-}
-.section:focus { outline: none; }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.section { composes: section from '../../styles/shared.module.css'; }
 
 /* ---------- Inputs row (bank + income day) ---------- */
 .inputs {
@@ -43,13 +32,6 @@
   display: flex;
   align-items: baseline;
 }
-.fieldPrefix {
-  font-family: var(--mono);
-  font-size: 22px;
-  font-weight: 300;
-  color: var(--text-faint);
-  margin-right: 2px;
-}
 .field input {
   width: 100%;
   background: transparent;
@@ -59,6 +41,13 @@
   font-size: 22px;
   font-weight: 400;
   color: var(--text);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.field input::-webkit-outer-spin-button,
+.field input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* "X days left" — countdown under the next-income input.
@@ -97,7 +86,8 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
-  margin-bottom: 28px;
+  /* Same step as between the input cards below (.inputs gap). */
+  margin-bottom: 16px;
 }
 
 /* ---------- Empty state ---------- */
@@ -110,7 +100,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.22em;
-  color: var(--accent);
+  color: var(--accent-text);
   margin-bottom: 18px;
   font-weight: 500;
 }
@@ -125,7 +115,7 @@
 }
 .emptyTitle em {
   font-style: italic;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .emptyBody {
   font-size: 14px;
@@ -193,31 +183,6 @@
   min-width: 0;
 }
 
-/* (?) help button — mirrors the Fixed expenses tab, scaled for the row. */
-.helpBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  flex-shrink: 0;
-}
-.helpBtn:hover {
-  background: var(--bg-elev);
-  color: var(--text-dim);
-}
-.helpBtn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 /* Pace pill + its (i) "how it's calculated" button, on the widget label row. */
 .paceBadge {
   display: inline-flex;
@@ -226,12 +191,7 @@
 }
 
 /* Body copy inside the per-item explanation modal. */
-.helpBody {
-  color: var(--text-dim);
-  font-size: 14px;
-  line-height: 1.6;
-}
-.helpBody p { margin: 0; }
+.helpBody { composes: prose from '../../styles/shared.module.css'; }
 .breakdownRow dd {
   margin: 0;
   font-family: var(--mono);
@@ -277,28 +237,17 @@
 
 /* ---------- Responsive (from styles/responsive.css @ max-width 768px) ---------- */
 @media (max-width: 768px) {
-  .inputs { grid-template-columns: 1fr; gap: 12px; }
+  .inputs { grid-template-columns: 1fr; }
   .metrics { grid-template-columns: 1fr; }
   .field input { font-size: 20px; }
   .emptyTitle { font-size: 30px; }
   .empty { padding: 32px 4px 16px; }
 }
 
-/* a11y: the (?) help buttons keep their 22px visual size; on touch devices
-   the hit area is expanded invisibly to 44×44. */
-@media (pointer: coarse) {
-  .helpBtn { position: relative; }
-  .helpBtn::after {
-    content: '';
-    position: absolute;
-    inset: -11px;
-  }
-}
-
 /* Shown when an amount's currency has no cached rate (taken 1:1). */
 .ratesWarning {
-  margin: 0 0 12px;
+  margin: 0 0 16px;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--danger);
+  color: var(--orange);
 }

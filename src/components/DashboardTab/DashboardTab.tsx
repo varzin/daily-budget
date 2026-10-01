@@ -20,6 +20,7 @@ import Inputs from './Inputs'
 import MetricCard from './MetricCard'
 import PacePill from './PacePill'
 import PaceInfoModal from './PaceInfoModal'
+import IconButton from '../ui/IconButton/IconButton'
 import styles from './DashboardTab.module.css'
 
 interface BreakdownItem {
@@ -222,7 +223,9 @@ export default function DashboardTab() {
       : []),
   ]
 
-  const hasData = m.bank > 0
+  // Any non-zero total counts — an overdraft (negative balance) is real data,
+  // not the empty "Start here" state.
+  const hasData = m.bank !== 0
 
   return (
     <section
@@ -260,15 +263,13 @@ export default function DashboardTab() {
                 pace ? (
                   <span className={styles.paceBadge}>
                     <PacePill pace={pace} />
-                    <button
-                      type="button"
-                      className={styles.helpBtn}
+                    <IconButton
+                      size="sm"
+                      label="How pace vs plan is calculated"
                       onClick={() => setPaceInfoOpen(true)}
-                      aria-label="How pace vs plan is calculated"
-                      title="How it's calculated"
                     >
-                      <Info size={15} strokeWidth={2} />
-                    </button>
+                      <Info strokeWidth={2} aria-hidden="true" />
+                    </IconButton>
                   </span>
                 ) : undefined
               }
@@ -309,15 +310,13 @@ export default function DashboardTab() {
                 <div key={item.key} className={styles.breakdownRow}>
                   <dt className={styles.breakdownTerm}>
                     <span>{item.label}</span>
-                    <button
-                      type="button"
-                      className={styles.helpBtn}
+                    <IconButton
+                      size="sm"
+                      label={`What does "${item.label}" mean?`}
                       onClick={() => setHelpItem(item)}
-                      aria-label={`What does "${item.label}" mean?`}
-                      title="What does this mean?"
                     >
-                      <HelpCircle size={15} strokeWidth={2} />
-                    </button>
+                      <HelpCircle strokeWidth={2} aria-hidden="true" />
+                    </IconButton>
                   </dt>
                   <dd>
                     {money.symbol}{money.fmt(item.value)}

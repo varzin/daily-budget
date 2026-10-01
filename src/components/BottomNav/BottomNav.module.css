@@ -122,3 +122,8 @@
   cursor: default;
 }
 .tab.active .label { opacity: 1; filter: blur(0); }
+
+/* a11y: 44×44 tabs on touch devices. */
+@media (pointer: coarse) {
+  .tabs { --tab-padding: 10px; }
+}

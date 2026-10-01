@@ -1,0 +1,64 @@
+.wrap {
+  position: relative;
+  display: flex;
+}
+
+.popover {
+  position: absolute;
+  min-width: 160px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(var(--shadow-rgb), 0.45);
+  padding: 6px;
+  /* Above the bottom nav (50), below toasts (90) and modals (100). */
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bottom { top: calc(100% + 6px); animation: menuDown 0.12s ease; }
+.top { bottom: calc(100% + 6px); animation: menuUp 0.12s ease; }
+.start { left: 0; }
+.end { right: 0; }
+
+.item {
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.item:hover:not(:disabled),
+.item:focus-visible { background: var(--bg); outline: none; }
+.item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.danger { color: var(--danger); }
+.danger:hover:not(:disabled),
+.danger:focus-visible { background: var(--danger-tint); }
+
+@keyframes menuDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes menuUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* a11y: ≥44px rows on touch. */
+@media (pointer: coarse) {
+  .item { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover { animation: none; }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useState, type KeyboardEvent } from 'react'
 import { ChevronDown, MoreHorizontal, Plus } from 'lucide-react'
 import type { Account } from '../../types'
 import { useBudgetStore } from '../../store/budgetStore'
@@ -12,6 +12,7 @@ import { useRateResolver } from '../../lib/rates'
 import { sortAccounts } from '../../lib/accountOrder'
 import MathField from '../ui/MathField/MathField'
 import CurrencySelect from '../ui/CurrencySelect/CurrencySelect'
+import Menu, { type MenuItem } from '../ui/Menu/Menu'
 import styles from './BalanceCard.module.css'
 
 /** An account's caption: its name, or its currency code when unnamed. */
@@ -86,64 +87,25 @@ function AccountMenu({
   onMoveDown?: () => void
   onDelete: () => void
 }) {
-  const [open, setOpen] = useState(false)
-  const wrapRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onDocDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDocDown)
-    return () => document.removeEventListener('mousedown', onDocDown)
-  }, [open])
-
-  const run = (fn: () => void) => () => {
-    setOpen(false)
-    fn()
-  }
-
+  const items: MenuItem[] = [{ label: 'Rename', onSelect: onRename }]
+  if (onMoveUp) items.push({ label: 'Move up', onSelect: onMoveUp })
+  if (onMoveDown) items.push({ label: 'Move down', onSelect: onMoveDown })
+  if (canDelete) items.push({ label: 'Delete', onSelect: onDelete, danger: true })
   return (
-    <div className={styles.menuWrap} ref={wrapRef}>
-      <button
-        type="button"
-        className={styles.menuBtn}
-        onClick={() => setOpen(o => !o)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`${label} actions`}
-        title="More actions"
-      >
-        <MoreHorizontal size={16} strokeWidth={2} />
-      </button>
-      {open && (
-        <div role="menu" className={styles.popover}>
-          <button type="button" role="menuitem" className={styles.menuItem} onClick={run(onRename)}>
-            Rename
-          </button>
-          {onMoveUp && (
-            <button type="button" role="menuitem" className={styles.menuItem} onClick={run(onMoveUp)}>
-              Move up
-            </button>
-          )}
-          {onMoveDown && (
-            <button type="button" role="menuitem" className={styles.menuItem} onClick={run(onMoveDown)}>
-              Move down
-            </button>
-          )}
-          {canDelete && (
-            <button
-              type="button"
-              role="menuitem"
-              className={`${styles.menuItem} ${styles.menuItemDanger}`}
-              onClick={run(onDelete)}
-            >
-              Delete
-            </button>
-          )}
-        </div>
+    <Menu
+      items={items}
+      trigger={props => (
+        <button
+          type="button"
+          className={styles.menuBtn}
+          aria-label={`${label} actions`}
+          title="More actions"
+          {...props}
+        >
+          <MoreHorizontal size={16} strokeWidth={2} aria-hidden="true" />
+        </button>
       )}
-    </div>
+    />
   )
 }
 

@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--backdrop);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
@@ -46,33 +46,7 @@
   margin: 0;
 }
 
-.close {
-  position: relative;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  margin-top: -2px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
-  color: var(--text-faint);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.close:hover { color: var(--text); background: var(--bg); }
-.close:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; color: var(--text); }
-/* a11y: 44×44 hit area on touch, same visual size. */
-@media (pointer: coarse) {
-  .close::after {
-    content: '';
-    position: absolute;
-    inset: -7px;
-  }
-}
+.close { margin-top: -2px; }
 
 .body {
   padding: 20px 24px;

@@ -12,6 +12,7 @@ import TextField from '../ui/TextField/TextField'
 import MathField from '../ui/MathField/MathField'
 import Toggle from '../ui/Toggle/Toggle'
 import CurrencySelect from '../ui/CurrencySelect/CurrencySelect'
+import Menu, { type MenuItem } from '../ui/Menu/Menu'
 import styles from './CategoryEditModal.module.css'
 
 interface CategoryEditModalProps {
@@ -82,65 +83,29 @@ interface MoreMenuProps {
 }
 
 function MoreMenu({ canAllSpent, canDelete, onAllSpent, onAddNote, onDelete }: MoreMenuProps) {
-  const [open, setOpen] = useState(false)
-  const wrapRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onDocDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDocDown)
-    return () => document.removeEventListener('mousedown', onDocDown)
-  }, [open])
-
-  const run = (fn: () => void) => () => { setOpen(false); fn() }
-
+  const items: MenuItem[] = [
+    { label: 'Complete', onSelect: onAllSpent, disabled: !canAllSpent },
+    { label: 'Add note', onSelect: onAddNote },
+  ]
+  if (canDelete) items.push({ label: 'Delete', onSelect: onDelete, danger: true })
   return (
-    <div className={styles.moreWrap} ref={wrapRef}>
-      <Button
-        variant="ghost"
-        onClick={() => setOpen(o => !o)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label="More actions"
-        title="More actions"
-        className={styles.moreBtn}
-      >
-        <MoreHorizontal size={18} strokeWidth={2} />
-      </Button>
-      {open && (
-        <div role="menu" className={styles.popover}>
-          <button
-            type="button"
-            role="menuitem"
-            className={styles.menuItem}
-            disabled={!canAllSpent}
-            onClick={run(onAllSpent)}
-          >
-            Complete
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className={styles.menuItem}
-            onClick={run(onAddNote)}
-          >
-            Add note
-          </button>
-          {canDelete && (
-            <button
-              type="button"
-              role="menuitem"
-              className={`${styles.menuItem} ${styles.menuItemDanger}`}
-              onClick={run(onDelete)}
-            >
-              Delete
-            </button>
-          )}
-        </div>
+    <Menu
+      className={styles.moreWrap}
+      items={items}
+      placement="top"
+      align="start"
+      trigger={props => (
+        <Button
+          variant="ghost"
+          aria-label="More actions"
+          title="More actions"
+          className={styles.moreBtn}
+          {...props}
+        >
+          <MoreHorizontal size={18} strokeWidth={2} aria-hidden="true" />
+        </Button>
       )}
-    </div>
+    />
   )
 }
 

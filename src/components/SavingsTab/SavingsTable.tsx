@@ -58,10 +58,12 @@ function SavedInput({
   value,
   onCommit,
   className,
+  ariaLabel,
 }: {
   value: number
   onCommit: (n: number) => void
   className?: string
+  ariaLabel?: string
 }) {
   const [draft, setDraft] = useState<string>(() => String(value))
   const [editing, setEditing] = useState(false)
@@ -77,6 +79,7 @@ function SavedInput({
       className={className}
       type="text"
       inputMode="text"
+      aria-label={ariaLabel}
       value={draft}
       onFocus={() => setEditing(true)}
       onChange={e => {
@@ -90,6 +93,42 @@ function SavedInput({
         setDraft(String(value))
       }}
     />
+  )
+}
+
+/** "2026-08" → "Aug 2026" in the device locale (the compact mobile label). */
+function shortMonth(month: string): string {
+  const [y, m] = month.split('-').map(Number)
+  if (!y || !m) return 'Set month'
+  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
+}
+
+/**
+ * Native month picker. On narrow screens the native control (wide, with its
+ * own calendar icon) is laid invisibly over a compact "Aug 2026" label, so a
+ * tap still opens the system picker but the column stays narrow.
+ */
+function MonthInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <span className={styles.month}>
+      <span className={styles.monthText} aria-hidden="true">{shortMonth(value)}</span>
+      <input
+        className={`${styles.savingsInput} ${styles.monthInput}`}
+        type="month"
+        aria-label="Month"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onClick={e => {
+          // Desktop Chrome edits month segments in place; when the field is
+          // the invisible overlay, open the picker instead.
+          try {
+            if (getComputedStyle(e.currentTarget).opacity === '0') e.currentTarget.showPicker()
+          } catch {
+            /* showPicker unsupported — the native tap behaviour applies */
+          }
+        }}
+      />
+    </span>
   )
 }
 
@@ -131,24 +170,9 @@ export default function SavingsTable() {
 
   if (savings.length === 0) {
     return (
-      <table className={styles.savingsTable}>
-        <thead>
-          <tr>
-            <th></th>
-            <th>Month</th>
-            <th>Saved this month</th>
-            <th>Balance at end</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colSpan={5} className={styles.savingsEmpty}>
-              No entries yet. Add a row manually or click "Finalize month".
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div className={styles.savingsEmpty}>
+        No entries yet. Add a row manually or click “Finalize month”.
+      </div>
     )
   }
 
@@ -170,61 +194,65 @@ export default function SavingsTable() {
   }
 
   return (
-    <table className={styles.savingsTable}>
-      <thead>
-        <tr>
-          <th></th>
-          <th>Month</th>
-          <th>Saved this month</th>
-          <th>Balance at end</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {savings.map((row, i) => {
-          const tier = savedIndicator(displaySavings[i]?.saved ?? row.saved, thresholds)
-          const balance = balances[i] ?? 0
-          const foreign = row.currency !== money.code
-          return (
-            <tr key={row.id}>
-              <td>
-                <IndicatorCell tier={tier} thresholds={thresholds} money={money} />
-              </td>
-              <td>
-                <input
-                  className={styles.savingsInput}
-                  type="month"
-                  value={row.month}
-                  onChange={e => onMonthChange(row.id, e.target.value)}
-                />
-              </td>
-              <td>
-                {foreign && (
-                  <span className={styles.rowCurrency} title={row.currency}>
-                    {moneyFor(row.currency).symbol}
-                  </span>
-                )}
-                <SavedInput
-                  className={styles.savingsInput}
-                  value={row.saved}
-                  onCommit={n => onSavedCommit(row.id, n)}
-                />
-              </td>
-              <td className={styles.savingsBankCell}>{money.symbol}{money.fmt(balance)}</td>
-              <td>
-                <button
-                  type="button"
-                  className={styles.rowDel}
-                  onClick={() => onDelete(row.id, row.month)}
-                  aria-label="Delete row"
-                >
-                  <X size={18} strokeWidth={2} aria-hidden="true" />
-                </button>
-              </td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
+    <div className={styles.scroll}>
+      <table className={styles.savingsTable}>
+        <thead>
+          <tr>
+            <th><span className={styles.srOnly}>Tier</span></th>
+            <th>Month</th>
+            <th>
+              <span className={styles.long}>Saved this month</span>
+              <span className={styles.short} aria-hidden="true">Saved</span>
+            </th>
+            <th className={styles.balanceHead}>
+              <span className={styles.long}>Balance at end</span>
+              <span className={styles.short} aria-hidden="true">Balance</span>
+            </th>
+            <th><span className={styles.srOnly}>Delete</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {savings.map((row, i) => {
+            const tier = savedIndicator(displaySavings[i]?.saved ?? row.saved, thresholds)
+            const balance = balances[i] ?? 0
+            const foreign = row.currency !== money.code
+            return (
+              <tr key={row.id}>
+                <td>
+                  <IndicatorCell tier={tier} thresholds={thresholds} money={money} />
+                </td>
+                <td>
+                  <MonthInput value={row.month} onChange={v => onMonthChange(row.id, v)} />
+                </td>
+                <td className={styles.savedCell}>
+                  {foreign && (
+                    <span className={styles.rowCurrency} title={row.currency}>
+                      {moneyFor(row.currency).symbol}
+                    </span>
+                  )}
+                  <SavedInput
+                    className={`${styles.savingsInput} ${styles.savedInput}`}
+                    ariaLabel="Saved this month"
+                    value={row.saved}
+                    onCommit={n => onSavedCommit(row.id, n)}
+                  />
+                </td>
+                <td className={styles.savingsBankCell}>{money.symbol}{money.fmt(balance)}</td>
+                <td className={styles.delCell}>
+                  <button
+                    type="button"
+                    className={styles.rowDel}
+                    onClick={() => onDelete(row.id, row.month)}
+                    aria-label="Delete row"
+                  >
+                    <X size={16} strokeWidth={2} aria-hidden="true" />
+                  </button>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
   )
 }

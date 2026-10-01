@@ -12,12 +12,8 @@
   margin-top: 16px;
 }
 .sideTitle {
+  composes: label from '../../styles/shared.module.css';
   margin: 0 0 6px;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-faint);
 }
 
 .terms {
@@ -66,6 +62,7 @@
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
+.formula strong { white-space: nowrap; }
 .good { color: var(--green); }
 .bad { color: var(--red); }
 .verdict {

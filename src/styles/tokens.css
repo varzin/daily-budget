@@ -27,6 +27,9 @@
 
   /* ---------- Dark theme (default) ---------- */
 
+  /* Native controls (select popups, date pickers, scrollbars) follow the theme. */
+  color-scheme: dark;
+
   /* Surfaces */
   --bg: #0d0e0c;
   --bg-elev: #16181580;
@@ -67,6 +70,8 @@
 
   /* Shadows (rgb triple so alpha can vary at the use site) */
   --shadow-rgb: 0, 0, 0;
+  /* Dimmed page behind a modal */
+  --backdrop: rgba(0, 0, 0, 0.55);
   --inset-highlight: rgba(255, 255, 255, 0.03);
 
   /* Ambient page glows (body background) */
@@ -86,6 +91,8 @@
 
 /* ---------- Light theme ---------- */
 :root[data-theme='light'] {
+  color-scheme: light;
+
   /* Surfaces — warm paper, matching the editorial dark palette's warmth. */
   --bg: #f4f2ea;
   --bg-elev: #ffffffcc;
@@ -123,6 +130,7 @@
   --chart-area: #9ad84a2e;
 
   --shadow-rgb: 60, 58, 48;
+  --backdrop: rgba(28, 30, 23, 0.35);
   --inset-highlight: rgba(255, 255, 255, 0.6);
 
   --glow-accent: #9ad84a1f;

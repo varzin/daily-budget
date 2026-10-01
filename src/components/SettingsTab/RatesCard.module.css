@@ -1,45 +1,12 @@
-/* RatesCard — exchange-rate freshness + manual refresh. Mirrors StorageCard's
-   card + status-dot language so the Settings blocks look consistent. */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 22px;
-}
-
-.statusRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-}
-.dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--text-faint);
-  flex-shrink: 0;
-}
-.dotOk { background: var(--green); box-shadow: 0 0 10px var(--green); }
-.dotWarn { background: var(--yellow); }
-.statusText { color: var(--text); font-weight: 500; }
-
-.note {
-  margin-top: 14px;
-  font-size: 12px;
-  color: var(--text-faint);
-  line-height: 1.5;
-}
-
-.code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: var(--bg-subtle, rgba(127, 127, 127, 0.12));
-  color: var(--text);
-  white-space: nowrap;
-}
+/* RatesCard — exchange-rate freshness + manual refresh. */
+.card { composes: card from '../../styles/shared.module.css'; }
+.statusRow { composes: statusRow from '../../styles/shared.module.css'; }
+.dot { composes: dot from '../../styles/shared.module.css'; }
+.dotOk { composes: dotOk from '../../styles/shared.module.css'; }
+.dotWarn { composes: dotWarn from '../../styles/shared.module.css'; }
+.statusText { composes: statusText from '../../styles/shared.module.css'; }
+.note { composes: note from '../../styles/shared.module.css'; }
+.code { composes: code from '../../styles/shared.module.css'; }
 
 .error {
   margin-top: 12px;

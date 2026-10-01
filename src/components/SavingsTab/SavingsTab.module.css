@@ -1,51 +1,9 @@
-/* Shared section header + actions layout for the Savings tab. */
-.section { display: block; animation: fadeIn 0.3s ease; }
-.section:focus { outline: none; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+/* Savings tab — header, actions and the finalize dialog body. */
+.section { composes: section from '../../styles/shared.module.css'; }
 
 .sectionHead {
-  display: flex;
+  composes: sectionHead from '../../styles/shared.module.css';
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 8px;
-}
-.sectionHead h2 {
-  font-family: var(--display);
-  font-size: 24px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  font-style: italic;
-}
-
-.chartToggle {
-  display: inline-flex;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 3px;
-}
-.chartToggle button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 10px;
-  color: var(--text-faint);
-  border-radius: 5px;
-  transition: color 0.15s, background 0.15s;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font: inherit;
-}
-.chartToggle button:hover { color: var(--text-dim); }
-.chartToggle button.active {
-  background: var(--border);
-  color: var(--text);
 }
 
 .savingsActions {
@@ -59,34 +17,6 @@
   border-top: 1px solid var(--border);
   justify-content: flex-start;
 }
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--text-dim);
-  transition: all 0.15s;
-  background: var(--bg-elev);
-  cursor: pointer;
-  font: inherit;
-}
-.btn:hover { color: var(--text); border-color: var(--accent); }
-.btnPrimary {
-  background: var(--accent);
-  color: var(--on-accent);
-  border-color: var(--accent);
-  font-weight: 500;
-}
-.btnPrimary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--on-accent);
-}
-
 
 /* Finalize-month dialog body */
 .finalizeWarning {
@@ -106,13 +36,4 @@
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: 8px;
-}
-
-/* a11y: comfortable touch targets on touch devices (≥44px). */
-@media (pointer: coarse) {
-  .btn { min-height: 44px; }
-  .chartToggle button {
-    min-width: 44px;
-    min-height: 44px;
-  }
 }

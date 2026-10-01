@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react'
 import { Plus, HelpCircle, List, ListFilter } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
-import { useUiPrefsStore } from '../../store/uiPrefsStore'
+import { useUiPrefsStore, type CategoryFilter } from '../../store/uiPrefsStore'
 import { obligatoryTotal, categoryAmount, computeCategoryPace } from '../../lib/math'
 import { live } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
 import { money as moneyFor } from '../../lib/currency'
 import { useDisplayBudget } from '../../lib/useDisplayBudget'
 import Button from '../ui/Button/Button'
+import IconButton from '../ui/IconButton/IconButton'
+import Segmented, { type SegmentedOption } from '../ui/Segmented/Segmented'
 import Modal from '../ui/Modal/Modal'
 import CategoryEditModal from './CategoryEditModal'
 import PaceBar, { paceSummary } from './PaceBar'
@@ -28,6 +30,11 @@ function isFullySpent(cat: Category): boolean {
 function isFullyPaid(cat: Category): boolean {
   return cat.done || ((cat.budget || 0) > 0 && (cat.spent || 0) >= (cat.budget || 0))
 }
+
+const FILTER_OPTIONS: SegmentedOption<CategoryFilter>[] = [
+  { value: 'all', label: 'Show all', icon: <List strokeWidth={2} /> },
+  { value: 'unpaid', label: 'Show unpaid only', icon: <ListFilter strokeWidth={2} /> },
+]
 
 export default function CategoriesTab() {
   const allCategories = useBudgetStore(s => s.categories)
@@ -68,52 +75,32 @@ export default function CategoriesTab() {
     >
       <div className={styles.sectionHead}>
         <h2>Fixed expenses</h2>
-        <button
-          type="button"
-          className={styles.helpBtn}
-          onClick={() => setHelpOpen(true)}
-          aria-label="How fixed expenses work"
-          title="How fixed expenses work"
-        >
-          <HelpCircle size={18} strokeWidth={2} />
-        </button>
-        <div className={styles.viewToggle} role="tablist" aria-label="Filter">
-          <button
-            type="button"
-            className={filter === 'all' ? styles.active : ''}
-            onClick={() => setFilter('all')}
-            aria-label="Show all"
-            aria-pressed={filter === 'all'}
-            title="Show all"
-          >
-            <List size={16} strokeWidth={2} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className={filter === 'unpaid' ? styles.active : ''}
-            onClick={() => setFilter('unpaid')}
-            aria-label="Show unpaid only"
-            aria-pressed={filter === 'unpaid'}
-            title="Show unpaid only"
-          >
-            <ListFilter size={16} strokeWidth={2} aria-hidden="true" />
-          </button>
-        </div>
+        <IconButton label="How fixed expenses work" onClick={() => setHelpOpen(true)}>
+          <HelpCircle strokeWidth={2} aria-hidden="true" />
+        </IconButton>
+        <Segmented
+          iconOnly
+          className={styles.filter}
+          ariaLabel="Filter"
+          value={filter}
+          onChange={setFilter}
+          options={FILTER_OPTIONS}
+        />
       </div>
 
       {categories.length === 0 ? (
         <div className={styles.empty}>
-          No fixed expenses yet. Add rent, bills, subscriptions —
-          anything you owe every month.
+          No fixed expenses yet. Add rent, bills, subscriptions — anything you
+          owe every month.
         </div>
       ) : (
         <div className={`${styles.grid} ${hasOngoing ? styles.withPace : ''}`}>
           <div className={styles.header}>
-            <span>Category</span>
-            <span>Budget</span>
-            <span>Spent</span>
-            <span>Left</span>
-            {hasOngoing && <span>Pace</span>}
+            <span className={styles.hName}>Category</span>
+            <span className={styles.hBudget}>Budget</span>
+            <span className={styles.hSpent}>Spent</span>
+            <span className={styles.hLeft}>Left</span>
+            {hasOngoing && <span className={styles.hPace}>Pace</span>}
           </div>
           {visibleCategories.length === 0 ? (
             <div className={styles.emptyRow}>Everything's paid. 🎉</div>
@@ -132,8 +119,14 @@ export default function CategoriesTab() {
                 aria-label={pace ? `Edit ${cat.name} — ${paceSummary(pace)}` : `Edit ${cat.name}`}
               >
                 <span className={styles.name}>{cat.name}</span>
-                <span className={styles.num}>{sym}{own.fmt(cat.budget || 0)}</span>
-                <span className={styles.num}>{sym}{own.fmt(cat.spent || 0)}</span>
+                <span className={styles.meta}>
+                  <span className={styles.num} data-label="Budget">
+                    {sym}{own.fmt(cat.budget || 0)}
+                  </span>
+                  <span className={styles.num} data-label="Spent">
+                    {sym}{own.fmt(cat.spent || 0)}
+                  </span>
+                </span>
                 <span className={styles.left}>{sym}{own.fmt(categoryAmount(cat))}</span>
                 {hasOngoing && (
                   <span className={styles.paceCell}>{pace && <PaceBar pace={pace} />}</span>
@@ -146,7 +139,7 @@ export default function CategoriesTab() {
 
       <div className={styles.footer}>
         <Button variant="primary" onClick={openAdd}>
-          <Plus size={16} strokeWidth={2.5} />
+          <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
           <span>Add expense</span>
         </Button>
         <span className={styles.totalValue}>{money.symbol}{money.fmt(total)}</span>
@@ -162,7 +155,7 @@ export default function CategoriesTab() {
         <div className={styles.hint}>
           <p>
             We subtract what's <strong>still left to pay</strong> (
-            <span className={styles.mono}>budget − spent</span>). Marking a
+            <span className={styles.code}>budget − spent</span>). Marking a
             category <em>paid</em> means the money already left your account, so
             it's no longer deducted — remember to update <em>Current balance</em>{' '}
             after paying.

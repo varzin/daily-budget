@@ -1,61 +1,25 @@
-/* SyncCard — port of .settings-card + .sync-* from styles/components.css */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 22px;
-}
-
-.lead {
-  color: var(--text-dim);
-  font-size: 14px;
-  line-height: 1.6;
-  margin-bottom: 14px;
-}
-/* `.mono` is a global utility (font-family) defined elsewhere; we just
-   tweak its color here when it appears inside .lead. */
+/* SyncCard — Dropbox connection status + actions. */
+.card { composes: card from '../../styles/shared.module.css'; }
+.lead { composes: lead from '../../styles/shared.module.css'; }
 .lead :global(.mono) {
   color: var(--text);
   font-family: var(--mono);
 }
+.note { composes: note from '../../styles/shared.module.css'; }
 
-/* In case the global .mono utility isn't loaded yet, ensure the inline
-   <span class="mono"> spans we render still use the mono font. */
-.card :global(.mono) { font-family: var(--mono); }
-
-.note {
-  margin-top: 14px;
-  font-size: 12px;
-  color: var(--text-faint);
-  line-height: 1.5;
-}
-
-.disconnected .btn { margin-top: 18px; }
+.connect { margin-top: 18px; }
 
 .statusRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  composes: statusRow from '../../styles/shared.module.css';
   margin-bottom: 16px;
-  font-size: 14px;
 }
-.dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--text-faint);
-  flex-shrink: 0;
-}
-.dotSynced { background: var(--green); box-shadow: 0 0 10px var(--green); }
-.dotSyncing,
-.dotConnecting { background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
-.dotError { background: var(--red); box-shadow: 0 0 10px var(--red); }
-.dotOffline { background: var(--yellow); }
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
-}
-.statusText { color: var(--text); font-weight: 500; }
+.dot { composes: dot from '../../styles/shared.module.css'; }
+.dotSynced { composes: dotOk from '../../styles/shared.module.css'; }
+.dotSyncing { composes: dotBusy from '../../styles/shared.module.css'; }
+.dotConnecting { composes: dotBusy from '../../styles/shared.module.css'; }
+.dotError { composes: dotError from '../../styles/shared.module.css'; }
+.dotOffline { composes: dotWarn from '../../styles/shared.module.css'; }
+.statusText { composes: statusText from '../../styles/shared.module.css'; }
 .statusTime {
   color: var(--text-faint);
   font-family: var(--mono);
@@ -64,20 +28,25 @@
 
 .meta {
   display: grid;
-  grid-template-columns: 90px 1fr;
+  grid-template-columns: 90px minmax(0, 1fr);
   gap: 6px 14px;
   margin-bottom: 18px;
   font-size: 13px;
 }
 .meta dt {
-  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 10px;
+  color: var(--text-faint);
   align-self: center;
-  font-weight: 500;
 }
-.meta dd { color: var(--text); font-family: var(--mono); font-size: 13px; }
+.meta dd {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
 
 .actions {
   display: flex;
@@ -86,7 +55,6 @@
   align-items: center;
 }
 
-/* Renamed from #sync-error id selector to a CSS Module class. */
 .syncError {
   margin-top: 14px;
   padding: 10px 12px;
@@ -95,36 +63,4 @@
   border-radius: 4px;
   color: var(--red);
   font-size: 12px;
-}
-
-/* Buttons — local copy of .btn / .btn.primary / .btn.danger so the
-   SyncCard remains self-contained when styles/components.css is dropped. */
-.btn {
-  padding: 8px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--text-dim);
-  transition: all 0.15s;
-  background: var(--bg-elev);
-  cursor: pointer;
-  font-family: inherit;
-}
-.btn:hover { color: var(--text); border-color: var(--accent); }
-.btnPrimary {
-  background: var(--accent);
-  color: var(--on-accent);
-  border-color: var(--accent);
-  font-weight: 500;
-}
-.btnPrimary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--on-accent);
-}
-.btnDanger:hover { color: var(--red); border-color: var(--red); }
-
-/* a11y: comfortable touch targets (≥44px) on touch devices. */
-@media (pointer: coarse) {
-  .btn { min-height: 44px; }
 }

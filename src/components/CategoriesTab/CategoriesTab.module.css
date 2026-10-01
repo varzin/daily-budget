@@ -1,108 +1,34 @@
-.section {
-  display: block;
-  animation: fadeIn 0.3s ease;
-}
-.section:focus { outline: none; }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.section { composes: section from '../../styles/shared.module.css'; }
 
-.sectionHead {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.sectionHead h2 {
-  font-family: var(--display);
-  font-size: 24px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  font-style: italic;
-  margin: 0;
-}
+.sectionHead { composes: sectionHead from '../../styles/shared.module.css'; }
 
-.helpBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.helpBtn:hover {
-  background: var(--bg-elev);
-  color: var(--text-dim);
-}
-.helpBtn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
+/* Filter toggle (ui/Segmented icon-only), pushed to the right. */
+.filter { margin-left: auto; }
 
-/* Filter toggle — mirrors the Savings tab's chart toggle, pushed to the right. */
-.viewToggle {
-  display: inline-flex;
-  margin-left: auto;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 3px;
-}
-.viewToggle button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 10px;
-  color: var(--text-faint);
-  border-radius: 5px;
-  transition: color 0.15s, background 0.15s;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font: inherit;
-}
-.viewToggle button:hover { color: var(--text-dim); }
-.viewToggle button.active {
-  background: var(--border);
-  color: var(--text);
-}
+.empty { composes: empty from '../../styles/shared.module.css'; }
 
-.empty {
-  padding: 32px 4px;
-  color: var(--text-dim);
-  font-size: 14px;
-  line-height: 1.6;
-  max-width: 38ch;
-}
-
+/* The table: one grid for header + rows, each a subgrid, so every column is
+   as wide as its widest value (big amounts like ֏90,000.00 never spill into a
+   neighbour) and still lines up across rows. */
 .grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(56px, auto));
+  column-gap: 20px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
+.grid.withPace {
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(56px, auto)) 52px;
+}
 
-/* Shared column template — header + row must align. The Pace column only
-   exists when at least one visible category is ongoing (see .withPace). */
 .header,
 .row {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 72px 72px 84px;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 12px;
-}
-.withPace .header,
-.withPace .row {
-  grid-template-columns: minmax(0, 1fr) 68px 68px 78px 52px;
 }
 
 .header {
@@ -138,6 +64,7 @@
 }
 
 .emptyRow {
+  grid-column: 1 / -1;
   padding: 24px 16px;
   border-top: 1px solid var(--border);
   text-align: center;
@@ -155,9 +82,6 @@
 }
 
 .name {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   font-size: 15px;
   min-width: 0;
   overflow: hidden;
@@ -165,31 +89,25 @@
   white-space: nowrap;
 }
 
-.badge {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-  background: var(--accent-dim);
-  border-radius: 4px;
-  padding: 2px 5px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
+/* Budget + spent: plain grid cells on wide screens, one labelled line on
+   narrow ones. */
+.meta { display: contents; }
 
 .num {
   font-family: var(--mono);
   font-size: 13px;
   color: var(--text-dim);
   text-align: right;
+  white-space: nowrap;
 }
 
 .left {
   font-family: var(--mono);
   font-size: 14px;
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 500;
   text-align: right;
+  white-space: nowrap;
 }
 .rowDone .left {
   color: var(--text-faint);
@@ -243,6 +161,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   margin-top: 18px;
 }
 .totalValue {
@@ -253,48 +172,75 @@
   line-height: 1;
   color: var(--text);
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
-@media (max-width: 540px) {
+/* No subgrid (older Safari / Chrome): fixed columns, as before. */
+@supports not (grid-template-columns: subgrid) {
   .header,
   .row {
-    grid-template-columns: minmax(0, 1fr) 56px 56px 68px;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 80px 80px 92px;
+    column-gap: 12px;
   }
   .withPace .header,
   .withPace .row {
-    grid-template-columns: minmax(0, 1fr) 52px 52px 60px 40px;
-    gap: 7px;
+    grid-template-columns: minmax(0, 1fr) 76px 76px 88px 52px;
   }
-  .header { padding: 10px 12px; }
-  .row { padding: 12px 12px; }
-  .num { font-size: 12px; }
-  .left { font-size: 13px; }
+}
+
+/* Narrow screens: each row becomes two lines — name and what's left on top,
+   budget · spent (labelled) and the pace bar underneath — so long names and
+   big amounts both stay readable. */
+@media (max-width: 540px) {
+  .grid,
+  .grid.withPace {
+    display: flex;
+    flex-direction: column;
+  }
+  .header,
+  .row,
+  .withPace .header,
+  .withPace .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name left'
+      'meta pace';
+    column-gap: 12px;
+    row-gap: 4px;
+  }
+  .header,
+  .withPace .header {
+    grid-template-areas: 'name left';
+    padding: 10px 12px;
+  }
+  .hBudget,
+  .hSpent,
+  .hPace { display: none; }
+  .hName { grid-area: name; }
+  .hLeft { grid-area: left; }
+  .row { padding: 12px; }
+  .name { grid-area: name; }
+  .left { grid-area: left; font-size: 15px; }
+  .meta {
+    grid-area: meta;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    min-width: 0;
+  }
+  .paceCell { grid-area: pace; width: 52px; align-self: center; }
+  .paceCell:empty { display: none; }
+  /* No pace bar on this row: budget · spent may use the full width. */
+  .row:not(:has(.pace)) .meta { grid-area: 2 / 1 / 3 / 3; }
+  .num { font-size: 12px; text-align: left; }
+  .num::before {
+    content: attr(data-label) ' ';
+    font-family: var(--body);
+    color: var(--text-faint);
+  }
   .totalValue { font-size: 26px; }
 }
 
 /* Help copy — shown inside the "How it works" modal. */
-.hint {
-  color: var(--text-dim);
-  font-size: 14px;
-  line-height: 1.6;
-}
-.hint p { margin: 0; }
-.hint em { font-family: var(--display); font-style: italic; color: var(--text); }
-.hint strong { color: var(--text); font-weight: 500; }
-.hint .mono { font-family: var(--mono); color: var(--text); }
-
-/* a11y: comfortable touch targets (≥44px) on touch devices. The help button
-   keeps its 28px visual size — the hit area is expanded invisibly. */
-@media (pointer: coarse) {
-  .helpBtn { position: relative; }
-  .helpBtn::after {
-    content: '';
-    position: absolute;
-    inset: -8px;
-  }
-  .viewToggle button {
-    min-width: 44px;
-    min-height: 44px;
-  }
-}
+.hint { composes: prose from '../../styles/shared.module.css'; }
+.code { composes: code from '../../styles/shared.module.css'; }

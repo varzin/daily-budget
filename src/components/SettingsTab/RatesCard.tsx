@@ -56,7 +56,7 @@ export default function RatesCard() {
       )}
 
       <div className={styles.actions}>
-        <Button variant="secondary" size="sm" onClick={onRefresh} disabled={busy}>
+        <Button onClick={onRefresh} disabled={busy}>
           {busy ? 'Refreshing…' : 'Refresh now'}
         </Button>
       </div>

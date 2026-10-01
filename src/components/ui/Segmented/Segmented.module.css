@@ -76,15 +76,36 @@
   height: 16px;
 }
 
+/* Compact icon-only variant (view / filter toggles in tab headers). */
+.iconOnly {
+  display: inline-grid;
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+.iconOnly .thumb {
+  border-radius: 5px;
+  background: var(--border);
+  border-color: transparent;
+  box-shadow: none;
+}
+.iconOnly .option {
+  padding: 6px 10px;
+  border-radius: 5px;
+  color: var(--text-faint);
+}
+.iconOnly .option:hover,
+.iconOnly .option.active { color: var(--text); }
+
 /* a11y: comfortable touch targets (≥44px) on touch devices. */
 @media (pointer: coarse) {
   .option { min-height: 44px; }
+  .iconOnly .option { min-width: 44px; }
 }
 
 /* Narrow phones: tighten type and padding so three worded segments
    ("Replenish savings") still fit side by side. */
 @media (max-width: 400px) {
-  .option {
+  .group:not(.iconOnly) .option {
     font-size: 13px;
     padding: 9px 6px;
   }
@@ -93,7 +114,7 @@
 /* Very narrow phones (~320px): even tightened, the nowrap labels overflow the
    card — let them wrap to two lines instead; the measured thumb follows. */
 @media (max-width: 344px) {
-  .option {
+  .group:not(.iconOnly) .option {
     white-space: normal;
     line-height: 1.25;
   }

@@ -128,22 +128,24 @@
   gap: 6px;
   min-width: 0;
 }
-.accountName,
-.nameInput {
+.accountName {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-faint);
   font-weight: 500;
 }
+/* Inline rename: a real, readable text field (not the tiny caps caption). */
 .nameInput {
-  align-self: flex-start;
+  align-self: stretch;
+  min-height: 30px;
   background: var(--bg);
   border: 1px solid var(--accent);
-  border-radius: 4px;
+  border-radius: 6px;
   outline: none;
-  padding: 2px 6px;
+  padding: 4px 8px;
   font-family: var(--body);
+  font-size: 13px;
   color: var(--text);
 }
 .accountRow {
@@ -154,7 +156,6 @@
 }
 
 /* "…" — the same box as the inputs beside it. */
-.menuWrap { position: relative; display: flex; }
 .menuBtn {
   display: inline-flex;
   align-items: center;
@@ -169,43 +170,6 @@
 }
 .menuBtn:hover { color: var(--text); }
 .menuBtn:focus-visible { outline: none; border-color: var(--accent); }
-
-.popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 140px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(var(--shadow-rgb), 0.45);
-  padding: 6px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  animation: popoverIn 0.12s ease;
-}
-.menuItem {
-  font: inherit;
-  font-size: 14px;
-  text-align: left;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-}
-.menuItem:hover { background: var(--bg); }
-.menuItemDanger { color: var(--danger); }
-.menuItemDanger:hover { background: var(--danger-tint); }
-
-@keyframes popoverIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 .addBtn {
   display: flex;
@@ -230,4 +194,5 @@
 @media (pointer: coarse) {
   .menuBtn { min-width: 44px; min-height: 44px; }
   .addBtn { min-height: 44px; }
+  .nameInput { min-height: 40px; font-size: 16px; }
 }
