@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
 import styles from './Modal.module.css'
 
 interface ModalProps {
@@ -85,6 +86,15 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
         {title && (
           <header className={styles.head}>
             <h2 id="modal-title" className={styles.title}>{title}</h2>
+            <button
+              type="button"
+              className={styles.close}
+              onClick={onClose}
+              aria-label="Close"
+              title="Close"
+            >
+              <X size={18} strokeWidth={2} aria-hidden="true" />
+            </button>
           </header>
         )}
         <div className={styles.body}>{children}</div>

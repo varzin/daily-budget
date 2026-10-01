@@ -9,6 +9,7 @@ import { formatUpdatedAgo, isStale, balancesUpdatedAt } from '../../lib/freshnes
 import { useMoney } from '../../lib/useMoney'
 import { useDisplayBudget } from '../../lib/useDisplayBudget'
 import { useRateResolver } from '../../lib/rates'
+import { sortAccounts } from '../../lib/accountOrder'
 import MathField from '../ui/MathField/MathField'
 import CurrencySelect from '../ui/CurrencySelect/CurrencySelect'
 import styles from './BalanceCard.module.css'
@@ -65,16 +66,24 @@ function AccountBalanceInput({ account, autoFocus }: { account: Account; autoFoc
   )
 }
 
-/** The "…" menu: Rename / Delete (Delete hidden for the last account). */
+/**
+ * The "…" menu: Rename / Move up / Move down / Delete. Items that can't apply
+ * are hidden — no Move up for the first account, no Move down for the last,
+ * no Delete for the only one.
+ */
 function AccountMenu({
   label,
   canDelete,
   onRename,
+  onMoveUp,
+  onMoveDown,
   onDelete,
 }: {
   label: string
   canDelete: boolean
   onRename: () => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
   onDelete: () => void
 }) {
   const [open, setOpen] = useState(false)
@@ -112,6 +121,16 @@ function AccountMenu({
           <button type="button" role="menuitem" className={styles.menuItem} onClick={run(onRename)}>
             Rename
           </button>
+          {onMoveUp && (
+            <button type="button" role="menuitem" className={styles.menuItem} onClick={run(onMoveUp)}>
+              Move up
+            </button>
+          )}
+          {onMoveDown && (
+            <button type="button" role="menuitem" className={styles.menuItem} onClick={run(onMoveDown)}>
+              Move down
+            </button>
+          )}
           {canDelete && (
             <button
               type="button"
@@ -177,10 +196,14 @@ function AccountName({
 function AccountRow({
   account,
   canDelete,
+  canMoveUp,
+  canMoveDown,
   autoFocus,
 }: {
   account: Account
   canDelete: boolean
+  canMoveUp: boolean
+  canMoveDown: boolean
   autoFocus?: boolean
 }) {
   const [renaming, setRenaming] = useState(false)
@@ -212,6 +235,8 @@ function AccountRow({
           label={label}
           canDelete={canDelete}
           onRename={() => setRenaming(true)}
+          onMoveUp={canMoveUp ? () => useBudgetStore.getState().moveAccount(account.id, -1) : undefined}
+          onMoveDown={canMoveDown ? () => useBudgetStore.getState().moveAccount(account.id, 1) : undefined}
           onDelete={onDelete}
         />
       </div>
@@ -223,12 +248,12 @@ function AccountRow({
  * The dashboard balance (CLAUDE.md "Счета"): collapsed, the total of every
  * account converted into the display currency — no currency picker, it always
  * follows Settings. Tapping it expands the account list, where each account has
- * its own balance (formula-capable), currency and Rename/Delete menu. There is
+ * its own balance (formula-capable), currency and a Rename/Move/Delete menu. There is
  * always at least one account. One shared "Updated …" line covers them all.
  */
 export default function BalanceCard() {
   const accounts = useBudgetStore(s => s.accounts)
-  const live = accounts.filter(a => !a.deletedAt)
+  const live = sortAccounts(accounts.filter(a => !a.deletedAt))
   const display = useDisplayBudget()
   const money = useMoney()
   const storedOpen = useUiPrefsStore(s => s.accountsOpen)
@@ -317,11 +342,13 @@ export default function BalanceCard() {
         <div className={styles.detailsInner}>
           <div className={styles.detailsBody}>
             <ul className={styles.accounts} aria-label="Accounts">
-              {live.map(a => (
+              {live.map((a, i) => (
                 <AccountRow
                   key={a.id}
                   account={a}
                   canDelete={live.length > 1}
+                  canMoveUp={i > 0}
+                  canMoveDown={i < live.length - 1}
                   autoFocus={a.id === focusId}
                 />
               ))}

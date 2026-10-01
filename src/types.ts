@@ -53,6 +53,12 @@ export interface Account extends EntityMeta {
   balanceExpr?: string
   /** ISO 4217 code `balance` is denominated in. */
   currency: string
+  /**
+   * Position in the list (ascending; fractional, so a move rewrites only the
+   * moved account). Optional: accounts from before ordering fall back to their
+   * array index — see lib/accountOrder.ts.
+   */
+  order?: number
 }
 
 export interface SavingsRow extends EntityMeta {

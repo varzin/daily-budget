@@ -184,6 +184,7 @@ export function migrateAccounts(
       if (balanceExpr) item.balanceExpr = balanceExpr
       if (updatedAt) item.updatedAt = updatedAt
       if (deletedAt) item.deletedAt = deletedAt
+      if (typeof r.order === 'number' && Number.isFinite(r.order)) item.order = r.order
       out.push(item)
     }
     return out

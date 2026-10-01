@@ -74,15 +74,20 @@
 .updatedStale { color: var(--text-dim); }
 
 /* The account list: always mounted, its height animated open/closed via the
-   0fr → 1fr grid-row trick (works for content of any height). */
+   0fr → 1fr grid-row trick (works for content of any height). The column is
+   pinned to the card width: `overflow` flips hidden → visible once the open
+   settles, and with a content-sized column that flip let the row's min-content
+   (the inputs' intrinsic width) widen the list — the fields jumped on iPhone. */
 .details {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.22s ease;
 }
 .detailsOpen { grid-template-rows: 1fr; }
 .detailsInner {
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
   /* Collapsed: out of the tab order and a11y tree once the close finishes. */
   visibility: hidden;
