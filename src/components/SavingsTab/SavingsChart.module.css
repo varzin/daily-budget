@@ -1,7 +1,7 @@
 .chartWrap {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 24px;
   margin-bottom: 24px;
 }
@@ -24,11 +24,9 @@
 }
 .chartRangeSep { color: var(--text-faint); }
 
-.savingsEmpty {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-faint);
-  font-style: italic;
-  font-family: var(--display);
-  font-size: 18px;
+.savingsEmpty { composes: empty from '../../styles/shared.module.css'; }
+
+@media (max-width: 540px) {
+  .chartWrap { padding: 16px 12px; }
+  .chartCanvasWrap { height: 260px; }
 }

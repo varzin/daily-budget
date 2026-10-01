@@ -1,17 +1,6 @@
-/* BufferCard — green-zone cushion setting. Mirrors the other Settings cards. */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 22px;
-}
-
-.lead {
-  margin: 0 0 16px;
-  font-size: 13px;
-  color: var(--text-dim);
-  line-height: 1.5;
-}
+/* BufferCard — green-zone cushion setting. */
+.card { composes: card from '../../styles/shared.module.css'; }
+.lead { composes: lead from '../../styles/shared.module.css'; }
 
 /* Display-currency picker (ui/CurrencySelect) and its note. */
 .currency {

@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react'
+import Button from '../ui/Button/Button'
 import styles from './ErrorBoundary.module.css'
 
 interface Props {
@@ -34,13 +35,13 @@ export default class ErrorBoundary extends Component<Props, State> {
           Your data is safe — it's stored in this browser (and in Dropbox if
           sync is connected). Reload the app to continue.
         </p>
-        <button
-          type="button"
-          className={styles.btn}
+        <Button
+          variant="primary"
+          className={styles.reload}
           onClick={() => window.location.reload()}
         >
           Reload app
-        </button>
+        </Button>
       </div>
     )
   }

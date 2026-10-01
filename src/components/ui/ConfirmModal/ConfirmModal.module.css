@@ -1,9 +1,1 @@
-.body {
-  color: var(--text-dim);
-  font-size: 14px;
-  line-height: 1.6;
-}
-.body p { margin: 0; }
-.body p + p { margin-top: 12px; }
-.body strong { color: var(--text); }
-.body em { font-family: var(--display); font-style: italic; color: var(--text); }
+.body { composes: prose from '../../../styles/shared.module.css'; }

@@ -1,16 +1,23 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Table2, ChartLine } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
-import { useUiPrefsStore } from '../../store/uiPrefsStore'
+import { useUiPrefsStore, type SavingsView } from '../../store/uiPrefsStore'
 import { currentMonthKey } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
 import { useDisplayBudget } from '../../lib/useDisplayBudget'
 import { computeFinalizeIn } from '../../lib/convert'
+import Button from '../ui/Button/Button'
 import ConfirmModal from '../ui/ConfirmModal/ConfirmModal'
+import Segmented, { type SegmentedOption } from '../ui/Segmented/Segmented'
 import Toggle from '../ui/Toggle/Toggle'
 import SavingsTable from './SavingsTable'
 import SavingsChart from './SavingsChart'
 import styles from './SavingsTab.module.css'
+
+const VIEW_OPTIONS: SegmentedOption<SavingsView>[] = [
+  { value: 'table', label: 'Table view', icon: <Table2 strokeWidth={2} /> },
+  { value: 'chart', label: 'Chart view', icon: <ChartLine strokeWidth={2} /> },
+]
 
 export default function SavingsTab() {
   const view = useUiPrefsStore(s => s.savingsView)
@@ -39,78 +46,32 @@ export default function SavingsTab() {
   return (
     <section
       className={styles.section}
+      id="tab-savings"
       role="tabpanel"
-      aria-label="Savings"
+      aria-labelledby="tab-btn-savings"
       tabIndex={0}
     >
       <div className={styles.sectionHead}>
         <h2>Savings</h2>
-        <div className={styles.chartToggle} role="tablist" aria-label="View">
-          <button
-            type="button"
-            className={view === 'table' ? styles.active : ''}
-            onClick={() => setView('table')}
-            aria-label="Table view"
-            aria-pressed={view === 'table'}
-            title="Table"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M12 3v18" />
-              <rect width="18" height="18" x="3" y="3" rx="2" />
-              <path d="M3 9h18" />
-              <path d="M3 15h18" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className={view === 'chart' ? styles.active : ''}
-            onClick={() => setView('chart')}
-            aria-label="Chart view"
-            aria-pressed={view === 'chart'}
-            title="Chart"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 3v18h18" />
-              <path d="m19 9-5 5-4-4-3 3" />
-            </svg>
-          </button>
-        </div>
+        <Segmented
+          iconOnly
+          ariaLabel="View"
+          value={view}
+          onChange={setView}
+          options={VIEW_OPTIONS}
+        />
       </div>
 
       {view === 'table' ? <SavingsTable /> : <SavingsChart />}
 
       <div className={`${styles.savingsActions} ${styles.savingsActionsBottom}`}>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnPrimary}`}
-          onClick={() => setFinalizeOpen(true)}
-        >
+        <Button variant="primary" onClick={() => setFinalizeOpen(true)}>
           Finalize month
-        </button>
-        <button type="button" className={styles.btn} onClick={handleAddRow}>
-          <Plus size={14} strokeWidth={2.5} />
-          <span>Row</span>
-        </button>
+        </Button>
+        <Button onClick={handleAddRow}>
+          <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
+          <span>Add row</span>
+        </Button>
       </div>
 
       <ConfirmModal

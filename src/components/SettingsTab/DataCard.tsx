@@ -1,6 +1,7 @@
 import { useRef, type ChangeEvent } from 'react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { showToast } from '../../store/toastStore'
+import Button from '../ui/Button/Button'
 import styles from './DataCard.module.css'
 
 /**
@@ -41,16 +42,8 @@ export default function DataCard() {
         before importing or connecting.
       </p>
       <div className={styles.actions}>
-        <button type="button" className={styles.btn} onClick={handleExport}>
-          Export JSON
-        </button>
-        <button
-          type="button"
-          className={styles.btn}
-          onClick={handleImportClick}
-        >
-          Import JSON
-        </button>
+        <Button onClick={handleExport}>Export JSON</Button>
+        <Button onClick={handleImportClick}>Import JSON</Button>
         <input
           ref={fileRef}
           type="file"

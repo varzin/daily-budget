@@ -11,6 +11,7 @@ import {
   useSyncStatus,
   useTimeTick,
 } from '../../lib/useSyncStatus'
+import Button from '../ui/Button/Button'
 import ConfirmModal from '../ui/ConfirmModal/ConfirmModal'
 import styles from './SyncCard.module.css'
 
@@ -71,7 +72,7 @@ export default function SyncCard() {
   if (!status.connected) {
     return (
       <div className={styles.card}>
-        <div className={styles.disconnected}>
+        <div>
           <p className={styles.lead}>
             Keep your budget in sync across devices via Dropbox. Data goes to a
             private folder{' '}
@@ -83,13 +84,13 @@ export default function SyncCard() {
             both this device and Dropbox — the newer one will overwrite the
             other.
           </p>
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.btnPrimary}`}
+          <Button
+            variant="primary"
+            className={styles.connect}
             onClick={() => setDialog('connect')}
           >
             Connect Dropbox
-          </button>
+          </Button>
         </div>
         {dialogs}
       </div>
@@ -125,22 +126,16 @@ export default function SyncCard() {
         </dd>
       </dl>
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.btn}
+        <Button
           onClick={() => {
             void syncNow()
           }}
         >
           Sync now
-        </button>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnDanger}`}
-          onClick={() => setDialog('disconnect')}
-        >
+        </Button>
+        <Button variant="danger" onClick={() => setDialog('disconnect')}>
           Disconnect
-        </button>
+        </Button>
       </div>
       {showError && (
         <p className={styles.syncError}>{status.lastError}</p>

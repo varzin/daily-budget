@@ -1,18 +1,40 @@
+/* Safety net: a very long amount scrolls the table sideways instead of being
+   clipped by the page's overflow-x: hidden. The bottom padding keeps the last
+   row's tier tooltip inside the scroll box. */
+.scroll {
+  overflow-x: auto;
+  padding-bottom: 24px;
+}
+
 .savingsTable {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin-bottom: 24px;
 }
 .savingsTable th {
-  text-align: left;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-faint);
+  font-size: 10px;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  text-align: left;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.savingsTable th.balanceHead { text-align: left; }
+/* Month / Saved titles start where the field's text does (cell padding +
+   the input's own padding and border). */
+.savingsTable th:nth-child(2),
+.savingsTable th:nth-child(3) { padding-left: 25px; }
+.short { display: none; }
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 .savingsTable td {
   padding: 14px 16px;
@@ -108,12 +130,31 @@
   width: 110px;
   transition: border-color 0.15s;
 }
-.savingsInput[type=month] {
+.savingsInput:hover, .savingsInput:focus { border-color: var(--border-strong); }
+
+/* Month: the native picker; the compact label only shows on narrow screens. */
+.month {
+  position: relative;
+  display: inline-block;
+}
+.monthInput {
   width: 160px;
   font-family: var(--body);
-  color-scheme: dark;
 }
-.savingsInput:hover, .savingsInput:focus { border-color: var(--border-strong); }
+.monthText {
+  display: none;
+  font-family: var(--body);
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  padding: 6px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+.month:hover .monthText,
+.month:focus-within .monthText { border-color: var(--border-strong); }
+
+.savedCell { white-space: nowrap; }
 
 /* Symbol of a row kept in a currency other than the display one. */
 .rowCurrency {
@@ -124,13 +165,17 @@
 }
 
 .savingsBankCell {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 500;
   font-family: var(--mono);
   text-align: left;
+  white-space: nowrap;
 }
 
+.delCell { width: 1%; }
+
 .rowDel {
+  position: relative;
   color: var(--text-faint);
   transition: color 0.15s;
   background: transparent;
@@ -147,22 +192,51 @@
 .rowDel:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .savingsEmpty {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-faint);
-  font-style: italic;
-  font-family: var(--display);
-  font-size: 18px;
+  composes: empty from '../../styles/shared.module.css';
+  margin-bottom: 24px;
 }
 
 @media (max-width: 768px) {
-  .savingsTable { font-size: 12px; }
   .savingsTable th, .savingsTable td { padding: 10px 6px; }
-  .savingsInput { width: 80px; padding: 6px 6px; }
+  .savingsTable th:nth-child(2),
+  .savingsTable th:nth-child(3) { padding-left: 13px; }
+  .savingsTable td { font-size: 13px; }
+  .savingsInput { padding: 6px 6px; font-size: 13px; }
+  .savedInput { width: 72px; }
 }
 
-/* a11y: 44×44 touch target for the row-delete icon on touch devices
-   (18px icon + 13px padding each side). */
+/* Narrow phones: compact month label over an invisible native picker, short
+   column titles, tighter cells. */
+@media (max-width: 540px) {
+  .long { display: none; }
+  .short { display: inline; }
+  .savingsTable th, .savingsTable td { padding: 10px 4px; }
+  .savingsTable th:nth-child(2),
+  .savingsTable th:nth-child(3) { padding-left: 11px; }
+  .savingsTable th:first-child, .savingsTable td:first-child { padding-left: 0; }
+  .savingsTable th:last-child, .savingsTable td:last-child { padding-right: 0; }
+  .indicator { margin-right: 4px; }
+  .monthText { display: inline-block; font-size: 13px; }
+  .monthInput {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+  }
+  .savedInput { width: 64px; }
+  .savingsTable th.balanceHead,
+  .savingsBankCell { text-align: right; }
+  /* Flush with the edge: nothing may poke past it (the wrapper would scroll). */
+  .rowDel { margin: -6px 0 -6px -2px; }
+}
+
+/* a11y: 44×44 touch target for the row-delete icon without growing the row. */
 @media (pointer: coarse) {
-  .rowDel { padding: 13px; }
+  .rowDel::after {
+    content: '';
+    position: absolute;
+    inset: -8px 0 -8px -12px;
+  }
+  .savingsInput, .monthText { min-height: 36px; }
 }

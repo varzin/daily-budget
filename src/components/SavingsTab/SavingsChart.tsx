@@ -87,8 +87,11 @@ function readPalette(): ChartPalette {
   }
 }
 
-// Draws the value of each point right above it — ported 1:1 from js/chart.js.
-// Reads the text color live so it tracks the active theme.
+// Draws the value of each point right above it. Labels never leave the canvas
+// and skip a point whose label would overlap one already drawn (walking from
+// the newest point, so the latest balance is always labelled). Reads the text
+// color live so it tracks the active theme.
+const LABEL_GAP = 4
 const pointLabelsPlugin: Plugin<'line'> = {
   id: 'pointLabels',
   afterDatasetsDraw(chart) {
@@ -105,11 +108,26 @@ const pointLabelsPlugin: Plugin<'line'> = {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'bottom'
     const sym = money(useBudgetStore.getState().currency).symbol
-    meta.data.forEach((pt, i) => {
+    const drawn: { left: number; right: number; top: number; bottom: number }[] = []
+    for (let i = meta.data.length - 1; i >= 0; i--) {
+      const pt = meta.data[i]
       const v = values[i]
-      if (v == null) return
-      ctx.fillText(sym + Math.round(v), pt.x, pt.y - 10)
-    })
+      if (!pt || v == null) continue
+      const text = sym + Math.round(v)
+      const w = ctx.measureText(text).width
+      const x = Math.min(Math.max(pt.x, w / 2 + 2), chart.width - w / 2 - 2)
+      const box = { left: x - w / 2, right: x + w / 2, top: pt.y - 10 - 12, bottom: pt.y - 10 }
+      const overlaps = drawn.some(
+        d =>
+          box.left < d.right + LABEL_GAP &&
+          box.right > d.left - LABEL_GAP &&
+          box.top < d.bottom &&
+          box.bottom > d.top,
+      )
+      if (overlaps) continue
+      drawn.push(box)
+      ctx.fillText(text, x, pt.y - 10)
+    }
     ctx.restore()
   },
 }

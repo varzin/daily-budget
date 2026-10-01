@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 import { PWA_NEED_REFRESH_EVENT, applyPwaUpdate } from '../../lib/pwa'
+import IconButton from '../ui/IconButton/IconButton'
 import styles from './UpdateBanner.module.css'
 
 /**
@@ -24,14 +26,9 @@ export default function UpdateBanner() {
       <button type="button" className={styles.reload} onClick={applyPwaUpdate}>
         Reload
       </button>
-      <button
-        type="button"
-        className={styles.dismiss}
-        onClick={() => setVisible(false)}
-        aria-label="Dismiss"
-      >
-        ×
-      </button>
+      <IconButton size="sm" label="Dismiss" onClick={() => setVisible(false)}>
+        <X strokeWidth={2} aria-hidden="true" />
+      </IconButton>
     </div>
   )
 }

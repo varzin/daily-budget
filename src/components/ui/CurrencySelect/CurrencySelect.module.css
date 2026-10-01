@@ -54,6 +54,8 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 36px 10px 12px;
+  /* Same width for €, $, ֏ … so stacked rows line up. */
+  min-width: 76px;
   transition: border-color 0.15s;
 }
 .box:focus-within {
@@ -106,7 +108,6 @@
   .inline,
   .box {
     min-height: 44px;
-    min-width: 44px;
-    justify-content: center;
   }
+  .inline { min-width: 44px; justify-content: center; }
 }

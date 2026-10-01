@@ -1,0 +1,45 @@
+.btn {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  color: var(--text);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn svg { flex-shrink: 0; }
+
+.sm { width: 24px; height: 24px; }
+.sm svg { width: 15px; height: 15px; }
+.md { width: 30px; height: 30px; }
+.md svg { width: 18px; height: 18px; }
+
+.danger:hover { color: var(--red); background: var(--red-tint); }
+
+/* a11y: 44×44 hit area on touch, same visual size. */
+@media (pointer: coarse) {
+  .btn::after {
+    content: '';
+    position: absolute;
+  }
+  .sm::after { inset: -10px; }
+  .md::after { inset: -7px; }
+}

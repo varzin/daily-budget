@@ -5,6 +5,7 @@ import { connectDropbox } from '../../sync/dropbox'
 import { useSyncStatus } from '../../lib/useSyncStatus'
 import { hasMeaningfulData, shouldShowBackupNudge } from '../../lib/backupNudge'
 import Modal from '../ui/Modal/Modal'
+import Button from '../ui/Button/Button'
 import styles from './BackupNudge.module.css'
 
 /**
@@ -49,21 +50,17 @@ export default function BackupNudge() {
         onClose={() => setOpen(false)}
         title="Protect your data"
         footer={
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              onClick={() => void connectDropbox()}
-            >
-              Connect Dropbox
-            </button>
-            <button type="button" className={styles.btn} onClick={handleDownload}>
+          <>
+            <Button variant="ghost" onClick={handleDownload}>
               Download backup
-            </button>
-          </div>
+            </Button>
+            <Button variant="primary" onClick={() => void connectDropbox()}>
+              Connect Dropbox
+            </Button>
+          </>
         }
       >
-        <div className={styles.modalBody}>
+        <div className={styles.prose}>
           <p>
             Your budget is saved only in this browser, on this device. It can be lost if
             you clear browser data, don't open the app for a while (Safari wipes unused

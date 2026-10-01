@@ -15,6 +15,13 @@ interface SegmentedProps<T extends string> {
   options: SegmentedOption<T>[]
   /** Accessible label for the group (it renders as a radiogroup). */
   ariaLabel?: string
+  /**
+   * Compact icon-only toggle (e.g. table / chart view): sized to its content
+   * instead of full width; each option's label becomes its accessible name
+   * and tooltip.
+   */
+  iconOnly?: boolean
+  className?: string
 }
 
 /**
@@ -27,6 +34,8 @@ export default function Segmented<T extends string>({
   onChange,
   options,
   ariaLabel,
+  iconOnly = false,
+  className,
 }: SegmentedProps<T>) {
   const buttonsRef = useRef<Array<HTMLButtonElement | null>>([])
   const groupRef = useRef<HTMLDivElement>(null)
@@ -91,7 +100,9 @@ export default function Segmented<T extends string>({
   return (
     <div
       ref={groupRef}
-      className={styles.group}
+      className={[styles.group, iconOnly ? styles.iconOnly : '', className ?? '']
+        .filter(Boolean)
+        .join(' ')}
       role="radiogroup"
       aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
@@ -115,6 +126,8 @@ export default function Segmented<T extends string>({
             aria-checked={isActive}
             aria-disabled={opt.disabled || undefined}
             tabIndex={isActive ? 0 : -1}
+            aria-label={iconOnly ? opt.label : undefined}
+            title={iconOnly ? opt.label : undefined}
             className={[
               styles.option,
               isActive ? styles.active : '',
@@ -131,7 +144,7 @@ export default function Segmented<T extends string>({
                 {opt.icon}
               </span>
             )}
-            <span>{opt.label}</span>
+            {!iconOnly && <span>{opt.label}</span>}
           </button>
         )
       })}
