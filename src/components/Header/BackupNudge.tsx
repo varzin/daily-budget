@@ -17,12 +17,12 @@ import styles from './BackupNudge.module.css'
  */
 export default function BackupNudge() {
   const connected = useSyncStatus().connected
-  const bank = useBudgetStore((s) => s.bank)
+  const accounts = useBudgetStore((s) => s.accounts)
   const categories = useBudgetStore((s) => s.categories)
   const savings = useBudgetStore((s) => s.savings)
   const [open, setOpen] = useState(false)
 
-  const hasData = hasMeaningfulData({ bank, categories, savings })
+  const hasData = hasMeaningfulData({ accounts, categories, savings })
   if (!shouldShowBackupNudge({ connected, hasData })) return null
 
   const handleDownload = () => {

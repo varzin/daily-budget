@@ -11,16 +11,24 @@ import { describe, expect, it } from 'vitest'
 import { hasMeaningfulData, shouldShowBackupNudge } from '../../src/lib/backupNudge'
 import type { BudgetState } from '../../src/types'
 
+const account = (balance: number, p: Partial<BudgetState['accounts'][number]> = {}) => ({
+  id: 'main',
+  name: '',
+  balance,
+  currency: 'EUR',
+  ...p,
+})
+
 function state(p: Partial<BudgetState> = {}): BudgetState {
   return {
-    bank: 0,
+    accounts: [account(0)],
     incomeDay: 26,
     categories: [],
     savings: [],
     updatedAt: null,
-    meta: { bank: null, incomeDay: null },
+    meta: { incomeDay: null },
     ...p,
-  }
+  } as BudgetState
 }
 
 describe('hasMeaningfulData', () => {
@@ -28,7 +36,15 @@ describe('hasMeaningfulData', () => {
     expect(hasMeaningfulData(state())).toBe(false)
   })
   it('is true once a balance is entered', () => {
-    expect(hasMeaningfulData(state({ bank: 100 }))).toBe(true)
+    expect(hasMeaningfulData(state({ accounts: [account(100)] }))).toBe(true)
+  })
+  it('is true when any account holds money', () => {
+    expect(hasMeaningfulData(state({ accounts: [account(0), account(5, { id: 'cash' })] }))).toBe(true)
+  })
+  it('ignores the balance of a deleted account', () => {
+    expect(
+      hasMeaningfulData(state({ accounts: [account(0), account(5, { id: 'x', deletedAt: 'D' })] })),
+    ).toBe(false)
   })
   it('is true with a live category', () => {
     expect(

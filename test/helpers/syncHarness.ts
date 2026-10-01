@@ -146,7 +146,17 @@ export async function makeDevice(dbx: FakeDropbox): Promise<Device> {
     store: useBudgetStore,
     seedLocal(d) {
       useBudgetStore.setState({
-        bank: d.bank,
+        // `bank` is the legacy single balance; the store keeps it as the main
+        // account, stamped with `meta.bank` (exactly what migration produces).
+        accounts: [
+          {
+            id: 'main',
+            name: '',
+            balance: d.bank,
+            currency: 'EUR',
+            ...(d.meta?.bank ? { updatedAt: d.meta.bank } : {}),
+          },
+        ],
         incomeDay: d.incomeDay,
         categories: d.categories as never,
         savings: d.savings as never,
@@ -156,9 +166,12 @@ export async function makeDevice(dbx: FakeDropbox): Promise<Device> {
       } as never)
     },
     readLocal() {
-      const s = useBudgetStore.getState() as unknown as SyncDoc
+      const s = useBudgetStore.getState() as unknown as SyncDoc & {
+        accounts: Array<{ balance: number; deletedAt?: string }>
+      }
       return {
-        bank: s.bank,
+        // The balance in document shape: the sum of the live accounts.
+        bank: s.accounts.filter((a) => !a.deletedAt).reduce((sum, a) => sum + a.balance, 0),
         incomeDay: s.incomeDay,
         categories: s.categories as CategoryEntity[],
         savings: s.savings as SavingsEntity[],

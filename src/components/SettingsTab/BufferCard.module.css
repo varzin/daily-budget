@@ -13,35 +13,22 @@
   line-height: 1.5;
 }
 
-/* Currency picker — mirrors the TextField label/control language. */
-.selectField {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
+/* Display-currency picker (ui/CurrencySelect) and its note. */
+.currency {
+  margin-bottom: 6px;
 }
-.selectLabel {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.currencyNote {
+  margin: 0 0 16px;
+  font-size: 12px;
   color: var(--text-faint);
-  font-weight: 500;
+  line-height: 1.5;
 }
-.select {
-  appearance: none;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-family: var(--body);
-  font-size: 15px;
-  color: var(--text);
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-.select:focus {
-  outline: none;
-  border-color: var(--accent);
+
+/* An amount with its own currency picker beside it. */
+.amountRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 /* Monthly income — optional field feeding the dashboard pace indicator. */

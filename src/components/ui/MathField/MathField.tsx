@@ -10,6 +10,10 @@ interface MathFieldProps {
   placeholder?: string
   value: string                            // the formula — source of truth
   onChange: (next: string) => void
+  /** Currency the amount is in — currency tokens convert into it (default: display). */
+  currency?: string
+  /** Accessible name when there's no visible `label`. */
+  ariaLabel?: string
   fullWidth?: boolean
   alignRight?: boolean
   autoFocus?: boolean
@@ -22,16 +26,18 @@ export default function MathField({
   placeholder,
   value,
   onChange,
+  currency,
+  ariaLabel,
   fullWidth,
   alignRight,
   autoFocus,
   onKeyDown,
 }: MathFieldProps) {
   const [focused, setFocused] = useState(false)
-  const rate = useRateResolver()
+  const rate = useRateResolver(currency)
   const result = evaluateLenient(value, { rate })
   // Show the evaluated result on blur for any real formula — arithmetic OR a
-  // currency conversion ("10 AMD" → the default-currency amount).
+  // currency conversion ("10 AMD" → the amount in the field's currency).
   const showResult = !focused && result.ok && (hasMathOps(value) || hasCurrencyToken(value))
   const display = showResult ? formatEvalResult(result.value) : value
   const invalid = !result.ok
@@ -52,6 +58,7 @@ export default function MathField({
       onChange={e => onChange(e.target.value)}
       onKeyDown={onKeyDown}
       aria-invalid={invalid || undefined}
+      aria-label={ariaLabel}
     />
   )
 }

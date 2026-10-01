@@ -2,9 +2,30 @@
  * Phase B — "Updated <when>" freshness hint (CLAUDE.md "«Актуально на <дата>»").
  * The minimal model self-corrects only when the user re-enters their balance, so
  * between entries the forecast quietly ages. We surface the age of the last
- * balance entry (`meta.bank`) as an always-on, muted line, escalating gently
- * once it's stale.
+ * balance entry (the newest change to any live account — balancesUpdatedAt) as
+ * an always-on, muted line, escalating gently once it's stale.
  */
+
+/**
+ * When the balance was last touched: the newest `updatedAt` among the live
+ * accounts (one shared freshness line for all of them). Null when none carries
+ * a timestamp yet.
+ */
+export function balancesUpdatedAt(
+  accounts: ReadonlyArray<{ updatedAt?: string; deletedAt?: string }>,
+): string | null {
+  let latest: string | null = null
+  let latestMs = -Infinity
+  for (const a of accounts) {
+    if (a.deletedAt || !a.updatedAt) continue
+    const ms = Date.parse(a.updatedAt)
+    if (Number.isFinite(ms) && ms > latestMs) {
+      latestMs = ms
+      latest = a.updatedAt
+    }
+  }
+  return latest
+}
 
 /** Whole calendar days between an ISO timestamp and `now` (clamped at >= 0). */
 export function daysSince(iso: string, now: Date = new Date()): number {

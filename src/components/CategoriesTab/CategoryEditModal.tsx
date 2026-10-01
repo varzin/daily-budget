@@ -4,13 +4,14 @@ import type { Category } from '../../types'
 import { useBudgetStore } from '../../store/budgetStore'
 import { showToast } from '../../store/toastStore'
 import { evaluateLenient, hasMathOps, hasCurrencyToken } from '../../lib/evalExpr'
-import { useMoney } from '../../lib/useMoney'
+import { money } from '../../lib/currency'
 import { useRateResolver } from '../../lib/rates'
 import Modal from '../ui/Modal/Modal'
 import Button from '../ui/Button/Button'
 import TextField from '../ui/TextField/TextField'
 import MathField from '../ui/MathField/MathField'
 import Toggle from '../ui/Toggle/Toggle'
+import CurrencySelect from '../ui/CurrencySelect/CurrencySelect'
 import styles from './CategoryEditModal.module.css'
 
 interface CategoryEditModalProps {
@@ -23,6 +24,8 @@ interface Draft {
   name: string
   budgetExpr: string
   spentExpr: string
+  /** Currency budget and spent are in; changing it relabels, never converts. */
+  currency: string
   note: string
   noteVisible: boolean
   done: boolean
@@ -43,15 +46,26 @@ function keepExpr(raw: string): string | undefined {
   return hasMathOps(raw) || hasCurrencyToken(raw) ? raw.trim() : undefined
 }
 
-function draftFrom(category: Category | null): Draft {
+/** `defaultCurrency` (the display currency) tags a brand-new category. */
+function draftFrom(category: Category | null, defaultCurrency: string): Draft {
   if (!category) {
-    return { name: '', budgetExpr: '', spentExpr: '', note: '', noteVisible: false, done: false, ongoing: false }
+    return {
+      name: '',
+      budgetExpr: '',
+      spentExpr: '',
+      currency: defaultCurrency,
+      note: '',
+      noteVisible: false,
+      done: false,
+      ongoing: false,
+    }
   }
   const note = category.note ?? ''
   return {
     name: category.name,
     budgetExpr: exprFromCategory(category.budgetExpr, category.budget),
     spentExpr: exprFromCategory(category.spentExpr, category.spent),
+    currency: category.currency,
     note,
     noteVisible: note.length > 0,
     done: category.done,
@@ -131,14 +145,18 @@ function MoreMenu({ canAllSpent, canDelete, onAllSpent, onAddNote, onDelete }: M
 }
 
 export default function CategoryEditModal({ open, category, onClose }: CategoryEditModalProps) {
-  const money = useMoney()
-  const rate = useRateResolver()
+  const displayCurrency = useBudgetStore(s => s.currency)
   const isEdit = category !== null
-  const [draft, setDraft] = useState<Draft>(() => draftFrom(category))
+  const [draft, setDraft] = useState<Draft>(() => draftFrom(category, displayCurrency))
   const noteRef = useRef<HTMLTextAreaElement>(null)
+  // Formulas evaluate into the category's own currency.
+  const rate = useRateResolver(draft.currency)
+  const symbol = money(draft.currency).symbol
 
   useEffect(() => {
-    if (open) setDraft(draftFrom(category))
+    // Snapshot the display currency at open — a sync landing mid-edit must not
+    // re-tag the draft.
+    if (open) setDraft(draftFrom(category, useBudgetStore.getState().currency))
   }, [open, category])
 
   const budgetEval = evaluateLenient(draft.budgetExpr, { rate })
@@ -157,6 +175,7 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
       budgetExpr: keepExpr(draft.budgetExpr),
       spent: spentEval.value,
       spentExpr: keepExpr(draft.spentExpr),
+      currency: draft.currency,
       note: note || undefined,
       done: draft.done,
       ongoing: draft.ongoing,
@@ -240,7 +259,8 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
           <MathField
             label="Budget"
             placeholder="0"
-            prefix={money.symbol}
+            prefix={symbol}
+            currency={draft.currency}
             alignRight
             fullWidth
             value={draft.budgetExpr}
@@ -249,13 +269,20 @@ export default function CategoryEditModal({ open, category, onClose }: CategoryE
           <MathField
             label="Spent"
             placeholder="0"
-            prefix={money.symbol}
+            prefix={symbol}
+            currency={draft.currency}
             alignRight
             fullWidth
             value={draft.spentExpr}
             onChange={v => setDraft(d => ({ ...d, spentExpr: v }))}
           />
         </div>
+
+        <CurrencySelect
+          label="Currency"
+          value={draft.currency}
+          onChange={code => setDraft(d => ({ ...d, currency: code }))}
+        />
 
         {draft.noteVisible && (
           <label className={styles.noteWrap}>

@@ -157,6 +157,15 @@ export function reservedSavingsPool(savings: SavingsRow[]): number {
 }
 
 /**
+ * The row "Finalize month" overwrites for `month`: the first live row of that
+ * month, or -1 when there is none (a new row is appended). Single source for
+ * the store action and computeFinalize, so both agree on which row it is.
+ */
+export function finalizeTargetIndex(savings: SavingsRow[], month: string): number {
+  return savings.findIndex((r) => r.month === month && !r.deletedAt)
+}
+
+/**
  * What "Finalize month" will record: this month's savings as the current
  * balance minus what was already set aside in prior months. Fixed expenses are
  * deliberately NOT subtracted — the recorded figure is what actually remained,
@@ -164,12 +173,20 @@ export function reservedSavingsPool(savings: SavingsRow[]): number {
  * "balance at end" equal the real bank balance at each finalize, so "saved this
  * month" reads as the genuine month-over-month change (≈ income − all spending).
  * Single source for both the store action and the confirmation preview.
+ *
+ * With `month`, the row that finalize will overwrite (finalizeTargetIndex) is
+ * left out of the prior pool — it is being replaced, not carried over —
+ * so re-finalizing a month still lands the running total on the bank balance
+ * and finalizing twice records the same figure.
  */
 export function computeFinalize(
   bank: number,
   savings: SavingsRow[],
+  month?: string,
 ): { prevPool: number; saved: number } {
-  const prevPool = currentSavingsTotal(savings)
+  const target = month === undefined ? -1 : finalizeTargetIndex(savings, month)
+  const prior = target >= 0 ? savings.filter((_, i) => i !== target) : savings
+  const prevPool = currentSavingsTotal(prior)
   const saved = round2((Number(bank) || 0) - prevPool)
   return { prevPool, saved }
 }
@@ -316,12 +333,215 @@ export function computePace(args: {
   }
 }
 
-export function savedIndicator(saved: number): SavedIndicator {
+/** Lower bounds of the savings tiers (blue ≥ green ≥ yellow; below → red). */
+export interface SavedThresholds {
+  blue: number
+  green: number
+  yellow: number
+}
+
+/** The tiers as calibrated, in THRESHOLD_CURRENCY (lib/convert.ts). */
+export const BASE_SAVED_THRESHOLDS: SavedThresholds = { blue: 500, green: 200, yellow: 1 }
+
+/**
+ * Round a scaled threshold to two significant digits, so a converted tier reads
+ * as a round figure in the legend (֏220 000, not ֏215 431.87) and the logic
+ * uses exactly what the legend shows. Also picks round sample amounts.
+ */
+export function roundThreshold(n: number): number {
+  if (!(n > 0)) return 0
+  const mag = Math.pow(10, Math.floor(Math.log10(n)) - 1)
+  return Math.round(n / mag) * mag
+}
+
+/**
+ * The savings tiers in the display currency: `scale` is display units per one
+ * calibration unit (thresholdScale in lib/convert.ts). Scale 1 returns the
+ * calibrated values unchanged.
+ */
+export function savedThresholds(scale: number = 1): SavedThresholds {
+  if (scale === 1 || !(scale > 0)) return BASE_SAVED_THRESHOLDS
+  return {
+    blue: roundThreshold(BASE_SAVED_THRESHOLDS.blue * scale),
+    green: roundThreshold(BASE_SAVED_THRESHOLDS.green * scale),
+    yellow: roundThreshold(BASE_SAVED_THRESHOLDS.yellow * scale),
+  }
+}
+
+export function savedIndicator(
+  saved: number,
+  thresholds: SavedThresholds = BASE_SAVED_THRESHOLDS,
+): SavedIndicator {
   const v = Number(saved) || 0
-  if (v >= 500) return 'blue'
-  if (v >= 200) return 'green'
-  if (v >= 1) return 'yellow'
+  if (v >= thresholds.blue) return 'blue'
+  if (v >= thresholds.green) return 'green'
+  if (v >= thresholds.yellow) return 'yellow'
   return 'red'
+}
+
+/**
+ * Whether a pace result is close enough to the plan to read "on plan": within
+ * one calibration unit (±1 € by default), scaled into the display currency.
+ */
+export function isOnPlan(ahead: number, scale: number = 1): boolean {
+  const band = scale > 0 ? scale : 1
+  return Math.abs(Number(ahead) || 0) < band
+}
+
+/** Inputs of the dashboard, every amount already in ONE currency (lib/convert.ts). */
+export interface DashboardInput {
+  bank: number
+  buffer: number
+  monthlyIncome: number
+  incomeDay: number
+  categories: Category[]
+  savings: SavingsRow[]
+}
+
+export interface DashboardFigures {
+  bank: number
+  buffer: number
+  oblig: number
+  savingsPool: number
+  daysLeft: number
+  withoutSavings: number
+  afterObligNoSavings: number
+  afterObligAll: number
+  greenPerDay: number
+  yellowPerDay: number
+  allPerDay: number
+  situation: Situation
+  paceGrow: Pace | null
+  paceKeep: Pace | null
+  paceSpend: Pace | null
+  /** Inputs of the pace plan, kept for the "how it's calculated" breakdown. */
+  monthlyIncome: number
+  plannedOblig: number
+  cycleDays: number
+}
+
+/**
+ * Every figure the dashboard shows, from amounts in a single currency. Pure, so
+ * the whole widget/breakdown maths is unit-testable.
+ */
+export function computeDashboard(input: DashboardInput, today: Date = new Date()): DashboardFigures {
+  const b = Number(input.bank) || 0
+  const buffer = Number(input.buffer) || 0
+  const oblig = obligatoryTotal(input.categories)
+  const savingsPool = reservedSavingsPool(input.savings)
+  const daysLeft = computeDaysLeft(Number(input.incomeDay), today)
+  const perDay = (available: number) => (daysLeft > 0 ? available / daysLeft : 0)
+
+  // Pace is measured against the selected tab's goal, i.e. the free balance
+  // it aims to land on by the next income day: savings + cushion (grow),
+  // savings (keep), or zero — savings spent too (spend). computePace's
+  // buffer term is exactly `target − savingsPool`, so the three goals map to
+  // buffer / 0 / −savingsPool.
+  const paceArgs = {
+    bank: b,
+    oblig,
+    plannedOblig: plannedObligatoryTotal(input.categories),
+    savingsPool,
+    monthlyIncome: Number(input.monthlyIncome) || 0,
+    daysLeft,
+    cycleDays: computeCycleLength(Number(input.incomeDay), today),
+  }
+
+  return {
+    bank: b,
+    buffer,
+    oblig,
+    savingsPool,
+    daysLeft,
+    withoutSavings: b - savingsPool,
+    afterObligNoSavings: b - oblig - savingsPool,
+    afterObligAll: b - oblig,
+    greenPerDay: perDay(b - oblig - savingsPool - buffer),
+    yellowPerDay: perDay(b - oblig - savingsPool),
+    allPerDay: perDay(b - oblig),
+    situation: computeSituation(b, oblig, savingsPool, buffer, daysLeft),
+    paceGrow: computePace({ ...paceArgs, buffer }),
+    paceKeep: computePace({ ...paceArgs, buffer: 0 }),
+    paceSpend: computePace({ ...paceArgs, buffer: -savingsPool }),
+    monthlyIncome: paceArgs.monthlyIncome,
+    plannedOblig: paceArgs.plannedOblig,
+    cycleDays: paceArgs.cycleDays,
+  }
+}
+
+/** The goal a pace figure is measured against — one per widget tab. */
+export type PaceGoal = 'grow' | 'keep' | 'spend'
+
+/** The pace goal of a widget mode; the deficit card (null) uses "spend". */
+export function paceGoalFor(mode: WidgetMode | null): PaceGoal {
+  return mode === 'ahead' ? 'grow' : mode === 'onTrack' ? 'keep' : 'spend'
+}
+
+/** One signed term of a per-day formula (added when sign is +1). */
+export interface PaceTerm {
+  key: 'income' | 'plannedFixed' | 'cushion' | 'savings' | 'balance' | 'fixedLeft'
+  sign: 1 | -1
+  amount: number
+}
+
+export interface PaceSide {
+  /** Summed with their signs, then divided by `days`, they give `perDay`. */
+  terms: PaceTerm[]
+  days: number
+  perDay: number
+}
+
+export interface PaceExplanation {
+  goal: PaceGoal
+  /** (income − planned fixed − goal) ÷ cycle length. */
+  plan: PaceSide
+  /** (balance − fixed left − goal) ÷ days left. */
+  actual: PaceSide
+  /** (actual − plan) × days left. */
+  ahead: number
+}
+
+/**
+ * The pace-vs-plan figure for one goal, broken into the terms the info modal
+ * shows. Mirrors computePace exactly: its `buffer` is the goal's reserve on top
+ * of savings — the cushion (grow), nothing (keep), or minus the savings pool
+ * (spend: savings may be spent evenly too) — so per goal the formulas read:
+ *   plan:   income − planned fixed − cushion          (grow)
+ *           income − planned fixed                    (keep)
+ *           income − planned fixed + savings          (spend)
+ *   actual: balance − fixed left − savings − cushion  (grow)
+ *           balance − fixed left − savings            (keep)
+ *           balance − fixed left                      (spend)
+ * Zero-valued cushion/savings terms are left out. Null when pace is off.
+ */
+export function explainPace(m: DashboardFigures, goal: PaceGoal): PaceExplanation | null {
+  const pace = goal === 'grow' ? m.paceGrow : goal === 'keep' ? m.paceKeep : m.paceSpend
+  if (!pace) return null
+
+  const plan: PaceTerm[] = [
+    { key: 'income', sign: 1, amount: m.monthlyIncome },
+    { key: 'plannedFixed', sign: -1, amount: m.plannedOblig },
+  ]
+  const actual: PaceTerm[] = [
+    { key: 'balance', sign: 1, amount: m.bank },
+    { key: 'fixedLeft', sign: -1, amount: m.oblig },
+  ]
+  if (goal === 'grow') {
+    if (m.buffer !== 0) plan.push({ key: 'cushion', sign: -1, amount: m.buffer })
+    if (m.savingsPool !== 0) actual.push({ key: 'savings', sign: -1, amount: m.savingsPool })
+    if (m.buffer !== 0) actual.push({ key: 'cushion', sign: -1, amount: m.buffer })
+  } else if (goal === 'keep') {
+    if (m.savingsPool !== 0) actual.push({ key: 'savings', sign: -1, amount: m.savingsPool })
+  } else if (m.savingsPool !== 0) {
+    plan.push({ key: 'savings', sign: 1, amount: m.savingsPool })
+  }
+
+  return {
+    goal,
+    plan: { terms: plan, days: m.cycleDays, perDay: pace.perDayPlan },
+    actual: { terms: actual, days: m.daysLeft, perDay: pace.perDayActual },
+    ahead: pace.ahead,
+  }
 }
 
 /** Positive available → per-day; negative → deficit with daysLeft as the no-spend window. */

@@ -11,7 +11,11 @@ import { fmt, fmtAmount } from './utils'
  * renders the symbol as a prefix separate from the number (a stylistic choice),
  * so the formatters here return just the grouped number.
  */
-export const CURRENCY_CODES = ['EUR', 'USD', 'GBP', 'CHF', 'PLN', 'CAD', 'AUD', 'JPY'] as const
+export const CURRENCY_CODES = [
+  'EUR', 'USD', 'GBP', 'CHF', 'PLN', 'CAD', 'AUD', 'JPY',
+  'AMD', 'RUB', 'GEL', 'UAH', 'TRY', 'KZT', 'CZK', 'SEK',
+  'NOK', 'DKK', 'HUF', 'CNY', 'ILS', 'INR', 'AED',
+] as const
 
 export const DEFAULT_CURRENCY = 'EUR'
 
@@ -65,14 +69,51 @@ export const CURRENCIES: Currency[] = CURRENCY_CODES.map(buildCurrency)
 const CODE_SET = new Set<string>(CURRENCY_CODES)
 const BY_CODE = new Map(CURRENCIES.map((c) => [c.code, c]))
 
-/** Look up a currency by code, falling back to the default for unknown codes. */
-export function getCurrency(code: string | null | undefined): Currency {
-  return (code && BY_CODE.get(code)) || BY_CODE.get(DEFAULT_CURRENCY)!
+/** A well-formed ISO 4217 code (three uppercase letters). */
+export function isCurrencyCode(value: unknown): value is string {
+  return typeof value === 'string' && /^[A-Z]{3}$/.test(value)
 }
 
-/** Coerce a persisted/imported currency code, defaulting when absent/unknown. */
+/**
+ * Look up a currency by code. A well-formed code outside the curated picker set
+ * (e.g. an amount tagged on another device) is built from Intl on demand rather
+ * than shown with the default's symbol; anything malformed falls back to the
+ * default.
+ */
+export function getCurrency(code: string | null | undefined): Currency {
+  if (code) {
+    const known = BY_CODE.get(code)
+    if (known) return known
+    if (isCurrencyCode(code)) {
+      const built = buildCurrency(code)
+      BY_CODE.set(code, built)
+      return built
+    }
+  }
+  return BY_CODE.get(DEFAULT_CURRENCY)!
+}
+
+/**
+ * Coerce a persisted/imported *display* currency code (the picker in Settings),
+ * defaulting when absent/unknown.
+ */
 export function coerceCurrency(value: unknown): string {
   return typeof value === 'string' && CODE_SET.has(value) ? value : DEFAULT_CURRENCY
+}
+
+/**
+ * Coerce the currency an amount is denominated in (CLAUDE.md "Валюта у сумм").
+ * Any well-formed ISO code is honoured — the rates table covers far more than
+ * the picker — and anything absent or malformed takes `fallback`. For legacy
+ * data the fallback is the document's own currency: before per-amount tags
+ * every amount was implicitly in it, so that is exactly what a missing tag means.
+ */
+export function coerceCurrencyTag(value: unknown, fallback: string): string {
+  if (typeof value === 'string') {
+    const code = value.toUpperCase()
+    if (isCurrencyCode(code)) return code
+  }
+  return fallback
 }
 
 /**

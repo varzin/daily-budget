@@ -80,11 +80,11 @@ describe('resetSpentOnFinalize scalar merge', () => {
     expect(mergeBudget(local, remote).merged.resetSpentOnFinalize).toBe(false)
   })
 
-  it('merges the preference independently of bank', () => {
-    const local = doc({ bank: 999, resetSpentOnFinalize: false, meta: meta({ bank: T2, resetSpentOnFinalize: T0 }) })
-    const remote = doc({ bank: 1, resetSpentOnFinalize: true, meta: meta({ bank: T0, resetSpentOnFinalize: T2 }) })
+  it('merges the preference independently of another scalar', () => {
+    const local = doc({ incomeDay: 10, resetSpentOnFinalize: false, meta: meta({ incomeDay: T2, resetSpentOnFinalize: T0 }) })
+    const remote = doc({ incomeDay: 20, resetSpentOnFinalize: true, meta: meta({ incomeDay: T0, resetSpentOnFinalize: T2 }) })
     const { merged } = mergeBudget(local, remote)
-    expect(merged.bank).toBe(999)
+    expect(merged.incomeDay).toBe(10)
     expect(merged.resetSpentOnFinalize).toBe(true)
   })
 })

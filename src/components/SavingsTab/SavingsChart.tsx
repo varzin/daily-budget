@@ -16,11 +16,12 @@ import {
 } from 'chart.js'
 import { useBudgetStore } from '../../store/budgetStore'
 import { useThemeStore } from '../../store/themeStore'
-import { computeBalances, savedIndicator } from '../../lib/math'
+import { computeBalances, savedIndicator, savedThresholds } from '../../lib/math'
 import type { SavedIndicator } from '../../lib/math'
 import { live } from '../../lib/utils'
 import { money } from '../../lib/currency'
 import { useMoney } from '../../lib/useMoney'
+import { useDisplayBudget, useThresholdScale } from '../../lib/useDisplayBudget'
 import ChartRangeSlider from './ChartRangeSlider'
 import styles from './SavingsChart.module.css'
 
@@ -114,7 +115,7 @@ const pointLabelsPlugin: Plugin<'line'> = {
 }
 Chart.register(pointLabelsPlugin)
 
-type Point = { month: string; saved: number; bank: number }
+type Point = { month: string; saved: number; bank: number; tier: SavedIndicator }
 
 function buildData(slice: Point[], palette: ChartPalette): ChartData<'line'> {
   return {
@@ -128,7 +129,7 @@ function buildData(slice: Point[], palette: ChartPalette): ChartData<'line'> {
       tension: 0.25,
       pointRadius: 5,
       pointHoverRadius: 7,
-      pointBackgroundColor: slice.map(d => palette.indicators[savedIndicator(d.saved)]),
+      pointBackgroundColor: slice.map(d => palette.indicators[d.tier]),
       pointBorderColor: palette.pointBorder,
       pointBorderWidth: 2,
     }],
@@ -178,20 +179,24 @@ function chartOptions(palette: ChartPalette, symbol: string): ChartOptions<'line
 }
 
 export default function SavingsChart() {
-  const allSavings = useBudgetStore(s => s.savings)
-  const savings = useMemo(() => live(allSavings), [allSavings])
+  // Plotted in the display currency: every row converted at today's rate.
+  const display = useDisplayBudget()
+  const savings = useMemo(() => live(display.savings), [display.savings])
+  const scale = useThresholdScale()
   // Re-render (and rebuild chart colors) whenever the resolved theme changes.
   const resolved = useThemeStore(s => s.resolved)
   const money = useMoney()
 
   const fullData = useMemo<Point[]>(() => {
     const balances = computeBalances(savings)
+    const thresholds = savedThresholds(scale)
     return savings.map((r, i) => ({
       month: r.month,
       saved: Number(r.saved) || 0,
       bank: balances[i] ?? 0,
+      tier: savedIndicator(r.saved, thresholds),
     }))
-  }, [savings])
+  }, [savings, scale])
 
   const lastIdx = Math.max(0, fullData.length - 1)
   const [range, setRange] = useState<[number, number]>([0, lastIdx])

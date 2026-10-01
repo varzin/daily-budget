@@ -17,7 +17,7 @@ import { useMemo } from 'react'
 import type { ExchangeRates } from '../types'
 import { useBudgetStore } from '../store/budgetStore'
 import { coerceRates } from '../store/persist'
-import { SYMBOL_TO_CODE } from './currency'
+import { makeRateResolver, type RateResolver } from './convert'
 import { daysSince } from './freshness'
 
 /** Providers, tried in order. `{base}` is the lowercase base ISO code. */
@@ -29,47 +29,9 @@ const ENDPOINTS = [
 /** Refetch once the cache is at least this many whole days old. */
 export const RATES_MAX_AGE_DAYS = 1
 
-/**
- * A resolver maps a currency token from a formula — an ISO code ("AMD"), a
- * lowercase code, or a symbol ("$") — to the multiplier that converts one unit
- * of it into the current default currency. Returns null when the token can't be
- * resolved (unknown code, or no rates cached yet), which makes the formula
- * invalid rather than silently wrong.
- */
-export type RateResolver = (token: string) => number | null
-
-/**
- * Build a resolver from the cached rates and the current default currency.
- *
- * The current currency always resolves (to 1) even with no rates cached — typing
- * your own currency's code is just an identity. Every other currency needs the
- * table. Because `values` expresses every listed currency in terms of `base`,
- * any pair converts via the base as a cross-rate, so the cached `base` need not
- * equal the current currency.
- */
-export function makeRateResolver(
-  rates: ExchangeRates | null,
-  currentCurrency: string,
-): RateResolver {
-  const cc = (currentCurrency || '').toUpperCase()
-  return (token: string): number | null => {
-    const sym = SYMBOL_TO_CODE.get(token)
-    const code = (sym ?? token).toUpperCase()
-    if (code === cc) return 1
-    if (!rates) return null
-    const base = rates.base.toUpperCase()
-    // Value of 1 unit of X expressed in `base` units (null if X is unknown).
-    const inBase = (x: string): number | null => {
-      if (x === base) return 1
-      const v = rates.values[x.toLowerCase()]
-      return typeof v === 'number' && v > 0 ? 1 / v : null
-    }
-    const a = inBase(code)
-    const b = inBase(cc)
-    if (a === null || b === null) return null
-    return a / b
-  }
-}
+// The pure resolver lives in lib/convert.ts (store-free, shared with the
+// per-amount currency conversion); re-exported here for existing callers.
+export { makeRateResolver, type RateResolver } from './convert'
 
 /** Shape the provider's `{ date, <base>: { code: rate } }` payload. */
 export function parseProviderResponse(base: string, json: unknown): ExchangeRates | null {
@@ -146,12 +108,14 @@ export function ensureRatesFresh(): void {
 }
 
 /**
- * React hook: a rate resolver bound to the store's cached rates and default
- * currency. Recomputed only when either changes, so formula fields re-evaluate
- * automatically once rates load.
+ * React hook: a rate resolver bound to the store's cached rates, converting
+ * into `target` — the currency of the amount being edited (a category's, the
+ * balance's) — or the display currency when omitted. Recomputed only when the
+ * inputs change, so formula fields re-evaluate automatically once rates load.
  */
-export function useRateResolver(): RateResolver {
+export function useRateResolver(target?: string): RateResolver {
   const rates = useBudgetStore((s) => s.rates)
   const currency = useBudgetStore((s) => s.currency)
-  return useMemo(() => makeRateResolver(rates, currency), [rates, currency])
+  const to = target ?? currency
+  return useMemo(() => makeRateResolver(rates, to), [rates, to])
 }

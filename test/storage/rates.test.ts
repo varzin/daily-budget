@@ -75,11 +75,11 @@ describe('rates scalar merge', () => {
     expect(mergeBudget(local, remote).merged.rates).toEqual(ratesB)
   })
 
-  it('merges rates independently of bank', () => {
-    const local = doc({ bank: 999, rates: ratesA, meta: meta({ bank: T2, rates: T0 }) })
-    const remote = doc({ bank: 1, rates: ratesB, meta: meta({ bank: T0, rates: T2 }) })
+  it('merges rates independently of another scalar', () => {
+    const local = doc({ incomeDay: 10, rates: ratesA, meta: meta({ incomeDay: T2, rates: T0 }) })
+    const remote = doc({ incomeDay: 20, rates: ratesB, meta: meta({ incomeDay: T0, rates: T2 }) })
     const { merged } = mergeBudget(local, remote)
-    expect(merged.bank).toBe(999)
+    expect(merged.incomeDay).toBe(10)
     expect(merged.rates).toEqual(ratesB)
   })
 })

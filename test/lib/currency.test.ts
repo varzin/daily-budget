@@ -3,7 +3,16 @@
  * formatting, and that the chosen currency merges as a synced scalar.
  */
 import { describe, expect, it } from 'vitest'
-import { coerceCurrency, getCurrency, money, deviceLocale, DEFAULT_CURRENCY } from '../../src/lib/currency'
+import {
+  coerceCurrency,
+  coerceCurrencyTag,
+  getCurrency,
+  isCurrencyCode,
+  money,
+  deviceLocale,
+  CURRENCY_CODES,
+  DEFAULT_CURRENCY,
+} from '../../src/lib/currency'
 import { mergeBudget } from '../../src/sync/merge'
 import type { BudgetState } from '../../src/types'
 
@@ -25,6 +34,43 @@ describe('getCurrency', () => {
   it('resolves unknown codes to the default currency', () => {
     expect(getCurrency('nope').code).toBe(DEFAULT_CURRENCY)
     expect(getCurrency('GBP').symbol).toBe('£')
+  })
+})
+
+describe('expanded picker set', () => {
+  it('includes the added currencies, with Intl symbols', () => {
+    for (const code of ['AMD', 'RUB', 'GEL', 'UAH', 'TRY', 'KZT']) {
+      expect(CURRENCY_CODES).toContain(code)
+      expect(coerceCurrency(code)).toBe(code)
+    }
+    expect(getCurrency('AMD').symbol).toBe('֏')
+  })
+})
+
+describe('getCurrency for a code outside the picker set', () => {
+  it('builds it from Intl instead of falling back to the default', () => {
+    const c = getCurrency('XAF')
+    expect(c.code).toBe('XAF')
+    expect(money('XAF').code).toBe('XAF')
+  })
+})
+
+describe('isCurrencyCode / coerceCurrencyTag', () => {
+  it('accepts well-formed ISO codes only', () => {
+    expect(isCurrencyCode('AMD')).toBe(true)
+    expect(isCurrencyCode('XAF')).toBe(true)
+    expect(isCurrencyCode('amd')).toBe(false)
+    expect(isCurrencyCode('EURO')).toBe(false)
+    expect(isCurrencyCode(7)).toBe(false)
+  })
+
+  it('upper-cases, honours any ISO code, and falls back otherwise', () => {
+    expect(coerceCurrencyTag('amd', 'EUR')).toBe('AMD')
+    expect(coerceCurrencyTag('XAF', 'EUR')).toBe('XAF')
+    expect(coerceCurrencyTag(undefined, 'USD')).toBe('USD')
+    expect(coerceCurrencyTag('', 'USD')).toBe('USD')
+    expect(coerceCurrencyTag('€', 'USD')).toBe('USD')
+    expect(coerceCurrencyTag(42, 'USD')).toBe('USD')
   })
 })
 

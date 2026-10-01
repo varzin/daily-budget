@@ -4,7 +4,8 @@ import { useBudgetStore } from '../../store/budgetStore'
 import { useUiPrefsStore } from '../../store/uiPrefsStore'
 import { currentMonthKey } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
-import { computeFinalize } from '../../lib/math'
+import { useDisplayBudget } from '../../lib/useDisplayBudget'
+import { computeFinalizeIn } from '../../lib/convert'
 import ConfirmModal from '../ui/ConfirmModal/ConfirmModal'
 import Toggle from '../ui/Toggle/Toggle'
 import SavingsTable from './SavingsTable'
@@ -19,8 +20,11 @@ export default function SavingsTab() {
   // devices), pre-filled here and editable in the dialog.
   const resetSpent = useBudgetStore(s => s.resetSpentOnFinalize)
   const setResetSpent = useBudgetStore(s => s.setResetSpentOnFinalize)
-  const bank = useBudgetStore(s => s.bank)
   const savings = useBudgetStore(s => s.savings)
+  const rates = useBudgetStore(s => s.rates)
+  // Finalize works in the display currency on the total of all accounts.
+  const display = useDisplayBudget()
+  const bank = display.bank
   const money = useMoney()
 
   const handleAddRow = () => {
@@ -28,8 +32,8 @@ export default function SavingsTab() {
   }
 
   // The same formula finalizeMonth applies — shown in the dialog as a preview.
-  const { prevPool, saved } = computeFinalize(bank, savings)
   const month = currentMonthKey()
+  const { prevPool, saved } = computeFinalizeIn(bank, display.currency, savings, rates, month)
   const monthExists = savings.some(r => r.month === month && !r.deletedAt)
 
   return (

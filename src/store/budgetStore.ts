@@ -1,17 +1,18 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
+import type { Account, BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
 import { uid, currentMonthKey } from '../lib/utils'
-import { computeFinalize } from '../lib/math'
+import { computeFinalizeIn, makeRateResolver } from '../lib/convert'
+import { finalizeTargetIndex } from '../lib/math'
+import { evaluateLenient } from '../lib/evalExpr'
 import {
   STORAGE_KEY,
   defaultState,
-  migrateSavings,
   coerceBudgetState,
   normalizeBudgetState,
   selectBudgetState,
 } from './persist'
-import { coerceCurrency } from '../lib/currency'
+import { coerceCurrency, coerceCurrencyTag } from '../lib/currency'
 
 // ---------- echo-suppression flag (read by sync/dropbox.ts) ----------
 //
@@ -26,15 +27,34 @@ export function wasLastChangeRemote(): boolean {
 
 // ---------- store types ----------
 type BudgetActions = {
-  /** `expr` is the formula the amount was typed as; omit/empty to clear it. */
-  setBank: (n: number, expr?: string) => void
+  /** New account in `currency` (default: the display currency); returns its id. */
+  addAccount: (input?: { name?: string; currency?: string }) => string
+  /** `expr` is the formula the balance was typed as; omit/empty to clear it. */
+  setAccountBalance: (id: string, n: number, expr?: string) => void
+  renameAccount: (id: string, name: string) => void
+  /**
+   * Re-tag an account with another currency. A relabel, not a conversion: the
+   * number stays as typed; a stored formula is re-evaluated into the new
+   * currency ("50 USD" now means 50 USD in it).
+   */
+  setAccountCurrency: (id: string, code: string) => void
+  /**
+   * Tombstone an account. Refused (returns false) for the last live account —
+   * there is always at least one.
+   */
+  deleteAccount: (id: string) => boolean
+  restoreAccount: (id: string) => void
   setIncomeDay: (n: number) => void
-  setBuffer: (n: number) => void
+  /** `currency` re-tags the cushion (a relabel); omit to keep its current one. */
+  setBuffer: (n: number, currency?: string) => void
+  /** Switch the DISPLAY currency only — no stored amount is touched. */
   setCurrency: (code: string) => void
-  setMonthlyIncome: (n: number) => void
+  /** `currency` re-tags the income (a relabel); omit to keep its current one. */
+  setMonthlyIncome: (n: number, currency?: string) => void
   setResetSpentOnFinalize: (on: boolean) => void
   setRates: (rates: ExchangeRates) => void
-  addCategory: (input: Omit<Category, 'id'>) => void
+  /** A category without an explicit currency is tagged with the display currency. */
+  addCategory: (input: Omit<Category, 'id' | 'currency'> & { currency?: string }) => void
   updateCategory: (id: string, patch: Partial<Category>) => void
   deleteCategory: (id: string) => void
   restoreCategory: (id: string) => void
@@ -43,6 +63,7 @@ type BudgetActions = {
   updateSavingsRow: (id: string, patch: Partial<SavingsRow>) => void
   deleteSavingsRow: (id: string) => void
   restoreSavingsRow: (id: string) => void
+  /** `bankAtFinalize` is the balance in the display currency (all accounts). */
   finalizeMonth: (bankAtFinalize: number, opts?: { resetSpent?: boolean }) => void
   exportData: () => void
   importData: (file: File) => Promise<void>
@@ -65,33 +86,103 @@ export const useBudgetStore = create<BudgetStore>()(
     (set, get) => ({
       ...defaultState,
 
-      // ---------- bank / income ----------
-      setBank: (n, expr) => {
+      // ---------- accounts ----------
+      addAccount: (input) => {
+        const account: Account = {
+          id: uid(),
+          name: (input?.name ?? '').trim(),
+          balance: 0,
+          currency: coerceCurrencyTag(input?.currency, get().currency),
+          updatedAt: now(),
+        }
+        set(touch({ accounts: [...get().accounts, account] }))
+        return account.id
+      },
+      setAccountBalance: (id, n, expr) => {
         const t = now()
-        // `bankExpr` shares `meta.bank` — it is part of the balance, not a
-        // scalar of its own. Passing no expression drops any stored formula.
+        // Passing no expression drops any stored formula.
         set(touch({
-          bank: Number(n) || 0,
-          bankExpr: expr || undefined,
-          meta: { ...get().meta, bank: t },
+          accounts: get().accounts.map((a) => {
+            if (a.id !== id) return a
+            const { balanceExpr: _e, ...rest } = a
+            return {
+              ...rest,
+              balance: Number(n) || 0,
+              ...(expr ? { balanceExpr: expr } : {}),
+              updatedAt: t,
+            }
+          }),
         }))
       },
+      renameAccount: (id, name) => {
+        const t = now()
+        set(touch({
+          accounts: get().accounts.map((a) =>
+            a.id === id ? { ...a, name: name.trim(), updatedAt: t } : a,
+          ),
+        }))
+      },
+      setAccountCurrency: (id, code) => {
+        const s = get()
+        const target = s.accounts.find((a) => a.id === id)
+        if (!target) return
+        const currency = coerceCurrencyTag(code, target.currency)
+        if (currency === target.currency) return
+        let balance = target.balance
+        if (target.balanceExpr) {
+          // Keep the snapshot in sync with the formula under its new currency;
+          // an unresolvable formula (no rate) keeps the old number.
+          const r = evaluateLenient(target.balanceExpr, { rate: makeRateResolver(s.rates, currency) })
+          if (r.ok) balance = Math.round(r.value * 100) / 100
+        }
+        const t = now()
+        set(touch({
+          accounts: s.accounts.map((a) => (a.id === id ? { ...a, balance, currency, updatedAt: t } : a)),
+        }))
+      },
+      deleteAccount: (id) => {
+        const { accounts } = get()
+        const live = accounts.filter((a) => !a.deletedAt)
+        if (live.length <= 1 || !live.some((a) => a.id === id)) return false
+        const t = now()
+        set(touch({
+          accounts: accounts.map((a) => (a.id === id ? { ...a, deletedAt: t, updatedAt: t } : a)),
+        }))
+        return true
+      },
+      restoreAccount: (id) => {
+        const t = now()
+        set(touch({
+          accounts: get().accounts.map((a) => {
+            if (a.id !== id) return a
+            const { deletedAt: _d, ...rest } = a
+            return { ...rest, updatedAt: t }
+          }),
+        }))
+      },
+
+      // ---------- income ----------
       setIncomeDay: (n) => {
         const t = now()
         set(touch({ incomeDay: Number(n) || 0, meta: { ...get().meta, incomeDay: t } }))
       },
-      setBuffer: (n) => {
+      setBuffer: (n, currency) => {
         const t = now()
-        set(touch({ buffer: Math.max(0, Number(n) || 0), meta: { ...get().meta, buffer: t } }))
+        set(touch({
+          buffer: Math.max(0, Number(n) || 0),
+          bufferCurrency: coerceCurrencyTag(currency, get().bufferCurrency),
+          meta: { ...get().meta, buffer: t },
+        }))
       },
       setCurrency: (code) => {
         const t = now()
         set(touch({ currency: coerceCurrency(code), meta: { ...get().meta, currency: t } }))
       },
-      setMonthlyIncome: (n) => {
+      setMonthlyIncome: (n, currency) => {
         const t = now()
         set(touch({
           monthlyIncome: Math.max(0, Number(n) || 0),
+          monthlyIncomeCurrency: coerceCurrencyTag(currency, get().monthlyIncomeCurrency),
           meta: { ...get().meta, monthlyIncome: t },
         }))
       },
@@ -111,7 +202,12 @@ export const useBudgetStore = create<BudgetStore>()(
 
       // ---------- categories ----------
       addCategory: (input) => {
-        const cat: Category = { id: uid(), ...input, updatedAt: now() }
+        const cat: Category = {
+          id: uid(),
+          ...input,
+          currency: coerceCurrencyTag(input.currency, get().currency),
+          updatedAt: now(),
+        }
         set(touch({ categories: [...get().categories, cat] }))
       },
       updateCategory: (id, patch) => {
@@ -156,7 +252,13 @@ export const useBudgetStore = create<BudgetStore>()(
 
       // ---------- savings ----------
       addSavingsRow: () => {
-        const row: SavingsRow = { id: uid(), month: currentMonthKey(), saved: 0, updatedAt: now() }
+        const row: SavingsRow = {
+          id: uid(),
+          month: currentMonthKey(),
+          saved: 0,
+          currency: get().currency,
+          updatedAt: now(),
+        }
         set(touch({ savings: [...get().savings, row] }))
       },
       updateSavingsRow: (id, patch) => {
@@ -186,22 +288,26 @@ export const useBudgetStore = create<BudgetStore>()(
         }))
       },
       finalizeMonth: (bankAtFinalize, opts) => {
-        const { categories, savings } = get()
+        const { categories, savings, currency: display, rates } = get()
         // `saved` is the current balance minus the prior savings pool — fixed
         // expenses are no longer subtracted, so the figure is what actually
-        // remained this month regardless of any still-unpaid bills.
-        const { saved } = computeFinalize(bankAtFinalize, savings)
+        // remained this month regardless of any still-unpaid bills. Computed in
+        // the display currency — the balance spans accounts in several
+        // currencies — with prior rows converted into it, and tagged with it.
+        // A row already recorded for this month is replaced, so it's not part
+        // of the prior pool.
         const month = currentMonthKey()
+        const { saved, currency } = computeFinalizeIn(bankAtFinalize, display, savings, rates, month)
 
         const t = now()
-        const existingIdx = savings.findIndex((r) => r.month === month && !r.deletedAt)
+        const existingIdx = finalizeTargetIndex(savings, month)
         let nextSavings: SavingsRow[]
         if (existingIdx >= 0) {
           nextSavings = savings.map((r, i) =>
-            i === existingIdx ? { ...r, saved, updatedAt: t } : r,
+            i === existingIdx ? { ...r, saved, currency, updatedAt: t } : r,
           )
         } else {
-          nextSavings = [...savings, { id: uid(), month, saved, updatedAt: t }]
+          nextSavings = [...savings, { id: uid(), month, saved, currency, updatedAt: t }]
         }
 
         const patch: Partial<BudgetState> = { savings: nextSavings }
@@ -281,18 +387,14 @@ export const useBudgetStore = create<BudgetStore>()(
       storage: createJSONStorage(() => localStorage),
       // Only persist the data — never the action functions.
       partialize: (state): BudgetState => selectBudgetState(state),
-      // Run the legacy-month migration exactly once on rehydrate.
-      onRehydrateStorage: () => (rehydrated) => {
-        if (!rehydrated) return
-        const migrated = migrateSavings(rehydrated.savings)
-        const changed =
-          migrated.length !== rehydrated.savings.length ||
-          migrated.some((r, i) => r.month !== rehydrated.savings[i]?.month)
-        if (changed) {
-          // Don't bump updatedAt for a pure shape migration — otherwise
-          // every existing install would push a "new" state to Dropbox.
-          useBudgetStore.setState({ savings: migrated })
-        }
+      // Rehydrate through the single normalization path: legacy months, junk
+      // values and missing currency tags (filled with the stored document's
+      // own currency — NOT the defaults, which a shallow merge would apply).
+      // A pure shape migration: updatedAt and meta are kept as stored, so an
+      // upgrade never pushes a "new" state to Dropbox.
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== 'object') return current
+        return { ...current, ...normalizeBudgetState(persisted as Partial<BudgetState>) }
       },
     },
   ),
