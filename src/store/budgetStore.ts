@@ -5,6 +5,7 @@ import { uid, currentMonthKey } from '../lib/utils'
 import { computeFinalizeIn, makeRateResolver } from '../lib/convert'
 import { finalizeTargetIndex } from '../lib/math'
 import { evaluateLenient } from '../lib/evalExpr'
+import { moveAccountOrder, nextAccountOrder, type MoveDirection } from '../lib/accountOrder'
 import {
   STORAGE_KEY,
   defaultState,
@@ -44,6 +45,11 @@ type BudgetActions = {
    */
   deleteAccount: (id: string) => boolean
   restoreAccount: (id: string) => void
+  /**
+   * Move a live account one place up (-1) or down (+1) in the list. Returns
+   * false when it can't move (first/last, unknown).
+   */
+  moveAccount: (id: string, dir: MoveDirection) => boolean
   setIncomeDay: (n: number) => void
   /** `currency` re-tags the cushion (a relabel); omit to keep its current one. */
   setBuffer: (n: number, currency?: string) => void
@@ -93,6 +99,7 @@ export const useBudgetStore = create<BudgetStore>()(
           name: (input?.name ?? '').trim(),
           balance: 0,
           currency: coerceCurrencyTag(input?.currency, get().currency),
+          order: nextAccountOrder(get().accounts),
           updatedAt: now(),
         }
         set(touch({ accounts: [...get().accounts, account] }))
@@ -159,6 +166,19 @@ export const useBudgetStore = create<BudgetStore>()(
             return { ...rest, updatedAt: t }
           }),
         }))
+      },
+      moveAccount: (id, dir) => {
+        const { accounts } = get()
+        const orders = moveAccountOrder(accounts, id, dir)
+        if (!orders) return false
+        const t = now()
+        set(touch({
+          accounts: accounts.map((a) => {
+            const order = orders.get(a.id)
+            return order === undefined ? a : { ...a, order, updatedAt: t }
+          }),
+        }))
+        return true
       },
 
       // ---------- income ----------
