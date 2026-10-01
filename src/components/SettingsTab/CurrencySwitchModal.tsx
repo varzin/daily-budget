@@ -33,8 +33,7 @@ const amount = (a: { amount: number; currency: string }): string => {
  */
 export default function CurrencySwitchModal({ to, onConfirm, onClose }: CurrencySwitchModalProps) {
   const currency = useBudgetStore(s => s.currency)
-  const bank = useBudgetStore(s => s.bank)
-  const bankCurrency = useBudgetStore(s => s.bankCurrency)
+  const accounts = useBudgetStore(s => s.accounts)
   const buffer = useBudgetStore(s => s.buffer)
   const bufferCurrency = useBudgetStore(s => s.bufferCurrency)
   const monthlyIncome = useBudgetStore(s => s.monthlyIncome)
@@ -48,8 +47,7 @@ export default function CurrencySwitchModal({ to, onConfirm, onClose }: Currency
         ? previewCurrencySwitch(
             {
               currency,
-              bank,
-              bankCurrency,
+              accounts,
               buffer,
               bufferCurrency,
               monthlyIncome,
@@ -64,8 +62,7 @@ export default function CurrencySwitchModal({ to, onConfirm, onClose }: Currency
     [
       to,
       currency,
-      bank,
-      bankCurrency,
+      accounts,
       buffer,
       bufferCurrency,
       monthlyIncome,

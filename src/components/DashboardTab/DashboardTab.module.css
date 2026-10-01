@@ -17,6 +17,9 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-bottom: 28px;
+  /* The balance card grows when its account list is open — don't stretch the
+     income-day card next to it. */
+  align-items: start;
 }
 
 .field {
@@ -84,18 +87,6 @@
 /* "Updated <when>" — always-on, muted freshness line under the balance input.
    Kept faint so it reads as ambient context, not a nag. When the entry goes
    stale it gains a touch more contrast plus a gentle refresh nudge. */
-.updated {
-  margin: 12px 0 0;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-}
-.updatedStale {
-  color: var(--text-dim);
-}
-.updatedNudge {
-  color: var(--accent);
-}
 
 /* ---------- Metrics grid ---------- */
 .metrics {

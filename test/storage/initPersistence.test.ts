@@ -11,7 +11,18 @@ import { initStoragePersistence } from '../../src/lib/storagePersistence'
 import type { BudgetState } from '../../src/types'
 
 function emptyState(): BudgetState {
-  return { bank: 0, incomeDay: 26, categories: [], savings: [], updatedAt: null, meta: { bank: null, incomeDay: null } }
+  return withBalance(0)
+}
+
+function withBalance(balance: number): BudgetState {
+  return {
+    accounts: [{ id: 'main', name: '', balance, currency: 'EUR' }],
+    incomeDay: 26,
+    categories: [],
+    savings: [],
+    updatedAt: null,
+    meta: { incomeDay: null },
+  } as unknown as BudgetState
 }
 
 /** Minimal fake of the slice of the Zustand store we depend on. */
@@ -49,7 +60,7 @@ describe('initStoragePersistence', () => {
   })
 
   it('requests immediately when data already exists at startup', async () => {
-    const store = fakeStore({ ...emptyState(), bank: 500 })
+    const store = fakeStore(withBalance(500))
     const storage = fakeStorage()
     initStoragePersistence(store, storage)
     await Promise.resolve()
@@ -63,11 +74,11 @@ describe('initStoragePersistence', () => {
     await Promise.resolve()
     expect(storage.persist).not.toHaveBeenCalled()
 
-    store.set({ ...emptyState(), bank: 100 }) // first input
+    store.set(withBalance(100)) // first input
     await Promise.resolve()
     expect(storage.persist).toHaveBeenCalledTimes(1)
 
-    store.set({ ...emptyState(), bank: 200 }) // further edits
+    store.set(withBalance(200)) // further edits
     await Promise.resolve()
     expect(storage.persist).toHaveBeenCalledTimes(1)
   })

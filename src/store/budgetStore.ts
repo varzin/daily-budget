@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
+import type { Account, BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
 import { uid, currentMonthKey } from '../lib/utils'
 import { computeFinalizeIn, makeRateResolver } from '../lib/convert'
 import { finalizeTargetIndex } from '../lib/math'
@@ -27,14 +27,23 @@ export function wasLastChangeRemote(): boolean {
 
 // ---------- store types ----------
 type BudgetActions = {
-  /** `expr` is the formula the amount was typed as; omit/empty to clear it. */
-  setBank: (n: number, expr?: string) => void
+  /** New account in `currency` (default: the display currency); returns its id. */
+  addAccount: (input?: { name?: string; currency?: string }) => string
+  /** `expr` is the formula the balance was typed as; omit/empty to clear it. */
+  setAccountBalance: (id: string, n: number, expr?: string) => void
+  renameAccount: (id: string, name: string) => void
   /**
-   * Re-tag the balance with another currency. A relabel, not a conversion: the
+   * Re-tag an account with another currency. A relabel, not a conversion: the
    * number stays as typed; a stored formula is re-evaluated into the new
    * currency ("50 USD" now means 50 USD in it).
    */
-  setBankCurrency: (code: string) => void
+  setAccountCurrency: (id: string, code: string) => void
+  /**
+   * Tombstone an account. Refused (returns false) for the last live account —
+   * there is always at least one.
+   */
+  deleteAccount: (id: string) => boolean
+  restoreAccount: (id: string) => void
   setIncomeDay: (n: number) => void
   /** `currency` re-tags the cushion (a relabel); omit to keep its current one. */
   setBuffer: (n: number, currency?: string) => void
@@ -54,6 +63,7 @@ type BudgetActions = {
   updateSavingsRow: (id: string, patch: Partial<SavingsRow>) => void
   deleteSavingsRow: (id: string) => void
   restoreSavingsRow: (id: string) => void
+  /** `bankAtFinalize` is the balance in the display currency (all accounts). */
   finalizeMonth: (bankAtFinalize: number, opts?: { resetSpent?: boolean }) => void
   exportData: () => void
   importData: (file: File) => Promise<void>
@@ -76,32 +86,82 @@ export const useBudgetStore = create<BudgetStore>()(
     (set, get) => ({
       ...defaultState,
 
-      // ---------- bank / income ----------
-      setBank: (n, expr) => {
+      // ---------- accounts ----------
+      addAccount: (input) => {
+        const account: Account = {
+          id: uid(),
+          name: (input?.name ?? '').trim(),
+          balance: 0,
+          currency: coerceCurrencyTag(input?.currency, get().currency),
+          updatedAt: now(),
+        }
+        set(touch({ accounts: [...get().accounts, account] }))
+        return account.id
+      },
+      setAccountBalance: (id, n, expr) => {
         const t = now()
-        // `bankExpr` shares `meta.bank` — it is part of the balance, not a
-        // scalar of its own. Passing no expression drops any stored formula.
+        // Passing no expression drops any stored formula.
         set(touch({
-          bank: Number(n) || 0,
-          bankExpr: expr || undefined,
-          meta: { ...get().meta, bank: t },
+          accounts: get().accounts.map((a) => {
+            if (a.id !== id) return a
+            const { balanceExpr: _e, ...rest } = a
+            return {
+              ...rest,
+              balance: Number(n) || 0,
+              ...(expr ? { balanceExpr: expr } : {}),
+              updatedAt: t,
+            }
+          }),
         }))
       },
-      setBankCurrency: (code) => {
+      renameAccount: (id, name) => {
+        const t = now()
+        set(touch({
+          accounts: get().accounts.map((a) =>
+            a.id === id ? { ...a, name: name.trim(), updatedAt: t } : a,
+          ),
+        }))
+      },
+      setAccountCurrency: (id, code) => {
         const s = get()
-        const bankCurrency = coerceCurrencyTag(code, s.bankCurrency)
-        if (bankCurrency === s.bankCurrency) return
-        let bank = s.bank
-        if (s.bankExpr) {
+        const target = s.accounts.find((a) => a.id === id)
+        if (!target) return
+        const currency = coerceCurrencyTag(code, target.currency)
+        if (currency === target.currency) return
+        let balance = target.balance
+        if (target.balanceExpr) {
           // Keep the snapshot in sync with the formula under its new currency;
           // an unresolvable formula (no rate) keeps the old number.
-          const r = evaluateLenient(s.bankExpr, { rate: makeRateResolver(s.rates, bankCurrency) })
-          if (r.ok) bank = Math.round(r.value * 100) / 100
+          const r = evaluateLenient(target.balanceExpr, { rate: makeRateResolver(s.rates, currency) })
+          if (r.ok) balance = Math.round(r.value * 100) / 100
         }
         const t = now()
-        // Same timestamp as the number: the currency is part of the balance.
-        set(touch({ bank, bankCurrency, meta: { ...s.meta, bank: t } }))
+        set(touch({
+          accounts: s.accounts.map((a) => (a.id === id ? { ...a, balance, currency, updatedAt: t } : a)),
+        }))
       },
+      deleteAccount: (id) => {
+        const { accounts } = get()
+        const live = accounts.filter((a) => !a.deletedAt)
+        if (live.length <= 1 || !live.some((a) => a.id === id)) return false
+        const t = now()
+        set(touch({
+          accounts: accounts.map((a) => (a.id === id ? { ...a, deletedAt: t, updatedAt: t } : a)),
+        }))
+        return true
+      },
+      restoreAccount: (id) => {
+        const t = now()
+        set(touch({
+          accounts: get().accounts.map((a) => {
+            if (a.id !== id) return a
+            const { deletedAt: _d, ...rest } = a
+            return { ...rest, updatedAt: t }
+          }),
+        }))
+      },
+
+      // ---------- income ----------
       setIncomeDay: (n) => {
         const t = now()
         set(touch({ incomeDay: Number(n) || 0, meta: { ...get().meta, incomeDay: t } }))
@@ -228,16 +288,16 @@ export const useBudgetStore = create<BudgetStore>()(
         }))
       },
       finalizeMonth: (bankAtFinalize, opts) => {
-        const { categories, savings, bankCurrency, rates } = get()
+        const { categories, savings, currency: display, rates } = get()
         // `saved` is the current balance minus the prior savings pool — fixed
         // expenses are no longer subtracted, so the figure is what actually
         // remained this month regardless of any still-unpaid bills. Computed in
-        // the balance's currency (prior rows converted into it) and tagged with
-        // it, so the running total keeps equalling the real balance. A row
-        // already recorded for this month is replaced, so it's not part of
-        // the prior pool.
+        // the display currency — the balance spans accounts in several
+        // currencies — with prior rows converted into it, and tagged with it.
+        // A row already recorded for this month is replaced, so it's not part
+        // of the prior pool.
         const month = currentMonthKey()
-        const { saved, currency } = computeFinalizeIn(bankAtFinalize, bankCurrency, savings, rates, month)
+        const { saved, currency } = computeFinalizeIn(bankAtFinalize, display, savings, rates, month)
 
         const t = now()
         const existingIdx = finalizeTargetIndex(savings, month)

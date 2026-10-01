@@ -71,11 +71,11 @@ describe('monthlyIncome scalar merge', () => {
     expect(mergeBudget(local, remote).merged.monthlyIncome).toBe(3500)
   })
 
-  it('merges the income independently of bank', () => {
-    const local = doc({ bank: 999, monthlyIncome: 3000, meta: meta({ bank: T2, monthlyIncome: T0 }) })
-    const remote = doc({ bank: 1, monthlyIncome: 3500, meta: meta({ bank: T0, monthlyIncome: T2 }) })
+  it('merges the income independently of another scalar', () => {
+    const local = doc({ incomeDay: 10, monthlyIncome: 3000, meta: meta({ incomeDay: T2, monthlyIncome: T0 }) })
+    const remote = doc({ incomeDay: 20, monthlyIncome: 3500, meta: meta({ incomeDay: T0, monthlyIncome: T2 }) })
     const { merged } = mergeBudget(local, remote)
-    expect(merged.bank).toBe(999)
+    expect(merged.incomeDay).toBe(10)
     expect(merged.monthlyIncome).toBe(3500)
   })
 })

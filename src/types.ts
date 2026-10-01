@@ -35,6 +35,26 @@ export interface Category extends EntityMeta {
   ongoing?: boolean
 }
 
+/**
+ * A money account (card, cash, savings account…). The dashboard balance is the
+ * sum of every live account, each converted into the display currency
+ * (CLAUDE.md "Счета"). Merged per entity by `id` like categories, with
+ * tombstones on delete.
+ */
+export interface Account extends EntityMeta {
+  id: string
+  /** Optional label; the UI falls back to the currency code when empty. */
+  name: string
+  balance: number
+  /**
+   * The formula the balance was typed as ("1200+30", "50 USD"), kept so it
+   * stays editable. Part of the entity, so it travels with its `updatedAt`.
+   */
+  balanceExpr?: string
+  /** ISO 4217 code `balance` is denominated in. */
+  currency: string
+}
+
 export interface SavingsRow extends EntityMeta {
   id: string
   month: string  // ISO "YYYY-MM"
@@ -45,7 +65,6 @@ export interface SavingsRow extends EntityMeta {
 
 /** Per-field timestamps for the independent scalars, used by entity merge. */
 export interface BudgetMeta {
-  bank: string | null
   incomeDay: string | null
   buffer: string | null
   currency: string | null
@@ -74,22 +93,12 @@ export interface ExchangeRates {
 }
 
 export interface BudgetState {
-  bank: number
   /**
-   * The arithmetic expression the balance was entered as (e.g. "1200+30" — a
-   * split across accounts), kept so it stays editable instead of collapsing to
-   * a number. Absent when the balance was typed as a plain number. Carries NO
-   * timestamp of its own: it travels with `bank` under `meta.bank`, the same way
-   * `budgetExpr` travels with a category's `updatedAt` — so a merge can never
-   * pair one device's number with another device's formula.
+   * The user's accounts; the balance is their sum in the display currency.
+   * Replaces the legacy single `bank` / `bankExpr` / `bankCurrency` balance,
+   * which normalization migrates into one account (persist.ts).
    */
-  bankExpr?: string
-  /**
-   * Currency the balance is denominated in. Like `bankExpr` it has no timestamp
-   * of its own and travels with `bank` under `meta.bank`, so a merge never pairs
-   * one device's number with another device's currency.
-   */
-  bankCurrency: string
+  accounts: Account[]
   incomeDay: number
   /** Desired positive balance to keep by month end — the green-zone cushion. */
   buffer: number
@@ -107,7 +116,7 @@ export interface BudgetState {
    * The DISPLAY currency (ISO 4217, e.g. "EUR"; see lib/currency.ts for the
    * set): totals and the forecast are converted into it on the fly. It does not
    * say what any stored amount is in — every amount carries its own tag
-   * (`bankCurrency`, `Category.currency`, …), so switching it touches no data.
+   * (`Account.currency`, `Category.currency`, …), so switching it touches no data.
    * Default currency for newly created amounts.
    */
   currency: string

@@ -8,7 +8,7 @@
  * The math in lib/math.ts stays currency-agnostic: callers project the data
  * into one currency here first, then run the usual formulas on plain numbers.
  */
-import type { BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
+import type { Account, BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
 import { SYMBOL_TO_CODE } from './currency'
 import { computeFinalize, obligatoryTotal, reservedSavingsPool, roundThreshold } from './math'
 
@@ -117,9 +117,18 @@ export function convertSavings(savings: SavingsRow[], c: Converter): SavingsRow[
   )
 }
 
+/**
+ * The balance: the sum of every live account, each converted from its own
+ * currency. Tombstoned accounts don't count.
+ */
+export function accountsTotal(accounts: Account[], c: Converter): number {
+  return accounts.reduce((sum, a) => (a.deletedAt ? sum : sum + c.conv(a.balance, a.currency)), 0)
+}
+
 /** Every amount the dashboard / tables need, expressed in the display currency. */
 export interface DisplayBudget {
   currency: string
+  /** Sum of all live accounts (accountsTotal). */
   bank: number
   buffer: number
   monthlyIncome: number
@@ -132,8 +141,7 @@ export interface DisplayBudget {
 export type AmountSource = Pick<
   BudgetState,
   | 'currency'
-  | 'bank'
-  | 'bankCurrency'
+  | 'accounts'
   | 'buffer'
   | 'bufferCurrency'
   | 'monthlyIncome'
@@ -151,7 +159,7 @@ export function projectToDisplay(s: AmountSource, rates: ExchangeRates | null): 
   const c = makeConverter(rates, s.currency)
   return {
     currency: s.currency,
-    bank: c.conv(s.bank, s.bankCurrency),
+    bank: accountsTotal(s.accounts, c),
     buffer: c.conv(s.buffer, s.bufferCurrency),
     monthlyIncome: c.conv(s.monthlyIncome, s.monthlyIncomeCurrency),
     categories: convertCategories(s.categories, c),
@@ -213,8 +221,9 @@ export interface SwitchPreview {
 
 /**
  * What switching the display currency to `to` will look like, illustrated on
- * the user's own figures (CLAUDE.md "Валюта у сумм"): the balance in its own
- * currency, and the fixed-expense and savings totals as shown today, each next
+ * the user's own figures (CLAUDE.md "Валюта у сумм"): the balance (in its own
+ * currency when there's a single account, else the total as shown today), and
+ * the fixed-expense and savings totals as shown today, each next
  * to the value it will be shown as afterwards. Nothing here changes data — the
  * switch itself only re-labels the display. With no figures to show yet, a
  * round sample amount (≈ 100 € worth) illustrates the conversion instead.
@@ -230,10 +239,14 @@ export function previewCurrencySwitch(
   const rate = convert(1, from, to, rates)
   const rows: SwitchPreviewRow[] = []
 
-  if (s.bank !== 0) {
+  if (before.bank !== 0) {
+    const live = s.accounts.filter((a) => !a.deletedAt)
+    const only = live.length === 1 ? live[0]! : null
     rows.push({
       key: 'balance',
-      from: { amount: s.bank, currency: s.bankCurrency },
+      from: only
+        ? { amount: only.balance, currency: only.currency }
+        : { amount: before.bank, currency: from },
       to: { amount: after.bank, currency: to },
     })
   }

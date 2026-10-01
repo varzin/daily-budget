@@ -28,9 +28,9 @@ const withBalance: Decorator = (Story) => {
 
 function SeedBalance({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    const prev = useBudgetStore.getState().bank
-    useBudgetStore.setState({ bank: 1200 })
-    return () => useBudgetStore.setState({ bank: prev })
+    const prev = useBudgetStore.getState().accounts
+    useBudgetStore.setState({ accounts: [{ id: 'main', name: '', balance: 1200, currency: 'EUR' }] })
+    return () => useBudgetStore.setState({ accounts: prev })
   }, [])
   return <>{children}</>
 }

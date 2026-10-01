@@ -15,8 +15,11 @@ export type SavingsView = 'table' | 'chart'
 interface UiPrefsState {
   categoryFilter: CategoryFilter
   savingsView: SavingsView
+  /** Dashboard balance card: the account list expanded or collapsed. */
+  accountsOpen: boolean
   setCategoryFilter: (filter: CategoryFilter) => void
   setSavingsView: (view: SavingsView) => void
+  setAccountsOpen: (open: boolean) => void
 }
 
 export const useUiPrefsStore = create<UiPrefsState>()(
@@ -24,8 +27,10 @@ export const useUiPrefsStore = create<UiPrefsState>()(
     (set) => ({
       categoryFilter: 'all',
       savingsView: 'table',
+      accountsOpen: false,
       setCategoryFilter: (categoryFilter) => set({ categoryFilter }),
       setSavingsView: (savingsView) => set({ savingsView }),
+      setAccountsOpen: (accountsOpen) => set({ accountsOpen }),
     }),
     {
       name: UI_PREFS_STORAGE_KEY,

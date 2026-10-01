@@ -20,7 +20,7 @@ import {
   type AmountSource,
 } from '../../src/lib/convert'
 import { computeBalances, computeFinalize } from '../../src/lib/math'
-import type { Category, ExchangeRates, SavingsRow } from '../../src/types'
+import type { Account, Category, ExchangeRates, SavingsRow } from '../../src/types'
 
 // 1 EUR = 1.1 USD = 430 AMD = 0.85 GBP.
 const RATES: ExchangeRates = {
@@ -54,10 +54,20 @@ const row = (month: string, saved: number, currency = 'EUR', p: Partial<SavingsR
   ...p,
 })
 
-const source = (p: Partial<AmountSource> = {}): AmountSource => ({
+const account = (id: string, balance: number, currency = 'EUR', p: Partial<Account> = {}): Account => ({
+  id,
+  name: '',
+  balance,
+  currency,
+  ...p,
+})
+
+/** `bank` / `bankCurrency` are a shorthand for a single account. */
+type SourceInput = Partial<AmountSource> & { bank?: number; bankCurrency?: string }
+
+const source = ({ bank = 0, bankCurrency = 'EUR', ...p }: SourceInput = {}): AmountSource => ({
   currency: 'EUR',
-  bank: 0,
-  bankCurrency: 'EUR',
+  accounts: [account('main', bank, bankCurrency)],
   buffer: 0,
   bufferCurrency: 'EUR',
   monthlyIncome: 0,
@@ -263,6 +273,48 @@ describe('projectToDisplay', () => {
   })
 })
 
+describe('projectToDisplay — several accounts', () => {
+  it('sums every live account, each converted from its own currency', () => {
+    const d = projectToDisplay(
+      source({
+        currency: 'EUR',
+        accounts: [account('card', 1000), account('cash', 43000, 'AMD'), account('usd', 110, 'USD')],
+      }),
+      RATES,
+    )
+    expect(d.bank).toBeCloseTo(1000 + 100 + 100, 9)
+  })
+
+  it('leaves deleted accounts out of the balance', () => {
+    const d = projectToDisplay(
+      source({ accounts: [account('a', 500), account('b', 999, 'EUR', { deletedAt: 'D' })] }),
+      RATES,
+    )
+    expect(d.bank).toBe(500)
+  })
+
+  it('is zero with no live account (both devices deleted a different one)', () => {
+    expect(projectToDisplay(source({ accounts: [] }), RATES).bank).toBe(0)
+    expect(
+      projectToDisplay(source({ accounts: [account('a', 5, 'EUR', { deletedAt: 'D' })] }), RATES).bank,
+    ).toBe(0)
+  })
+
+  it('reports an account currency without a rate and counts it 1:1', () => {
+    const d = projectToDisplay(source({ accounts: [account('a', 100), account('b', 50, 'XAF')] }), RATES)
+    expect(d.bank).toBe(150)
+    expect(d.missing).toEqual(['XAF'])
+  })
+
+  it('a mixed-currency total converts back exactly when switching the display currency', () => {
+    const s = source({ accounts: [account('a', 1000), account('b', 43000, 'AMD')] })
+    const amd = projectToDisplay({ ...s, currency: 'AMD' }, RATES).bank
+    const eur = projectToDisplay(s, RATES).bank
+    expect(amd).toBeCloseTo(eur * 430, 6)
+    expect(eur).toBeCloseTo(1100, 9)
+  })
+})
+
 describe('computeFinalizeIn (finalize in the balance currency)', () => {
   it('equals computeFinalize when everything shares one currency', () => {
     const savings = [row('2026-04', 1000), row('2026-05', 500)]
@@ -351,6 +403,27 @@ describe('previewCurrencySwitch', () => {
     )
     expect(p.rows[0]!.from).toEqual({ amount: 110, currency: 'USD' })
     expect(p.rows[0]!.to.amount).toBeCloseTo(43000, 6)
+  })
+
+  it('with several accounts shows the total as today → after the switch', () => {
+    const p = previewCurrencySwitch(
+      source({ currency: 'EUR', accounts: [account('a', 1000), account('b', 43000, 'AMD')] }),
+      'AMD',
+      RATES,
+    )
+    expect(p.rows[0]!.key).toBe('balance')
+    expect(p.rows[0]!.from.currency).toBe('EUR')
+    expect(p.rows[0]!.from.amount).toBeCloseTo(1100, 9)
+    expect(p.rows[0]!.to.amount).toBeCloseTo(473000, 6)
+  })
+
+  it('a deleted extra account does not turn a single account into a total', () => {
+    const p = previewCurrencySwitch(
+      source({ currency: 'AMD', accounts: [account('a', 25000, 'AMD'), account('b', 9, 'EUR', { deletedAt: 'D' })] }),
+      'EUR',
+      RATES,
+    )
+    expect(p.rows[0]!.from).toEqual({ amount: 25000, currency: 'AMD' })
   })
 
   it('shows fixed expenses left and savings as today → after the switch', () => {

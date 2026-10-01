@@ -44,8 +44,7 @@ export const BalanceInDrams: Story = {
   decorators: [
     withState({
       currency: 'AMD',
-      bank: 25000,
-      bankCurrency: 'AMD',
+      accounts: [{ id: 'main', name: '', balance: 25000, currency: 'AMD' }],
       rates: RATES,
       categories: [
         { id: 'rent', name: 'Rent', budget: 120000, spent: 0, currency: 'AMD', done: false },
@@ -58,11 +57,11 @@ export const BalanceInDrams: Story = {
 /** No figures yet — a round sample amount illustrates the conversion. */
 export const NoData: Story = {
   args: { to: 'AMD' },
-  decorators: [withState({ currency: 'EUR', bank: 0, rates: RATES, categories: [], savings: [] })],
+  decorators: [withState({ currency: 'EUR', accounts: [{ id: 'main', name: '', balance: 0, currency: 'EUR' }], rates: RATES, categories: [], savings: [] })],
 }
 
 /** No cached rates — figures hidden, warning shown. */
 export const NoRates: Story = {
   args: { to: 'AMD' },
-  decorators: [withState({ currency: 'EUR', bank: 1500, bankCurrency: 'EUR', rates: null })],
+  decorators: [withState({ currency: 'EUR', accounts: [{ id: 'main', name: '', balance: 1500, currency: 'EUR' }], rates: null })],
 }

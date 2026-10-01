@@ -12,6 +12,8 @@ interface MathFieldProps {
   onChange: (next: string) => void
   /** Currency the amount is in — currency tokens convert into it (default: display). */
   currency?: string
+  /** Accessible name when there's no visible `label`. */
+  ariaLabel?: string
   fullWidth?: boolean
   alignRight?: boolean
   autoFocus?: boolean
@@ -25,6 +27,7 @@ export default function MathField({
   value,
   onChange,
   currency,
+  ariaLabel,
   fullWidth,
   alignRight,
   autoFocus,
@@ -55,6 +58,7 @@ export default function MathField({
       onChange={e => onChange(e.target.value)}
       onKeyDown={onKeyDown}
       aria-invalid={invalid || undefined}
+      aria-label={ariaLabel}
     />
   )
 }

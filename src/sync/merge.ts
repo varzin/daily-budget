@@ -1,9 +1,9 @@
-import type { BudgetState, BudgetMeta, Category, SavingsRow } from '../types'
+import type { Account, BudgetState, BudgetMeta, Category, SavingsRow } from '../types'
 
 /**
  * Per-entity merge for the Dropbox sync rework (CLAUDE.md §"Слияние по
  * сущностям"). Instead of "newest whole file wins", we take the newest version
- * of EACH independent entity (the two scalars, each category by id, each
+ * of EACH independent entity (each scalar, each account and category by id, each
  * savings row by id), so an edit on one device and an unrelated edit on another
  * both survive.
  *
@@ -21,9 +21,9 @@ import type { BudgetState, BudgetMeta, Category, SavingsRow } from '../types'
  */
 
 export interface Conflict {
-  kind: 'category' | 'savings'
+  kind: 'category' | 'savings' | 'account'
   id: string
-  loser: Category | SavingsRow
+  loser: Category | SavingsRow | Account
 }
 
 export interface MergeResult {
@@ -31,7 +31,7 @@ export interface MergeResult {
   conflicts: Conflict[]
 }
 
-type Entity = Category | SavingsRow
+type Entity = Category | SavingsRow | Account
 
 const time = (ts?: string | null): number => (ts ? Date.parse(ts) : 0)
 
@@ -100,9 +100,6 @@ function mergeScalars(
   remote: BudgetState,
 ): Pick<
   BudgetState,
-  | 'bank'
-  | 'bankExpr'
-  | 'bankCurrency'
   | 'incomeDay'
   | 'buffer'
   | 'bufferCurrency'
@@ -113,8 +110,8 @@ function mergeScalars(
   | 'rates'
   | 'meta'
 > {
-  // Generic over the field so it works for numeric scalars (bank/incomeDay/
-  // buffer), the string scalar (currency) and the boolean (resetSpentOnFinalize).
+  // Generic over the field so it works for numeric scalars (incomeDay/buffer),
+  // the string scalar (currency) and the boolean (resetSpentOnFinalize).
   const pick = <K extends keyof BudgetMeta>(
     field: K,
   ): { value: BudgetState[K]; ts: string | null; from: BudgetState } => {
@@ -125,7 +122,6 @@ function mergeScalars(
     const from = useRemote ? remote : local
     return { value: from[field], ts: from.meta?.[field] ?? null, from }
   }
-  const bank = pick('bank')
   const incomeDay = pick('incomeDay')
   const buffer = pick('buffer')
   const currency = pick('currency')
@@ -133,15 +129,10 @@ function mergeScalars(
   const resetSpentOnFinalize = pick('resetSpentOnFinalize')
   const rates = pick('rates')
   return {
-    bank: bank.value,
-    // The formula belongs to the balance, so it comes from whichever side won
-    // `bank` — never mixing one device's number with another's expression.
-    bankExpr: bank.from.bankExpr,
-    // Likewise each amount's currency tag comes from the side that won the
-    // amount itself — a number is never re-labelled by the other device.
-    bankCurrency: bank.from.bankCurrency,
     incomeDay: incomeDay.value,
     buffer: buffer.value,
+    // Each amount's currency tag comes from the side that won the amount
+    // itself — a number is never re-labelled by the other device.
     bufferCurrency: buffer.from.bufferCurrency,
     currency: currency.value,
     monthlyIncome: monthlyIncome.value,
@@ -149,7 +140,6 @@ function mergeScalars(
     resetSpentOnFinalize: resetSpentOnFinalize.value,
     rates: rates.value,
     meta: {
-      bank: bank.ts,
       incomeDay: incomeDay.ts,
       buffer: buffer.ts,
       currency: currency.ts,
@@ -173,6 +163,9 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
   }
 
   const conflicts: Conflict[] = []
+  // Accounts merge per entity like categories: the balance, its formula and its
+  // currency all live on the entity, so they always come from the same side.
+  const accounts = mergeCollection(local.accounts ?? [], remote.accounts ?? [], 'account', conflicts)
   const categories = mergeCollection(local.categories, remote.categories, 'category', conflicts)
   const savings = mergeCollection(local.savings, remote.savings, 'savings', conflicts)
   const scalars = mergeScalars(local, remote)
@@ -182,9 +175,7 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
 
   return {
     merged: {
-      bank: scalars.bank,
-      ...(scalars.bankExpr ? { bankExpr: scalars.bankExpr } : {}),
-      bankCurrency: scalars.bankCurrency,
+      accounts,
       incomeDay: scalars.incomeDay,
       buffer: scalars.buffer,
       bufferCurrency: scalars.bufferCurrency,
@@ -206,8 +197,7 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
 function isStamped(d: BudgetState): boolean {
   if (
     d.meta &&
-    (d.meta.bank ||
-      d.meta.incomeDay ||
+    (d.meta.incomeDay ||
       d.meta.buffer ||
       d.meta.currency ||
       d.meta.monthlyIncome ||
@@ -216,6 +206,7 @@ function isStamped(d: BudgetState): boolean {
   ) {
     return true
   }
+  if ((d.accounts ?? []).some((e) => e.updatedAt || e.deletedAt)) return true
   if (d.categories.some((e) => e.updatedAt || e.deletedAt)) return true
   if (d.savings.some((e) => e.updatedAt || e.deletedAt)) return true
   return false
@@ -231,11 +222,10 @@ export function sameDocument(a: BudgetState, b: BudgetState): boolean {
 }
 
 function docKey(d: BudgetState): string {
+  const accs = [...(d.accounts ?? [])].sort((x, y) => x.id.localeCompare(y.id)).map(canonical)
   const cats = [...d.categories].sort((x, y) => x.id.localeCompare(y.id)).map(canonical)
   const sav = [...d.savings].sort((x, y) => x.id.localeCompare(y.id)).map(canonical)
   return JSON.stringify({
-    bank: d.bank,
-    bankCurrency: d.bankCurrency ?? null,
     incomeDay: d.incomeDay,
     buffer: d.buffer,
     bufferCurrency: d.bufferCurrency ?? null,
@@ -245,7 +235,6 @@ function docKey(d: BudgetState): string {
     resetSpentOnFinalize: d.resetSpentOnFinalize,
     rates: d.rates ?? null,
     meta: {
-      bank: d.meta?.bank ?? null,
       incomeDay: d.meta?.incomeDay ?? null,
       buffer: d.meta?.buffer ?? null,
       currency: d.meta?.currency ?? null,
@@ -253,6 +242,7 @@ function docKey(d: BudgetState): string {
       resetSpentOnFinalize: d.meta?.resetSpentOnFinalize ?? null,
       rates: d.meta?.rates ?? null,
     },
+    accs,
     cats,
     sav,
   })
@@ -270,8 +260,12 @@ export function conflictDocument(base: BudgetState, conflicts: Conflict[]): Budg
   const savLosers = new Map(
     conflicts.filter((c) => c.kind === 'savings').map((c) => [c.id, c.loser as SavingsRow]),
   )
+  const accLosers = new Map(
+    conflicts.filter((c) => c.kind === 'account').map((c) => [c.id, c.loser as Account]),
+  )
   return {
     ...base,
+    accounts: base.accounts.map((a) => accLosers.get(a.id) ?? a),
     categories: base.categories.map((c) => catLosers.get(c.id) ?? c),
     savings: base.savings.map((r) => savLosers.get(r.id) ?? r),
   }

@@ -81,7 +81,8 @@ describe('migrateSavings', () => {
 describe('normalizeBudgetState', () => {
   it('fills defaults for an empty object', () => {
     const s = normalizeBudgetState({})
-    expect(s.bank).toBe(0)
+    // One empty account — there is always at least one.
+    expect(s.accounts).toEqual([{ id: 'main', name: '', balance: 0, currency: DEFAULT_CURRENCY }])
     expect(s.incomeDay).toBe(26)
     expect(s.buffer).toBe(DEFAULT_BUFFER)
     expect(s.currency).toBe(DEFAULT_CURRENCY)
@@ -89,7 +90,6 @@ describe('normalizeBudgetState', () => {
     expect(s.savings).toEqual([])
     expect(s.updatedAt).toBeNull()
     expect(s.meta).toEqual({
-      bank: null,
       incomeDay: null,
       buffer: null,
       currency: null,
@@ -100,8 +100,8 @@ describe('normalizeBudgetState', () => {
   })
 
   it('sanitizes meta timestamps to strings or null', () => {
-    const s = normalizeBudgetState({ meta: { bank: 42, incomeDay: T1 } as never })
-    expect(s.meta.bank).toBeNull()
+    const s = normalizeBudgetState({ meta: { buffer: 42, incomeDay: T1 } as never })
+    expect(s.meta.buffer).toBeNull()
     expect(s.meta.incomeDay).toBe(T1)
   })
 
@@ -119,11 +119,23 @@ describe('coerceBudgetState', () => {
     expect(() => coerceBudgetState('x')).toThrow()
     expect(() => coerceBudgetState(null)).toThrow()
     expect(() => coerceBudgetState({ foo: 1 })).toThrow()
+    // Neither a balance (legacy) nor accounts (current).
+    expect(() => coerceBudgetState({ categories: [], savings: [] })).toThrow()
+  })
+
+  it('accepts a current document with accounts and no legacy balance', () => {
+    const s = coerceBudgetState({
+      accounts: [{ id: 'a', name: 'Cash', balance: '50', currency: 'AMD' }],
+      categories: [],
+      savings: [],
+    })
+    expect(s.accounts).toEqual([{ id: 'a', name: 'Cash', balance: 50, currency: 'AMD' }])
   })
 
   it('accepts a minimal legacy document', () => {
     const s = coerceBudgetState({ bank: '100', categories: [], savings: [] })
-    expect(s.bank).toBe(100)
+    expect(s.accounts).toHaveLength(1)
+    expect(s.accounts[0]!.balance).toBe(100)
     expect(s.buffer).toBe(DEFAULT_BUFFER)
   })
 })

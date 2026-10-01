@@ -1,97 +1,16 @@
-import { useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { computeDaysLeft } from '../../lib/math'
-import { evaluateLenient, formatEvalResult, hasMathOps, hasCurrencyToken } from '../../lib/evalExpr'
-import { formatUpdatedAgo, isStale } from '../../lib/freshness'
-import { money } from '../../lib/currency'
-import { useRateResolver } from '../../lib/rates'
 import { pluralDays } from '../../lib/utils'
-import CurrencySelect from '../ui/CurrencySelect/CurrencySelect'
+import BalanceCard from './BalanceCard'
 import styles from './DashboardTab.module.css'
-
-/** The balance as text: the stored formula if there is one, else the number. */
-function bankText(bank: number, bankExpr?: string): string {
-  if (bankExpr) return bankExpr
-  return bank ? String(bank) : ''
-}
-
-/**
- * Current-balance input that accepts an arithmetic expression (e.g. "1200+30" —
- * a split across accounts), like the Budget/Spent fields. While focused you see
- * the whole formula, on blur the evaluated result (same as MathField). The
- * formula is persisted as `bankExpr` alongside the number, so it survives a
- * reload and syncs across devices — the point of a formula field is that it
- * stays editable. Uses the full keyboard on mobile because the decimal keypad
- * has no operators (same tradeoff as MathField, see CLAUDE.md).
- */
-function BankInput() {
-  const bank = useBudgetStore(s => s.bank)
-  const bankExpr = useBudgetStore(s => s.bankExpr)
-  // Formulas evaluate into the balance's own currency ("50 USD" in a EUR
-  // balance → euros), so the stored snapshot is always in `bankCurrency`.
-  const bankCurrency = useBudgetStore(s => s.bankCurrency)
-  const rate = useRateResolver(bankCurrency)
-  const [expr, setExpr] = useState<string>(() => bankText(bank, bankExpr))
-  const [focused, setFocused] = useState(false)
-
-  // Pull in changes that didn't come from this field (sync, import): if what's
-  // stored no longer matches what's typed, adopt the stored value. Our own
-  // commits write back the same text, so typing is never interrupted.
-  useEffect(() => {
-    // Keyed on the stored value only — an in-progress invalid formula doesn't
-    // commit, so this doesn't run and can't clobber what's being typed.
-    const stored = bankText(bank, bankExpr)
-    setExpr(cur => (cur.trim() === stored.trim() ? cur : stored))
-  }, [bank, bankExpr])
-
-  const result = evaluateLenient(expr, { rate })
-  const invalid = expr.trim() !== '' && !result.ok
-  const showResult = !focused && result.ok && (hasMathOps(expr) || hasCurrencyToken(expr))
-  const display = showResult ? formatEvalResult(result.value) : expr
-
-  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value
-    setExpr(raw)
-    // Original `js/state.js` stored a raw number; empty input → 0. Commit the
-    // rounded value live; leave the store untouched on a mid-typing garble.
-    const r = evaluateLenient(raw, { rate })
-    if (!r.ok) return
-    // Persist the raw text as a formula for any arithmetic OR currency entry, so
-    // "10 AMD" stays editable (and re-evaluates) instead of collapsing to the
-    // converted number — a plain number keeps living as just `bank`.
-    const keepExpr = hasMathOps(raw) || hasCurrencyToken(raw)
-    useBudgetStore
-      .getState()
-      .setBank(Math.round(r.value * 100) / 100, keepExpr ? raw.trim() : undefined)
-  }
-
-  return (
-    <input
-      type="text"
-      id="bank"
-      inputMode="text"
-      placeholder="0.00"
-      value={display}
-      aria-invalid={invalid || undefined}
-      onFocus={() => setFocused(true)}
-      onChange={onChange}
-      onBlur={() => setFocused(false)}
-    />
-  )
-}
 
 export default function Inputs() {
   const incomeDay = useBudgetStore(s => s.incomeDay)
-  const bankUpdatedAt = useBudgetStore(s => s.meta.bank)
-  const bankCurrency = useBudgetStore(s => s.bankCurrency)
 
   const day = Number(incomeDay)
   const showDaysLeft = day >= 1 && day <= 31
   const daysLeft = showDaysLeft ? computeDaysLeft(day) : 0
-
-  const updatedLabel = formatUpdatedAgo(bankUpdatedAt)
-  const stale = isStale(bankUpdatedAt)
 
   const onIncomeDayChange = (e: ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value
@@ -100,25 +19,7 @@ export default function Inputs() {
 
   return (
     <div className={styles.inputs}>
-      <div className={styles.field}>
-        <label htmlFor="bank">Current balance</label>
-        <div className={styles.fieldInput}>
-          <span className={styles.fieldPrefix} aria-hidden="true">{money(bankCurrency).symbol}</span>
-          <BankInput />
-          <CurrencySelect
-            variant="inline"
-            ariaLabel="Balance currency"
-            value={bankCurrency}
-            onChange={code => useBudgetStore.getState().setBankCurrency(code)}
-          />
-        </div>
-        {updatedLabel && (
-          <p className={`${styles.updated} ${stale ? styles.updatedStale : ''}`}>
-            {updatedLabel}
-            {stale && <span className={styles.updatedNudge}> · refresh your balance</span>}
-          </p>
-        )}
-      </div>
+      <BalanceCard />
       <div className={styles.field}>
         <label htmlFor="incomeDay">Next income day</label>
         <div className={styles.fieldInput}>

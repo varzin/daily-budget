@@ -41,7 +41,7 @@ describe('legacy migration', () => {
   it('tags every amount with the document’s own currency', () => {
     const s = normalizeBudgetState(legacy as unknown as Partial<BudgetState>)
     expect(s.currency).toBe('USD')
-    expect(s.bankCurrency).toBe('USD')
+    expect(s.accounts[0]!.currency).toBe('USD')
     expect(s.bufferCurrency).toBe('USD')
     expect(s.monthlyIncomeCurrency).toBe('USD')
     expect(s.categories[0]!.currency).toBe('USD')
@@ -51,7 +51,8 @@ describe('legacy migration', () => {
   it('is a pure shape migration — no timestamp changes', () => {
     const s = normalizeBudgetState(legacy as unknown as Partial<BudgetState>)
     expect(s.updatedAt).toBe(T0)
-    expect(s.meta.bank).toBe(T0)
+    expect(s.accounts[0]!.updatedAt).toBe(T0) // the old meta.bank
+    expect(s.meta.buffer).toBe(T0)
     expect(s.categories[0]!.updatedAt).toBe(T0)
     expect(s.savings[0]!.updatedAt).toBe(T0)
   })
@@ -65,7 +66,7 @@ describe('legacy migration', () => {
       categories: [{ ...legacy.categories[0]!, currency: 42 }] as never,
       savings: [{ ...legacy.savings[0]!, currency: 'GEL' }] as never,
     })
-    expect(s.bankCurrency).toBe('AMD')
+    expect(s.accounts[0]!.currency).toBe('AMD')
     expect(s.bufferCurrency).toBe('USD')
     expect(s.monthlyIncomeCurrency).toBe('EUR')
     expect(s.categories[0]!.currency).toBe('USD')
@@ -74,7 +75,7 @@ describe('legacy migration', () => {
 
   it('applies to an imported legacy export', () => {
     const s = coerceBudgetState(legacy)
-    expect(s.bankCurrency).toBe('USD')
+    expect(s.accounts[0]!.currency).toBe('USD')
     expect(s.categories[0]!.currency).toBe('USD')
   })
 
@@ -83,14 +84,14 @@ describe('legacy migration', () => {
     await useBudgetStore.persist.rehydrate()
     const s = useBudgetStore.getState()
     expect(s.currency).toBe('USD')
-    expect(s.bankCurrency).toBe('USD')
+    expect(s.accounts[0]!.currency).toBe('USD')
     expect(s.bufferCurrency).toBe('USD')
     expect(s.monthlyIncomeCurrency).toBe('USD')
     expect(s.categories[0]!.currency).toBe('USD')
     expect(s.savings[0]!.currency).toBe('USD')
     // Shape migration only — nothing looks like a new edit to the sync engine.
     expect(s.updatedAt).toBe(T0)
-    expect(s.meta.bank).toBe(T0)
+    expect(s.accounts[0]!.updatedAt).toBe(T0)
     expect(s.categories[0]!.updatedAt).toBe(T0)
     localStorage.clear()
   })
@@ -109,8 +110,10 @@ describe('legacy migration', () => {
 describe('setCurrency switches the display only', () => {
   beforeEach(() => {
     reset({
-      bank: 1500,
-      bankExpr: '1000+500',
+      accounts: [
+        { id: 'main', name: '', balance: 1500, balanceExpr: '1000+500', currency: 'EUR', updatedAt: T0 },
+        { id: 'cash', name: 'Cash', balance: 20000, currency: 'AMD', updatedAt: T0 },
+      ],
       buffer: 200,
       monthlyIncome: 3000,
       categories: [
@@ -139,54 +142,6 @@ describe('setCurrency switches the display only', () => {
     useBudgetStore.getState().setCurrency('EUR')
     const after = JSON.stringify({ ...selectBudgetState(useBudgetStore.getState()), updatedAt: null, meta: null })
     expect(after).toBe(before)
-  })
-})
-
-describe('setBankCurrency', () => {
-  beforeEach(() => reset({ rates: RATES }))
-
-  it('relabels a plain number without converting it', () => {
-    useBudgetStore.getState().setBank(1500)
-    useBudgetStore.getState().setBankCurrency('AMD')
-    const s = useBudgetStore.getState()
-    expect(s.bank).toBe(1500)
-    expect(s.bankCurrency).toBe('AMD')
-  })
-
-  it('re-evaluates a stored formula into the new currency', () => {
-    useBudgetStore.getState().setBank(40, '50 USD') // 50 USD = €40
-    useBudgetStore.getState().setBankCurrency('AMD')
-    const s = useBudgetStore.getState()
-    expect(s.bank).toBe(16000) // 50 USD = ֏16 000
-    expect(s.bankExpr).toBe('50 USD')
-  })
-
-  it('keeps the number when the formula can no longer be resolved', () => {
-    useBudgetStore.setState({ rates: null })
-    useBudgetStore.getState().setBank(40, '50 USD')
-    useBudgetStore.getState().setBankCurrency('AMD')
-    expect(useBudgetStore.getState().bank).toBe(40)
-    expect(useBudgetStore.getState().bankCurrency).toBe('AMD')
-  })
-
-  it('stamps meta.bank (the tag rides the balance timestamp)', () => {
-    useBudgetStore.setState({ meta: { ...defaultState.meta, bank: T0 } })
-    useBudgetStore.getState().setBankCurrency('AMD')
-    expect(useBudgetStore.getState().meta.bank).not.toBe(T0)
-  })
-
-  it('is a no-op for the same or a malformed currency', () => {
-    useBudgetStore.setState({ meta: { ...defaultState.meta, bank: T0 } })
-    useBudgetStore.getState().setBankCurrency('EUR')
-    useBudgetStore.getState().setBankCurrency('nope')
-    expect(useBudgetStore.getState().meta.bank).toBe(T0)
-    expect(useBudgetStore.getState().bankCurrency).toBe('EUR')
-  })
-
-  it('setBank keeps the current tag', () => {
-    useBudgetStore.getState().setBankCurrency('AMD')
-    useBudgetStore.getState().setBank(99)
-    expect(useBudgetStore.getState().bankCurrency).toBe('AMD')
   })
 })
 
@@ -245,20 +200,19 @@ describe('new entities default to the display currency', () => {
   })
 })
 
-describe('finalizeMonth in the balance currency', () => {
+describe('finalizeMonth in the display currency', () => {
   const month = (() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })()
 
-  it('converts the prior pool into the bank currency and tags the row with it', () => {
+  it('converts the prior pool into the display currency and tags the row with it', () => {
     reset({
-      currency: 'EUR', // display differs from the bank's currency
-      bankCurrency: 'AMD',
+      currency: 'AMD',
       rates: RATES,
       savings: [{ id: 'old', month: '2026-01', saved: 500, currency: 'EUR', updatedAt: T0 }],
     })
-    useBudgetStore.getState().finalizeMonth(1_000_000)
+    useBudgetStore.getState().finalizeMonth(1_000_000) // the display-currency total
     const row = useBudgetStore.getState().savings.find((r) => r.month === month)!
     expect(row.currency).toBe('AMD')
     expect(row.saved).toBe(800_000) // ֏1 000 000 − €500 (= ֏200 000)
@@ -266,7 +220,7 @@ describe('finalizeMonth in the balance currency', () => {
 
   it('re-tags an existing row for this month when overwriting it', () => {
     reset({
-      bankCurrency: 'USD',
+      currency: 'USD',
       rates: RATES,
       // The row being overwritten is not part of the prior pool.
       savings: [{ id: 'cur', month, saved: 99, currency: 'EUR', updatedAt: T0 }],

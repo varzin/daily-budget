@@ -22,7 +22,6 @@ beforeEach(async () => {
 })
 
 const meta = (p: Partial<BudgetState['meta']> = {}): BudgetState['meta'] => ({
-  bank: T0,
   incomeDay: T0,
   buffer: null,
   currency: null,
@@ -34,8 +33,7 @@ const meta = (p: Partial<BudgetState['meta']> = {}): BudgetState['meta'] => ({
 
 function base(p: Partial<BudgetState> = {}): BudgetState {
   return {
-    bank: 1500,
-    bankCurrency: 'EUR',
+    accounts: [{ id: 'main', name: '', balance: 1500, currency: 'EUR', updatedAt: T0 }],
     incomeDay: 26,
     buffer: 200,
     bufferCurrency: 'EUR',
@@ -84,12 +82,12 @@ describe('display-currency switch across devices', () => {
       expect(d.currency).toBe('AMD')
       // The edit survived, still denominated in euros — not re-labelled to drams.
       expect(d.categories[0]).toMatchObject({ budget: 650, currency: 'EUR' })
-      expect(d).toMatchObject({ bank: 1500, bankCurrency: 'EUR' })
+      expect(d.accounts[0]).toMatchObject({ balance: 1500, currency: 'EUR' })
       expect(d.savings[0]).toMatchObject({ saved: 300, currency: 'EUR' })
     }
   })
 
-  it('tags a pre-tag client’s document with its own currency and pushes the tags', async () => {
+  it('tags a pre-tag, pre-accounts document with its own currency and pushes accounts', async () => {
     device.store.setState(base({ currency: 'EUR' }))
     // A not-yet-updated client wrote the file: no tags, everything in USD, newer.
     dbx.setFile(
@@ -103,7 +101,7 @@ describe('display-currency switch across devices', () => {
         categories: [{ id: 'gym', name: 'Gym', budget: 40, spent: 0, done: false, updatedAt: T2 }],
         savings: [],
         updatedAt: T2,
-        meta: meta({ bank: T2, buffer: T2, currency: T2 }),
+        meta: { ...meta({ buffer: T2, currency: T2 }), bank: T2 },
       }),
     )
 
@@ -111,13 +109,17 @@ describe('display-currency switch across devices', () => {
 
     const s = device.store.getState()
     expect(s.currency).toBe('USD')
-    expect(s).toMatchObject({ bank: 900, bankCurrency: 'USD', buffer: 100, bufferCurrency: 'USD' })
+    expect(s.accounts).toEqual([{ id: 'main', name: '', balance: 900, currency: 'USD', updatedAt: T2 }])
+    expect(s).toMatchObject({ buffer: 100, bufferCurrency: 'USD' })
     expect(s.categories.find((c) => c.id === 'gym')!.currency).toBe('USD')
     // Local-only data keeps its own (EUR) tags.
     expect(s.categories.find((c) => c.id === 'rent')!.currency).toBe('EUR')
     // The tagged result went back up, so other devices stop guessing.
     const r = remote()
-    expect(r.bankCurrency).toBe('USD')
+    expect(r.accounts[0]).toMatchObject({ balance: 900, currency: 'USD' })
+    // No legacy balance in the pushed file: a pre-accounts client refuses it
+    // (a sync error) instead of rewriting it without the accounts.
+    expect('bank' in r).toBe(false)
     expect(r.categories.find((c) => c.id === 'gym')!.currency).toBe('USD')
   })
 })

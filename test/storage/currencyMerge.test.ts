@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import { mergeBudget, sameDocument } from '../../src/sync/merge'
 import { defaultState, normalizeBudgetState } from '../../src/store/persist'
-import type { BudgetState, Category } from '../../src/types'
+import type { Account, BudgetState, Category } from '../../src/types'
 
 const T0 = '2026-07-01T00:00:00.000Z'
 const T1 = '2026-07-02T00:00:00.000Z'
@@ -20,9 +20,17 @@ function doc(p: Partial<BudgetState> = {}): BudgetState {
     savings: [],
     updatedAt: T0,
     ...p,
-    meta: { ...defaultState.meta, bank: T0, incomeDay: T0, ...p.meta },
+    meta: { ...defaultState.meta, incomeDay: T0, ...p.meta },
   }
 }
+
+const account = (p: Partial<Account> = {}): Account => ({
+  id: 'main',
+  name: '',
+  balance: 0,
+  currency: 'EUR',
+  ...p,
+})
 
 const cat = (p: Partial<Category> = {}): Category => ({
   id: 'rent',
@@ -36,28 +44,26 @@ const cat = (p: Partial<Category> = {}): Category => ({
 })
 
 describe('scalar tags ride their amount’s timestamp', () => {
-  it('bankCurrency comes from the side that won bank', () => {
-    const local = doc({ bank: 1500, bankCurrency: 'EUR', meta: { ...defaultState.meta, bank: T1 } })
-    const remote = doc({ bank: 600000, bankCurrency: 'AMD', meta: { ...defaultState.meta, bank: T2 } })
-    const { merged } = mergeBudget(local, remote)
-    expect(merged).toMatchObject({ bank: 600000, bankCurrency: 'AMD' })
+  it('an account’s currency comes with the side that won the account', () => {
+    const local = doc({ accounts: [account({ balance: 1500, currency: 'EUR', updatedAt: T1 })] })
+    const remote = doc({ accounts: [account({ balance: 600000, currency: 'AMD', updatedAt: T2 })] })
+    expect(mergeBudget(local, remote).merged.accounts[0]).toMatchObject({ balance: 600000, currency: 'AMD' })
     // …and the other way round: an older remote never re-labels a newer local balance.
-    const back = mergeBudget(remote, { ...local, meta: { ...local.meta, bank: T0 } }).merged
-    expect(back).toMatchObject({ bank: 600000, bankCurrency: 'AMD' })
+    const older = doc({ accounts: [account({ balance: 1500, currency: 'EUR', updatedAt: T0 })] })
+    expect(mergeBudget(remote, older).merged.accounts[0]).toMatchObject({ balance: 600000, currency: 'AMD' })
   })
 
   it('a newer display-currency switch does not drag the other side’s amounts', () => {
     // Local switched display to AMD late; remote re-entered the balance earlier, in EUR.
     const local = doc({
       currency: 'AMD',
-      bank: 1000,
-      bankCurrency: 'EUR',
-      meta: { ...defaultState.meta, currency: T2, bank: T0 },
+      accounts: [account({ balance: 1000, updatedAt: T0 })],
+      meta: { ...defaultState.meta, currency: T2 },
     })
-    const remote = doc({ bank: 2000, bankCurrency: 'EUR', meta: { ...defaultState.meta, bank: T1 } })
+    const remote = doc({ accounts: [account({ balance: 2000, updatedAt: T1 })] })
     const { merged } = mergeBudget(local, remote)
     expect(merged.currency).toBe('AMD')
-    expect(merged).toMatchObject({ bank: 2000, bankCurrency: 'EUR' })
+    expect(merged.accounts[0]).toMatchObject({ balance: 2000, currency: 'EUR' })
   })
 
   it('bufferCurrency / monthlyIncomeCurrency come from their amount’s winner', () => {
@@ -107,9 +113,9 @@ describe('entity tags are part of the entity content', () => {
 
 describe('sameDocument sees the tags', () => {
   it('treats a tag-only difference as a change worth pushing', () => {
-    const a = doc({ bankCurrency: 'EUR' })
-    expect(sameDocument(a, doc({ bankCurrency: 'EUR' }))).toBe(true)
-    expect(sameDocument(a, doc({ bankCurrency: 'AMD' }))).toBe(false)
+    const a = doc({ accounts: [account()] })
+    expect(sameDocument(a, doc({ accounts: [account()] }))).toBe(true)
+    expect(sameDocument(a, doc({ accounts: [account({ currency: 'AMD' })] }))).toBe(false)
     expect(sameDocument(a, doc({ bufferCurrency: 'AMD' }))).toBe(false)
     expect(sameDocument(a, doc({ monthlyIncomeCurrency: 'AMD' }))).toBe(false)
     expect(sameDocument(doc({ categories: [cat()] }), doc({ categories: [cat({ currency: 'AMD' })] }))).toBe(false)
@@ -125,9 +131,9 @@ describe('a remote written by a pre-tag client', () => {
       categories: [{ id: 'gym', name: 'Gym', budget: 40, spent: 0, done: false, updatedAt: T2 }],
       meta: { ...defaultState.meta, bank: T2 },
     } as unknown as Partial<BudgetState>)
-    const local = doc({ currency: 'AMD', meta: { ...defaultState.meta, bank: T0 } })
+    const local = doc({ currency: 'AMD', accounts: [account({ updatedAt: T0 })] })
     const { merged } = mergeBudget(local, remote)
-    expect(merged).toMatchObject({ bank: 900, bankCurrency: 'USD' })
+    expect(merged.accounts[0]).toMatchObject({ id: 'main', balance: 900, currency: 'USD' })
     expect(merged.categories.find((c) => c.id === 'gym')!.currency).toBe('USD')
   })
 })

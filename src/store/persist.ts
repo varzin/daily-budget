@@ -1,4 +1,4 @@
-import type { BudgetMeta, BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
+import type { Account, BudgetMeta, BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
 import { normalizeMonth, uid } from '../lib/utils'
 import { coerceCurrency, coerceCurrencyTag, DEFAULT_CURRENCY } from '../lib/currency'
 
@@ -11,9 +11,16 @@ export const DEFAULT_BUFFER = 200
 /** Finalize resets the fixed-expense Spent by default — the common housekeeping. */
 export const DEFAULT_RESET_SPENT_ON_FINALIZE = true
 
+/**
+ * The id of the account the legacy single balance becomes — and of a fresh
+ * install's first account. It MUST be deterministic: two devices migrating the
+ * same legacy balance independently then produce the same entity, which merges
+ * cleanly, instead of two accounts that would double the balance.
+ */
+export const MAIN_ACCOUNT_ID = 'main'
+
 export const defaultState: BudgetState = {
-  bank: 0,
-  bankCurrency: DEFAULT_CURRENCY,
+  accounts: [{ id: MAIN_ACCOUNT_ID, name: '', balance: 0, currency: DEFAULT_CURRENCY }],
   incomeDay: 26,
   buffer: DEFAULT_BUFFER,
   bufferCurrency: DEFAULT_CURRENCY,
@@ -26,7 +33,6 @@ export const defaultState: BudgetState = {
   savings: [],
   updatedAt: null,
   meta: {
-    bank: null,
     incomeDay: null,
     buffer: null,
     currency: null,
@@ -39,9 +45,7 @@ export const defaultState: BudgetState = {
 /** The synced/persisted data slice of the store — no action functions. */
 export function selectBudgetState(s: BudgetState): BudgetState {
   return {
-    bank: s.bank,
-    ...(s.bankExpr ? { bankExpr: s.bankExpr } : {}),
-    bankCurrency: s.bankCurrency,
+    accounts: s.accounts,
     incomeDay: s.incomeDay,
     buffer: s.buffer,
     bufferCurrency: s.bufferCurrency,
@@ -143,12 +147,65 @@ export function migrateCategories(
   return out
 }
 
+/** The pre-accounts single balance, as found on legacy documents. */
+interface LegacyBalance {
+  bank?: unknown
+  bankExpr?: unknown
+  bankCurrency?: unknown
+  meta?: { bank?: unknown } | null
+}
+
+/**
+ * Sanitize accounts from untrusted sources, or migrate the legacy single
+ * balance into one. A document with an `accounts` array is taken as is (even an
+ * empty one — two devices may each have deleted a different account); one
+ * without (pre-accounts) gets a single MAIN_ACCOUNT_ID account carrying the old
+ * `bank` / `bankExpr` / `bankCurrency` and stamped with the old `meta.bank`, so
+ * the migration is deterministic and keeps the balance's sync timestamp.
+ */
+export function migrateAccounts(
+  input: Partial<BudgetState> & LegacyBalance,
+  fallbackCurrency: string = DEFAULT_CURRENCY,
+): Account[] {
+  if (Array.isArray(input.accounts)) {
+    const out: Account[] = []
+    for (const row of input.accounts as unknown[]) {
+      if (!row || typeof row !== 'object') continue
+      const r = row as Partial<Account>
+      const item: Account = {
+        id: optionalString(r.id) ?? uid(),
+        name: typeof r.name === 'string' ? r.name : '',
+        balance: finiteNumber(r.balance),
+        currency: coerceCurrencyTag(r.currency, fallbackCurrency),
+      }
+      const balanceExpr = optionalString(r.balanceExpr)
+      const updatedAt = optionalString(r.updatedAt)
+      const deletedAt = optionalString(r.deletedAt)
+      if (balanceExpr) item.balanceExpr = balanceExpr
+      if (updatedAt) item.updatedAt = updatedAt
+      if (deletedAt) item.deletedAt = deletedAt
+      out.push(item)
+    }
+    return out
+  }
+  const legacy: Account = {
+    id: MAIN_ACCOUNT_ID,
+    name: '',
+    balance: finiteNumber(input.bank),
+    currency: coerceCurrencyTag(input.bankCurrency, fallbackCurrency),
+  }
+  const balanceExpr = optionalString(input.bankExpr)
+  const updatedAt = optionalString(input.meta?.bank)
+  if (balanceExpr) legacy.balanceExpr = balanceExpr
+  if (updatedAt) legacy.updatedAt = updatedAt
+  return [legacy]
+}
+
 function coerceMeta(meta: unknown): BudgetMeta {
   const m = (meta && typeof meta === 'object' ? meta : {}) as Partial<
     Record<keyof BudgetMeta, unknown>
   >
   return {
-    bank: stringOrNull(m.bank),
     incomeDay: stringOrNull(m.incomeDay),
     buffer: stringOrNull(m.buffer),
     currency: stringOrNull(m.currency),
@@ -166,15 +223,13 @@ function coerceMeta(meta: unknown): BudgetMeta {
  * Currency tags: every amount comes out tagged. A document written before
  * per-amount currencies has none, and in it every amount was implicitly in the
  * document's own `currency` — so that is what a missing tag is filled with.
- * This is a pure shape migration: no timestamp is bumped.
+ * A pre-accounts document's single balance becomes one account (migrateAccounts).
+ * Both are pure shape migrations: no timestamp is bumped.
  */
-export function normalizeBudgetState(input: Partial<BudgetState>): BudgetState {
-  const bankExpr = optionalString(input.bankExpr)
+export function normalizeBudgetState(input: Partial<BudgetState> & LegacyBalance): BudgetState {
   const currency = coerceCurrency(input.currency)
   return {
-    bank: finiteNumber(input.bank),
-    ...(bankExpr ? { bankExpr } : {}),
-    bankCurrency: coerceCurrencyTag(input.bankCurrency, currency),
+    accounts: migrateAccounts(input, currency),
     incomeDay: finiteNumber(input.incomeDay) || defaultState.incomeDay,
     buffer: coerceBuffer(input.buffer),
     bufferCurrency: coerceCurrencyTag(input.bufferCurrency, currency),
@@ -199,8 +254,9 @@ export function coerceBudgetState(input: unknown): BudgetState {
   if (!input || typeof input !== 'object') {
     throw new Error('File is not a valid budget export')
   }
-  const o = input as Partial<BudgetState>
-  if (!('bank' in o) || !('categories' in o) || !('savings' in o)) {
+  const o = input as Partial<BudgetState> & LegacyBalance
+  // `accounts` for current documents, `bank` for pre-accounts ones.
+  if (!('accounts' in o || 'bank' in o) || !('categories' in o) || !('savings' in o)) {
     throw new Error('File is missing required fields')
   }
   return normalizeBudgetState(o)

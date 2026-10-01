@@ -127,8 +127,11 @@ describe('computeDashboard — mixed currencies via projectToDisplay', () => {
   // The EUR scenario above, with every amount stored in a different currency.
   const mixed = {
     currency: 'EUR',
-    bank: 1_200_000, // ֏ → €3000
-    bankCurrency: 'AMD',
+    // ֏800 000 (= €2000) + $1250 (= €1000) → €3000 across two accounts.
+    accounts: [
+      { id: 'card', name: 'Card', balance: 800_000, currency: 'AMD' },
+      { id: 'cash', name: 'Cash', balance: 1250, currency: 'USD' },
+    ],
     buffer: 250, // $ → €200
     bufferCurrency: 'USD',
     monthlyIncome: 2500,

@@ -54,13 +54,13 @@ describe('buffer scalar merge', () => {
     expect(mergeBudget(local, remote).merged.buffer).toBe(500)
   })
 
-  it('merges buffer independently of bank', () => {
-    // Local has the newer bank, remote has the newer buffer — each field wins
-    // on its own timestamp.
-    const local = doc({ bank: 999, buffer: 200, meta: { bank: T2, incomeDay: null, buffer: T0 } })
-    const remote = doc({ bank: 1, buffer: 500, meta: { bank: T0, incomeDay: null, buffer: T2 } })
+  it('merges buffer independently of another scalar', () => {
+    // Local has the newer income day, remote has the newer buffer — each field
+    // wins on its own timestamp.
+    const local = doc({ incomeDay: 10, buffer: 200, meta: { incomeDay: T2, buffer: T0 } as never })
+    const remote = doc({ incomeDay: 20, buffer: 500, meta: { incomeDay: T0, buffer: T2 } as never })
     const { merged } = mergeBudget(local, remote)
-    expect(merged.bank).toBe(999)
+    expect(merged.incomeDay).toBe(10)
     expect(merged.buffer).toBe(500)
   })
 })

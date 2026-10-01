@@ -10,8 +10,7 @@ import { projectToDisplay, thresholdScale, type DisplayBudget } from './convert'
  */
 export function useDisplayBudget(): DisplayBudget {
   const currency = useBudgetStore((s) => s.currency)
-  const bank = useBudgetStore((s) => s.bank)
-  const bankCurrency = useBudgetStore((s) => s.bankCurrency)
+  const accounts = useBudgetStore((s) => s.accounts)
   const buffer = useBudgetStore((s) => s.buffer)
   const bufferCurrency = useBudgetStore((s) => s.bufferCurrency)
   const monthlyIncome = useBudgetStore((s) => s.monthlyIncome)
@@ -24,8 +23,7 @@ export function useDisplayBudget(): DisplayBudget {
       projectToDisplay(
         {
           currency,
-          bank,
-          bankCurrency,
+          accounts,
           buffer,
           bufferCurrency,
           monthlyIncome,
@@ -37,8 +35,7 @@ export function useDisplayBudget(): DisplayBudget {
       ),
     [
       currency,
-      bank,
-      bankCurrency,
+      accounts,
       buffer,
       bufferCurrency,
       monthlyIncome,
