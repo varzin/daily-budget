@@ -102,10 +102,13 @@ function mergeScalars(
   BudgetState,
   | 'bank'
   | 'bankExpr'
+  | 'bankCurrency'
   | 'incomeDay'
   | 'buffer'
+  | 'bufferCurrency'
   | 'currency'
   | 'monthlyIncome'
+  | 'monthlyIncomeCurrency'
   | 'resetSpentOnFinalize'
   | 'rates'
   | 'meta'
@@ -134,10 +137,15 @@ function mergeScalars(
     // The formula belongs to the balance, so it comes from whichever side won
     // `bank` — never mixing one device's number with another's expression.
     bankExpr: bank.from.bankExpr,
+    // Likewise each amount's currency tag comes from the side that won the
+    // amount itself — a number is never re-labelled by the other device.
+    bankCurrency: bank.from.bankCurrency,
     incomeDay: incomeDay.value,
     buffer: buffer.value,
+    bufferCurrency: buffer.from.bufferCurrency,
     currency: currency.value,
     monthlyIncome: monthlyIncome.value,
+    monthlyIncomeCurrency: monthlyIncome.from.monthlyIncomeCurrency,
     resetSpentOnFinalize: resetSpentOnFinalize.value,
     rates: rates.value,
     meta: {
@@ -176,10 +184,13 @@ export function mergeBudget(local: BudgetState, remote: BudgetState): MergeResul
     merged: {
       bank: scalars.bank,
       ...(scalars.bankExpr ? { bankExpr: scalars.bankExpr } : {}),
+      bankCurrency: scalars.bankCurrency,
       incomeDay: scalars.incomeDay,
       buffer: scalars.buffer,
+      bufferCurrency: scalars.bufferCurrency,
       currency: scalars.currency,
       monthlyIncome: scalars.monthlyIncome,
+      monthlyIncomeCurrency: scalars.monthlyIncomeCurrency,
       resetSpentOnFinalize: scalars.resetSpentOnFinalize,
       rates: scalars.rates,
       categories,
@@ -224,10 +235,13 @@ function docKey(d: BudgetState): string {
   const sav = [...d.savings].sort((x, y) => x.id.localeCompare(y.id)).map(canonical)
   return JSON.stringify({
     bank: d.bank,
+    bankCurrency: d.bankCurrency ?? null,
     incomeDay: d.incomeDay,
     buffer: d.buffer,
+    bufferCurrency: d.bufferCurrency ?? null,
     currency: d.currency,
     monthlyIncome: d.monthlyIncome,
+    monthlyIncomeCurrency: d.monthlyIncomeCurrency ?? null,
     resetSpentOnFinalize: d.resetSpentOnFinalize,
     rates: d.rates ?? null,
     meta: {

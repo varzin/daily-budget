@@ -1,11 +1,11 @@
 import type { BudgetMeta, BudgetState, Category, ExchangeRates, SavingsRow } from '../types'
 import { normalizeMonth, uid } from '../lib/utils'
-import { coerceCurrency, DEFAULT_CURRENCY } from '../lib/currency'
+import { coerceCurrency, coerceCurrencyTag, DEFAULT_CURRENCY } from '../lib/currency'
 
 // Same key the vanilla app used — existing users' data is preserved.
 export const STORAGE_KEY = 'budget_app_v1'
 
-/** Default green-zone cushion (€) when the user hasn't customized it. */
+/** Default green-zone cushion when the user hasn't customized it (in the default currency). */
 export const DEFAULT_BUFFER = 200
 
 /** Finalize resets the fixed-expense Spent by default — the common housekeeping. */
@@ -13,10 +13,13 @@ export const DEFAULT_RESET_SPENT_ON_FINALIZE = true
 
 export const defaultState: BudgetState = {
   bank: 0,
+  bankCurrency: DEFAULT_CURRENCY,
   incomeDay: 26,
   buffer: DEFAULT_BUFFER,
+  bufferCurrency: DEFAULT_CURRENCY,
   currency: DEFAULT_CURRENCY,
   monthlyIncome: 0,
+  monthlyIncomeCurrency: DEFAULT_CURRENCY,
   resetSpentOnFinalize: DEFAULT_RESET_SPENT_ON_FINALIZE,
   rates: null,
   categories: [],
@@ -38,10 +41,13 @@ export function selectBudgetState(s: BudgetState): BudgetState {
   return {
     bank: s.bank,
     ...(s.bankExpr ? { bankExpr: s.bankExpr } : {}),
+    bankCurrency: s.bankCurrency,
     incomeDay: s.incomeDay,
     buffer: s.buffer,
+    bufferCurrency: s.bufferCurrency,
     currency: s.currency,
     monthlyIncome: s.monthlyIncome,
+    monthlyIncomeCurrency: s.monthlyIncomeCurrency,
     resetSpentOnFinalize: s.resetSpentOnFinalize,
     rates: s.rates,
     categories: s.categories,
@@ -69,9 +75,14 @@ function stringOrNull(value: unknown): string | null {
  *  - drop the legacy derived `bank` field (computed on the fly now)
  *  - convert legacy "MM.YYYY" months → ISO "YYYY-MM"
  *  - coerce types (non-finite `saved` → 0, missing id → generated)
+ *  - tag the currency, `fallbackCurrency` when absent (the document's own
+ *    currency for legacy rows — see coerceCurrencyTag)
  *  - preserve per-entity sync metadata (updatedAt / deletedAt tombstone)
  */
-export function migrateSavings(savings: unknown): SavingsRow[] {
+export function migrateSavings(
+  savings: unknown,
+  fallbackCurrency: string = DEFAULT_CURRENCY,
+): SavingsRow[] {
   if (!Array.isArray(savings)) return []
   const out: SavingsRow[] = []
   for (const row of savings) {
@@ -81,6 +92,7 @@ export function migrateSavings(savings: unknown): SavingsRow[] {
       id: optionalString(r.id) ?? uid(),
       month: normalizeMonth(String(r.month ?? '')),
       saved: finiteNumber(r.saved),
+      currency: coerceCurrencyTag(r.currency, fallbackCurrency),
     }
     const updatedAt = optionalString(r.updatedAt)
     const deletedAt = optionalString(r.deletedAt)
@@ -95,9 +107,13 @@ export function migrateSavings(savings: unknown): SavingsRow[] {
  * Sanitize categories from untrusted sources (import file, remote pull).
  * Guarantees every field has the right type so malformed data can never reach
  * the store, the UI or the merge logic. Malformed entries are dropped rather
- * than guessed at; a missing id gets a generated one.
+ * than guessed at; a missing id gets a generated one. A missing currency tag
+ * takes `fallbackCurrency` (the document's own currency for legacy data).
  */
-export function migrateCategories(categories: unknown): Category[] {
+export function migrateCategories(
+  categories: unknown,
+  fallbackCurrency: string = DEFAULT_CURRENCY,
+): Category[] {
   if (!Array.isArray(categories)) return []
   const out: Category[] = []
   for (const row of categories) {
@@ -108,6 +124,7 @@ export function migrateCategories(categories: unknown): Category[] {
       name: typeof r.name === 'string' ? r.name : '',
       budget: finiteNumber(r.budget),
       spent: finiteNumber(r.spent),
+      currency: coerceCurrencyTag(r.currency, fallbackCurrency),
       done: Boolean(r.done),
     }
     const budgetExpr = optionalString(r.budgetExpr)
@@ -144,21 +161,30 @@ function coerceMeta(meta: unknown): BudgetMeta {
 /**
  * Shape an arbitrary partial document into a fully-typed BudgetState, filling
  * defaults and sanitizing every entity. Never throws — the single normalization
- * path for imports, remote pulls and replaceState.
+ * path for imports, remote pulls, replaceState and localStorage rehydrate.
+ *
+ * Currency tags: every amount comes out tagged. A document written before
+ * per-amount currencies has none, and in it every amount was implicitly in the
+ * document's own `currency` — so that is what a missing tag is filled with.
+ * This is a pure shape migration: no timestamp is bumped.
  */
 export function normalizeBudgetState(input: Partial<BudgetState>): BudgetState {
   const bankExpr = optionalString(input.bankExpr)
+  const currency = coerceCurrency(input.currency)
   return {
     bank: finiteNumber(input.bank),
     ...(bankExpr ? { bankExpr } : {}),
+    bankCurrency: coerceCurrencyTag(input.bankCurrency, currency),
     incomeDay: finiteNumber(input.incomeDay) || defaultState.incomeDay,
     buffer: coerceBuffer(input.buffer),
-    currency: coerceCurrency(input.currency),
+    bufferCurrency: coerceCurrencyTag(input.bufferCurrency, currency),
+    currency,
     monthlyIncome: coerceMonthlyIncome(input.monthlyIncome),
+    monthlyIncomeCurrency: coerceCurrencyTag(input.monthlyIncomeCurrency, currency),
     resetSpentOnFinalize: coerceResetSpentOnFinalize(input.resetSpentOnFinalize),
     rates: coerceRates(input.rates),
-    categories: migrateCategories(input.categories),
-    savings: migrateSavings(input.savings),
+    categories: migrateCategories(input.categories, currency),
+    savings: migrateSavings(input.savings, currency),
     updatedAt: stringOrNull(input.updatedAt),
     meta: coerceMeta(input.meta),
   }

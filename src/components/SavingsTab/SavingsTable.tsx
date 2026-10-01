@@ -2,21 +2,25 @@ import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { showToast } from '../../store/toastStore'
-import { computeBalances, savedIndicator } from '../../lib/math'
-import type { SavedIndicator } from '../../lib/math'
+import { computeBalances, savedIndicator, savedThresholds } from '../../lib/math'
+import type { SavedIndicator, SavedThresholds } from '../../lib/math'
 import { live } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
+import { money as moneyFor, type Money } from '../../lib/currency'
+import { useDisplayBudget, useThresholdScale } from '../../lib/useDisplayBudget'
 import styles from './SavingsTable.module.css'
 
-// Tier boundaries are absolute amounts in the user's currency (see savedIndicator).
+// Tier boundaries are absolute amounts, calibrated in EUR and scaled into the
+// display currency (see savedThresholds / thresholdScale).
 const INDICATOR_TIERS: SavedIndicator[] = ['blue', 'green', 'yellow', 'red']
 
-const tierLabel = (tier: SavedIndicator, symbol: string): string => {
+const tierLabel = (tier: SavedIndicator, th: SavedThresholds, money: Money): string => {
+  const amt = (n: number) => `${money.symbol}${money.fmtAmount(n)}`
   switch (tier) {
-    case 'blue':   return `${symbol}500+`
-    case 'green':  return `${symbol}200+`
-    case 'yellow': return `${symbol}1+`
-    case 'red':    return `< ${symbol}1`
+    case 'blue':   return `${amt(th.blue)}+`
+    case 'green':  return `${amt(th.green)}+`
+    case 'yellow': return `${amt(th.yellow)}+`
+    case 'red':    return `< ${amt(th.yellow)}`
   }
 }
 
@@ -89,7 +93,15 @@ function SavedInput({
   )
 }
 
-function IndicatorCell({ tier, symbol }: { tier: SavedIndicator; symbol: string }) {
+function IndicatorCell({
+  tier,
+  thresholds,
+  money,
+}: {
+  tier: SavedIndicator
+  thresholds: SavedThresholds
+  money: Money
+}) {
   return (
     <span className={styles.indicatorWrap} tabIndex={0}>
       <span className={`${styles.indicator} ${indClassFor(tier)}`} />
@@ -97,7 +109,7 @@ function IndicatorCell({ tier, symbol }: { tier: SavedIndicator; symbol: string 
         {INDICATOR_TIERS.map(t => (
           <span key={t} className={styles.legendRow}>
             <span className={`${styles.indicator} ${indClassFor(t)}`} />
-            {tierLabel(t, symbol)}
+            {tierLabel(t, thresholds, money)}
           </span>
         ))}
       </span>
@@ -108,7 +120,13 @@ function IndicatorCell({ tier, symbol }: { tier: SavedIndicator; symbol: string 
 export default function SavingsTable() {
   const allSavings = useBudgetStore(s => s.savings)
   const savings = useMemo(() => live(allSavings), [allSavings])
-  const balances = useMemo(() => computeBalances(savings), [savings])
+  // "Balance at end" and the tiers read the rows converted into the display
+  // currency; the editable "Saved this month" stays in each row's own one.
+  const display = useDisplayBudget()
+  const displaySavings = useMemo(() => live(display.savings), [display.savings])
+  const balances = useMemo(() => computeBalances(displaySavings), [displaySavings])
+  const scale = useThresholdScale()
+  const thresholds = useMemo(() => savedThresholds(scale), [scale])
   const money = useMoney()
 
   if (savings.length === 0) {
@@ -164,12 +182,13 @@ export default function SavingsTable() {
       </thead>
       <tbody>
         {savings.map((row, i) => {
-          const tier = savedIndicator(row.saved)
+          const tier = savedIndicator(displaySavings[i]?.saved ?? row.saved, thresholds)
           const balance = balances[i] ?? 0
+          const foreign = row.currency !== money.code
           return (
             <tr key={row.id}>
               <td>
-                <IndicatorCell tier={tier} symbol={money.symbol} />
+                <IndicatorCell tier={tier} thresholds={thresholds} money={money} />
               </td>
               <td>
                 <input
@@ -180,6 +199,11 @@ export default function SavingsTable() {
                 />
               </td>
               <td>
+                {foreign && (
+                  <span className={styles.rowCurrency} title={row.currency}>
+                    {moneyFor(row.currency).symbol}
+                  </span>
+                )}
                 <SavedInput
                   className={styles.savingsInput}
                   value={row.saved}

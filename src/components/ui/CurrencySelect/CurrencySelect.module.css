@@ -1,0 +1,112 @@
+/* Field variant — mirrors the TextField label/control language. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.selectWrap {
+  position: relative;
+  display: flex;
+}
+.select {
+  appearance: none;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 36px 10px 12px; /* room for the chevron */
+  font-family: var(--body);
+  font-size: 15px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* The chevron shared by `field` and `box` — decorative, clicks pass through. */
+.chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+/* Box variant — the field's box, showing only the symbol (or the code). */
+.box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 36px 10px 12px;
+  transition: border-color 0.15s;
+}
+.box:focus-within {
+  border-color: var(--accent);
+}
+.boxFace {
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: normal;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Inline variant — bare code + caret, for the borderless balance field. */
+.inline {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+.inline:focus-within {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.caret {
+  margin-left: 3px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+/* The native select laid invisibly over a custom face (`box` / `inline`). */
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px; /* no iOS focus zoom */
+}
+
+@media (pointer: coarse) {
+  .inline,
+  .box {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+  }
+}

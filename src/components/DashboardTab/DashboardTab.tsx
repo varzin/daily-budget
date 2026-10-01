@@ -2,13 +2,7 @@ import { useMemo, useState } from 'react'
 import { HelpCircle } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import {
-  obligatoryTotal,
-  plannedObligatoryTotal,
-  reservedSavingsPool,
-  computeDaysLeft,
-  computeCycleLength,
-  computeSituation,
-  computePace,
+  computeDashboard,
   availableWidgetModes,
   WIDGET_MODES,
   type Situation,
@@ -16,6 +10,7 @@ import {
 } from '../../lib/math'
 import { pluralDays } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
+import { useDisplayBudget } from '../../lib/useDisplayBudget'
 import type { Money } from '../../lib/currency'
 import Modal from '../ui/Modal/Modal'
 import Segmented from '../ui/Segmented/Segmented'
@@ -109,12 +104,10 @@ function deficitProps(s: Situation, daysLeft: number, money: Money): CardProps {
 }
 
 export default function DashboardTab() {
-  const bank = useBudgetStore(s => s.bank)
   const incomeDay = useBudgetStore(s => s.incomeDay)
-  const buffer = useBudgetStore(s => s.buffer)
-  const monthlyIncome = useBudgetStore(s => s.monthlyIncome)
-  const categories = useBudgetStore(s => s.categories)
-  const savings = useBudgetStore(s => s.savings)
+  // Every amount converted into the display currency at today's rate; the
+  // maths below runs on plain single-currency numbers (lib/convert.ts).
+  const display = useDisplayBudget()
   const money = useMoney()
   const [helpItem, setHelpItem] = useState<BreakdownItem | null>(null)
   // The user's explicit tab pick; null = follow the situation. When the pick
@@ -122,45 +115,18 @@ export default function DashboardTab() {
   // available mode instead of clearing it, so it re-applies if money returns.
   const [modeChoice, setModeChoice] = useState<WidgetMode | null>(null)
 
-  const m = useMemo(() => {
-    const b = Number(bank) || 0
-    const oblig = obligatoryTotal(categories)
-    const savingsPool = reservedSavingsPool(savings)
-    const daysLeft = computeDaysLeft(Number(incomeDay))
-    const perDay = (available: number) => (daysLeft > 0 ? available / daysLeft : 0)
-
-    // Pace is measured against the selected tab's goal, i.e. the free balance
-    // it aims to land on by the next income day: savings + cushion (grow),
-    // savings (keep), or zero — savings spent too (spend). computePace's
-    // buffer term is exactly `target − savingsPool`, so the three goals map to
-    // buffer / 0 / −savingsPool.
-    const paceArgs = {
-      bank: b,
-      oblig,
-      plannedOblig: plannedObligatoryTotal(categories),
-      savingsPool,
-      monthlyIncome,
-      daysLeft,
-      cycleDays: computeCycleLength(Number(incomeDay)),
-    }
-
-    return {
-      bank: b,
-      oblig,
-      savingsPool,
-      daysLeft,
-      withoutSavings: b - savingsPool,
-      afterObligNoSavings: b - oblig - savingsPool,
-      afterObligAll: b - oblig,
-      greenPerDay: perDay(b - oblig - savingsPool - buffer),
-      yellowPerDay: perDay(b - oblig - savingsPool),
-      allPerDay: perDay(b - oblig),
-      situation: computeSituation(b, oblig, savingsPool, buffer, daysLeft),
-      paceGrow: computePace({ ...paceArgs, buffer }),
-      paceKeep: computePace({ ...paceArgs, buffer: 0 }),
-      paceSpend: computePace({ ...paceArgs, buffer: -savingsPool }),
-    }
-  }, [bank, incomeDay, buffer, monthlyIncome, categories, savings])
+  const m = useMemo(
+    () =>
+      computeDashboard({
+        bank: display.bank,
+        buffer: display.buffer,
+        monthlyIncome: display.monthlyIncome,
+        incomeDay,
+        categories: display.categories,
+        savings: display.savings,
+      }),
+    [display, incomeDay],
+  )
 
   // Tabs: every mode at or below the current situation is selectable; stricter
   // ones (their daily figure would be negative) render blocked. No modes at all
@@ -174,7 +140,7 @@ export default function DashboardTab() {
     intoSavings: m.allPerDay,
   }
   const card = mode
-    ? modeProps(mode, modePerDay[mode], buffer, m.daysLeft, money)
+    ? modeProps(mode, modePerDay[mode], m.buffer, m.daysLeft, money)
     : deficitProps(m.situation, m.daysLeft, money)
   // The pill measures against the selected tab's goal; the deficit card gets
   // the loosest benchmark (spend everything), matching its daily figure.
@@ -303,6 +269,13 @@ export default function DashboardTab() {
               subtitle={card.subtitle}
             />
           </div>
+
+          {display.missing.length > 0 && (
+            <p className={styles.ratesWarning} role="status">
+              No exchange rate for {display.missing.join(', ')} yet — those
+              amounts are counted 1:1. Refresh rates in Settings.
+            </p>
+          )}
 
           <Inputs />
 

@@ -18,6 +18,12 @@ export interface Category extends EntityMeta {
   budgetExpr?: string
   spent: number
   spentExpr?: string
+  /**
+   * ISO 4217 code `budget` and `spent` are denominated in (CLAUDE.md "Валюта у
+   * сумм"). Part of the entity's content, so it travels with its `updatedAt`.
+   * Never changes on its own — switching the display currency leaves it as is.
+   */
+  currency: string
   note?: string
   done: boolean
   /**
@@ -33,6 +39,8 @@ export interface SavingsRow extends EntityMeta {
   id: string
   month: string  // ISO "YYYY-MM"
   saved: number
+  /** ISO 4217 code `saved` is denominated in; travels with the row's `updatedAt`. */
+  currency: string
 }
 
 /** Per-field timestamps for the independent scalars, used by entity merge. */
@@ -76,16 +84,32 @@ export interface BudgetState {
    * pair one device's number with another device's formula.
    */
   bankExpr?: string
+  /**
+   * Currency the balance is denominated in. Like `bankExpr` it has no timestamp
+   * of its own and travels with `bank` under `meta.bank`, so a merge never pairs
+   * one device's number with another device's currency.
+   */
+  bankCurrency: string
   incomeDay: number
   /** Desired positive balance to keep by month end — the green-zone cushion. */
   buffer: number
+  /** Currency of `buffer`; travels with it under `meta.buffer`. */
+  bufferCurrency: string
   /**
    * Optional monthly income, used ONLY for the dashboard pace indicator
    * (planned daily rate vs the actual one). 0 means "not set" — the indicator
    * is hidden and nothing else depends on this field.
    */
   monthlyIncome: number
-  /** ISO 4217 currency code (e.g. "EUR"); see lib/currency.ts for the set. */
+  /** Currency of `monthlyIncome`; travels with it under `meta.monthlyIncome`. */
+  monthlyIncomeCurrency: string
+  /**
+   * The DISPLAY currency (ISO 4217, e.g. "EUR"; see lib/currency.ts for the
+   * set): totals and the forecast are converted into it on the fly. It does not
+   * say what any stored amount is in — every amount carries its own tag
+   * (`bankCurrency`, `Category.currency`, …), so switching it touches no data.
+   * Default currency for newly created amounts.
+   */
   currency: string
   /**
    * Whether "Finalize month" resets the Spent of every fixed-expense category

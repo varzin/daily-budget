@@ -19,12 +19,12 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const SAMPLE: SavingsRow[] = [
-  { id: 'a', month: '2026-01', saved: 600 },
-  { id: 'b', month: '2026-02', saved: 300 },
-  { id: 'c', month: '2026-03', saved: 450 },
-  { id: 'd', month: '2026-04', saved: 120 },
-  { id: 'e', month: '2026-05', saved: 700 },
-  { id: 'f', month: '2026-06', saved: 250 },
+  { id: 'a', month: '2026-01', saved: 600, currency: 'EUR' },
+  { id: 'b', month: '2026-02', saved: 300, currency: 'EUR' },
+  { id: 'c', month: '2026-03', saved: 450, currency: 'EUR' },
+  { id: 'd', month: '2026-04', saved: 120, currency: 'EUR' },
+  { id: 'e', month: '2026-05', saved: 700, currency: 'EUR' },
+  { id: 'f', month: '2026-06', saved: 250, currency: 'EUR' },
 ]
 
 function withSavings(rows: SavingsRow[]): Decorator {

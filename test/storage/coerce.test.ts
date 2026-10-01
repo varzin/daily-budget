@@ -31,7 +31,8 @@ describe('migrateCategories', () => {
     const [c] = migrateCategories([
       { id: 'a', name: 5, budget: '12.5', spent: null, done: 1, note: 7 },
     ])
-    expect(c).toEqual({ id: 'a', name: '', budget: 12.5, spent: 0, done: true })
+    // A missing currency tag takes the fallback (the default currency here).
+    expect(c).toEqual({ id: 'a', name: '', budget: 12.5, spent: 0, currency: 'EUR', done: true })
   })
 
   it('rejects non-finite numbers', () => {

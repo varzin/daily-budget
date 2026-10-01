@@ -4,9 +4,10 @@ import { useBudgetStore } from '../../store/budgetStore'
 import { computeDaysLeft } from '../../lib/math'
 import { evaluateLenient, formatEvalResult, hasMathOps, hasCurrencyToken } from '../../lib/evalExpr'
 import { formatUpdatedAgo, isStale } from '../../lib/freshness'
-import { useMoney } from '../../lib/useMoney'
+import { money } from '../../lib/currency'
 import { useRateResolver } from '../../lib/rates'
 import { pluralDays } from '../../lib/utils'
+import CurrencySelect from '../ui/CurrencySelect/CurrencySelect'
 import styles from './DashboardTab.module.css'
 
 /** The balance as text: the stored formula if there is one, else the number. */
@@ -27,7 +28,10 @@ function bankText(bank: number, bankExpr?: string): string {
 function BankInput() {
   const bank = useBudgetStore(s => s.bank)
   const bankExpr = useBudgetStore(s => s.bankExpr)
-  const rate = useRateResolver()
+  // Formulas evaluate into the balance's own currency ("50 USD" in a EUR
+  // balance → euros), so the stored snapshot is always in `bankCurrency`.
+  const bankCurrency = useBudgetStore(s => s.bankCurrency)
+  const rate = useRateResolver(bankCurrency)
   const [expr, setExpr] = useState<string>(() => bankText(bank, bankExpr))
   const [focused, setFocused] = useState(false)
 
@@ -80,7 +84,7 @@ function BankInput() {
 export default function Inputs() {
   const incomeDay = useBudgetStore(s => s.incomeDay)
   const bankUpdatedAt = useBudgetStore(s => s.meta.bank)
-  const money = useMoney()
+  const bankCurrency = useBudgetStore(s => s.bankCurrency)
 
   const day = Number(incomeDay)
   const showDaysLeft = day >= 1 && day <= 31
@@ -99,8 +103,14 @@ export default function Inputs() {
       <div className={styles.field}>
         <label htmlFor="bank">Current balance</label>
         <div className={styles.fieldInput}>
-          <span className={styles.fieldPrefix} aria-hidden="true">{money.symbol}</span>
+          <span className={styles.fieldPrefix} aria-hidden="true">{money(bankCurrency).symbol}</span>
           <BankInput />
+          <CurrencySelect
+            variant="inline"
+            ariaLabel="Balance currency"
+            value={bankCurrency}
+            onChange={code => useBudgetStore.getState().setBankCurrency(code)}
+          />
         </div>
         {updatedLabel && (
           <p className={`${styles.updated} ${stale ? styles.updatedStale : ''}`}>

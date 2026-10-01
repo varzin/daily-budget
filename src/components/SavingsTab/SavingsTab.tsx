@@ -3,8 +3,8 @@ import { Plus } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { useUiPrefsStore } from '../../store/uiPrefsStore'
 import { currentMonthKey } from '../../lib/utils'
-import { useMoney } from '../../lib/useMoney'
-import { computeFinalize } from '../../lib/math'
+import { money as moneyFor } from '../../lib/currency'
+import { computeFinalizeIn } from '../../lib/convert'
 import ConfirmModal from '../ui/ConfirmModal/ConfirmModal'
 import Toggle from '../ui/Toggle/Toggle'
 import SavingsTable from './SavingsTable'
@@ -20,16 +20,19 @@ export default function SavingsTab() {
   const resetSpent = useBudgetStore(s => s.resetSpentOnFinalize)
   const setResetSpent = useBudgetStore(s => s.setResetSpentOnFinalize)
   const bank = useBudgetStore(s => s.bank)
+  const bankCurrency = useBudgetStore(s => s.bankCurrency)
   const savings = useBudgetStore(s => s.savings)
-  const money = useMoney()
+  const rates = useBudgetStore(s => s.rates)
+  // Finalize works in the balance's currency (see computeFinalizeIn).
+  const money = moneyFor(bankCurrency)
 
   const handleAddRow = () => {
     useBudgetStore.getState().addSavingsRow()
   }
 
   // The same formula finalizeMonth applies — shown in the dialog as a preview.
-  const { prevPool, saved } = computeFinalize(bank, savings)
   const month = currentMonthKey()
+  const { prevPool, saved } = computeFinalizeIn(bank, bankCurrency, savings, rates, month)
   const monthExists = savings.some(r => r.month === month && !r.deletedAt)
 
   return (

@@ -5,6 +5,8 @@ import { useUiPrefsStore } from '../../store/uiPrefsStore'
 import { obligatoryTotal, categoryAmount, computeCategoryPace } from '../../lib/math'
 import { live } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
+import { money as moneyFor } from '../../lib/currency'
+import { useDisplayBudget } from '../../lib/useDisplayBudget'
 import Button from '../ui/Button/Button'
 import Modal from '../ui/Modal/Modal'
 import CategoryEditModal from './CategoryEditModal'
@@ -31,7 +33,10 @@ export default function CategoriesTab() {
   const allCategories = useBudgetStore(s => s.categories)
   const incomeDay = useBudgetStore(s => s.incomeDay)
   const categories = useMemo(() => live(allCategories), [allCategories])
-  const total = useMemo(() => obligatoryTotal(categories), [categories])
+  // Rows show each category in its own currency; the total is in the display
+  // currency, summed over the converted amounts.
+  const display = useDisplayBudget()
+  const total = useMemo(() => obligatoryTotal(display.categories), [display.categories])
   const money = useMoney()
   const [modal, setModal] = useState<ModalState>({ kind: 'closed' })
   const [helpOpen, setHelpOpen] = useState(false)
@@ -114,6 +119,10 @@ export default function CategoriesTab() {
             <div className={styles.emptyRow}>Everything's paid. 🎉</div>
           ) : visibleCategories.map(cat => {
             const pace = cat.ongoing ? computeCategoryPace(cat, incomeDay) : null
+            // Foreign-currency rows carry their symbol so mixed rows never read
+            // as one currency; display-currency rows stay as clean as before.
+            const own = moneyFor(cat.currency)
+            const sym = cat.currency === money.code ? '' : own.symbol
             return (
               <button
                 key={cat.id}
@@ -123,9 +132,9 @@ export default function CategoriesTab() {
                 aria-label={pace ? `Edit ${cat.name} — ${paceSummary(pace)}` : `Edit ${cat.name}`}
               >
                 <span className={styles.name}>{cat.name}</span>
-                <span className={styles.num}>{money.fmt(cat.budget || 0)}</span>
-                <span className={styles.num}>{money.fmt(cat.spent || 0)}</span>
-                <span className={styles.left}>{money.fmt(categoryAmount(cat))}</span>
+                <span className={styles.num}>{sym}{own.fmt(cat.budget || 0)}</span>
+                <span className={styles.num}>{sym}{own.fmt(cat.spent || 0)}</span>
+                <span className={styles.left}>{sym}{own.fmt(categoryAmount(cat))}</span>
                 {hasOngoing && (
                   <span className={styles.paceCell}>{pace && <PaceBar pace={pace} />}</span>
                 )}

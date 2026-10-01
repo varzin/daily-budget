@@ -46,8 +46,9 @@ export default function RatesCard() {
       <p className={styles.note}>
         Type an amount in another currency inside any budget field — e.g.{' '}
         <span className={styles.code}>10 USD</span> or{' '}
-        <span className={styles.code}>10&nbsp;₽</span> — and it converts to{' '}
-        {currency}. Rates refresh automatically about once a day.
+        <span className={styles.code}>10&nbsp;₽</span> — and it converts to
+        that field's currency. Totals and your daily budget are converted to{' '}
+        {currency} the same way. Rates refresh automatically about once a day.
       </p>
 
       {error && (
