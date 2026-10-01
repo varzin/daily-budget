@@ -1,0 +1,73 @@
+/* Pace-vs-plan breakdown modal. */
+.body {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.goal {
+  margin: 0 0 16px;
+}
+
+.side {
+  margin-top: 16px;
+}
+.sideTitle {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+}
+
+.terms {
+  margin: 0;
+  padding: 4px 12px;
+  background: var(--bg-elev);
+  border-radius: 8px;
+}
+.term {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+.term dt {
+  font-size: 13px;
+}
+.term dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.op {
+  display: inline-block;
+  min-width: 1.2em;
+  color: var(--text-faint);
+}
+.result {
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+.result dt,
+.result dd {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.formula {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.good { color: var(--green); }
+.bad { color: var(--red); }
+.verdict {
+  margin: 6px 0 0;
+}

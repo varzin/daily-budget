@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
-import { HelpCircle } from 'lucide-react'
+import { HelpCircle, Info } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import {
   computeDashboard,
+  explainPace,
+  paceGoalFor,
   availableWidgetModes,
   WIDGET_MODES,
   type Situation,
@@ -10,13 +12,14 @@ import {
 } from '../../lib/math'
 import { pluralDays } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
-import { useDisplayBudget } from '../../lib/useDisplayBudget'
+import { useDisplayBudget, useThresholdScale } from '../../lib/useDisplayBudget'
 import type { Money } from '../../lib/currency'
 import Modal from '../ui/Modal/Modal'
 import Segmented from '../ui/Segmented/Segmented'
 import Inputs from './Inputs'
 import MetricCard from './MetricCard'
 import PacePill from './PacePill'
+import PaceInfoModal from './PaceInfoModal'
 import styles from './DashboardTab.module.css'
 
 interface BreakdownItem {
@@ -110,6 +113,8 @@ export default function DashboardTab() {
   const display = useDisplayBudget()
   const money = useMoney()
   const [helpItem, setHelpItem] = useState<BreakdownItem | null>(null)
+  const [paceInfoOpen, setPaceInfoOpen] = useState(false)
+  const scale = useThresholdScale()
   // The user's explicit tab pick; null = follow the situation. When the pick
   // becomes unavailable (balance dropped), we fall back to the strictest
   // available mode instead of clearing it, so it re-applies if money returns.
@@ -251,7 +256,22 @@ export default function DashboardTab() {
               label={card.label}
               symbol={card.symbol}
               value={card.value}
-              badge={<PacePill pace={pace} />}
+              badge={
+                pace ? (
+                  <span className={styles.paceBadge}>
+                    <PacePill pace={pace} />
+                    <button
+                      type="button"
+                      className={styles.helpBtn}
+                      onClick={() => setPaceInfoOpen(true)}
+                      aria-label="How pace vs plan is calculated"
+                      title="How it's calculated"
+                    >
+                      <Info size={15} strokeWidth={2} />
+                    </button>
+                  </span>
+                ) : undefined
+              }
               tabs={
                 mode !== null ? (
                   <Segmented
@@ -325,6 +345,14 @@ export default function DashboardTab() {
           </aside>
         </>
       )}
+
+      <PaceInfoModal
+        open={paceInfoOpen && pace !== null}
+        onClose={() => setPaceInfoOpen(false)}
+        explanation={explainPace(m, paceGoalFor(mode))}
+        money={money}
+        scale={scale}
+      />
 
       <Modal
         open={helpItem !== null}

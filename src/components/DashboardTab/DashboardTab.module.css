@@ -218,6 +218,13 @@
   outline-offset: 2px;
 }
 
+/* Pace pill + its (i) "how it's calculated" button, on the widget label row. */
+.paceBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Body copy inside the per-item explanation modal. */
 .helpBody {
   color: var(--text-dim);

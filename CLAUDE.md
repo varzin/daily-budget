@@ -35,7 +35,12 @@
    копилка тратится равномерно (Spend; та же метрика у deficit-карточки).
    Параметр `buffer` в `computePace` ≡ `target − savingsPool`, поэтому три цели
    = `buffer` / `0` / `−savingsPool`; соседние варианты расходятся на
-   `(buffer|pool) × daysPassed / cycle`. Тесты — `test/lib/pace.test.ts`,
+   `(buffer|pool) × daysPassed / cycle`. Справа от pill — кнопка (i): модалка
+   `DashboardTab/PaceInfoModal` показывает расчёт на данных пользователя
+   (план: доход − фикс. по плану − цель ÷ длина цикла; факт: баланс − остаток
+   фикс. − цель ÷ дней осталось; (факт − план) × дней = pill). Разбор — чистая
+   `explainPace` (`math.ts`), гарантированно совпадает с pill. Тесты —
+   `test/lib/pace.test.ts`, `test/lib/paceExplain.test.ts`,
    `test/storage/monthlyIncome.test.ts`.
 3. **Один виджет по ситуации** — ✅ **реализовано** (ветка
    `daily-limit-improvements`). Три карточки заменены одним адаптивным виджетом;

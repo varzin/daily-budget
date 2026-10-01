@@ -414,6 +414,10 @@ export interface DashboardFigures {
   paceGrow: Pace | null
   paceKeep: Pace | null
   paceSpend: Pace | null
+  /** Inputs of the pace plan, kept for the "how it's calculated" breakdown. */
+  monthlyIncome: number
+  plannedOblig: number
+  cycleDays: number
 }
 
 /**
@@ -459,6 +463,84 @@ export function computeDashboard(input: DashboardInput, today: Date = new Date()
     paceGrow: computePace({ ...paceArgs, buffer }),
     paceKeep: computePace({ ...paceArgs, buffer: 0 }),
     paceSpend: computePace({ ...paceArgs, buffer: -savingsPool }),
+    monthlyIncome: paceArgs.monthlyIncome,
+    plannedOblig: paceArgs.plannedOblig,
+    cycleDays: paceArgs.cycleDays,
+  }
+}
+
+/** The goal a pace figure is measured against — one per widget tab. */
+export type PaceGoal = 'grow' | 'keep' | 'spend'
+
+/** The pace goal of a widget mode; the deficit card (null) uses "spend". */
+export function paceGoalFor(mode: WidgetMode | null): PaceGoal {
+  return mode === 'ahead' ? 'grow' : mode === 'onTrack' ? 'keep' : 'spend'
+}
+
+/** One signed term of a per-day formula (added when sign is +1). */
+export interface PaceTerm {
+  key: 'income' | 'plannedFixed' | 'cushion' | 'savings' | 'balance' | 'fixedLeft'
+  sign: 1 | -1
+  amount: number
+}
+
+export interface PaceSide {
+  /** Summed with their signs, then divided by `days`, they give `perDay`. */
+  terms: PaceTerm[]
+  days: number
+  perDay: number
+}
+
+export interface PaceExplanation {
+  goal: PaceGoal
+  /** (income − planned fixed − goal) ÷ cycle length. */
+  plan: PaceSide
+  /** (balance − fixed left − goal) ÷ days left. */
+  actual: PaceSide
+  /** (actual − plan) × days left. */
+  ahead: number
+}
+
+/**
+ * The pace-vs-plan figure for one goal, broken into the terms the info modal
+ * shows. Mirrors computePace exactly: its `buffer` is the goal's reserve on top
+ * of savings — the cushion (grow), nothing (keep), or minus the savings pool
+ * (spend: savings may be spent evenly too) — so per goal the formulas read:
+ *   plan:   income − planned fixed − cushion          (grow)
+ *           income − planned fixed                    (keep)
+ *           income − planned fixed + savings          (spend)
+ *   actual: balance − fixed left − savings − cushion  (grow)
+ *           balance − fixed left − savings            (keep)
+ *           balance − fixed left                      (spend)
+ * Zero-valued cushion/savings terms are left out. Null when pace is off.
+ */
+export function explainPace(m: DashboardFigures, goal: PaceGoal): PaceExplanation | null {
+  const pace = goal === 'grow' ? m.paceGrow : goal === 'keep' ? m.paceKeep : m.paceSpend
+  if (!pace) return null
+
+  const plan: PaceTerm[] = [
+    { key: 'income', sign: 1, amount: m.monthlyIncome },
+    { key: 'plannedFixed', sign: -1, amount: m.plannedOblig },
+  ]
+  const actual: PaceTerm[] = [
+    { key: 'balance', sign: 1, amount: m.bank },
+    { key: 'fixedLeft', sign: -1, amount: m.oblig },
+  ]
+  if (goal === 'grow') {
+    if (m.buffer !== 0) plan.push({ key: 'cushion', sign: -1, amount: m.buffer })
+    if (m.savingsPool !== 0) actual.push({ key: 'savings', sign: -1, amount: m.savingsPool })
+    if (m.buffer !== 0) actual.push({ key: 'cushion', sign: -1, amount: m.buffer })
+  } else if (goal === 'keep') {
+    if (m.savingsPool !== 0) actual.push({ key: 'savings', sign: -1, amount: m.savingsPool })
+  } else if (m.savingsPool !== 0) {
+    plan.push({ key: 'savings', sign: 1, amount: m.savingsPool })
+  }
+
+  return {
+    goal,
+    plan: { terms: plan, days: m.cycleDays, perDay: pace.perDayPlan },
+    actual: { terms: actual, days: m.daysLeft, perDay: pace.perDayActual },
+    ahead: pace.ahead,
   }
 }
 
