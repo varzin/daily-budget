@@ -65,7 +65,8 @@ type BudgetActions = {
   deleteCategory: (id: string) => void
   restoreCategory: (id: string) => void
   toggleCategoryDone: (id: string) => void
-  addSavingsRow: () => void
+  /** Defaults: the current month, 0 saved, the display currency. */
+  addSavingsRow: (input?: Partial<Pick<SavingsRow, 'month' | 'saved' | 'currency'>>) => void
   updateSavingsRow: (id: string, patch: Partial<SavingsRow>) => void
   deleteSavingsRow: (id: string) => void
   restoreSavingsRow: (id: string) => void
@@ -271,12 +272,12 @@ export const useBudgetStore = create<BudgetStore>()(
       },
 
       // ---------- savings ----------
-      addSavingsRow: () => {
+      addSavingsRow: (input = {}) => {
         const row: SavingsRow = {
           id: uid(),
-          month: currentMonthKey(),
-          saved: 0,
-          currency: get().currency,
+          month: input.month ?? currentMonthKey(),
+          saved: input.saved ?? 0,
+          currency: input.currency ?? get().currency,
           updatedAt: now(),
         }
         set(touch({ savings: [...get().savings, row] }))

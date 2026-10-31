@@ -190,6 +190,19 @@ describe('new entities default to the display currency', () => {
     expect(useBudgetStore.getState().savings[0]!.currency).toBe('AMD')
   })
 
+  it('addSavingsRow keeps the fields given by the row editor', () => {
+    useBudgetStore.getState().addSavingsRow({ month: '2025-07', saved: -90, currency: 'EUR' })
+    const row = useBudgetStore.getState().savings[0]!
+    expect(row).toMatchObject({ month: '2025-07', saved: -90, currency: 'EUR' })
+  })
+
+  it('updateSavingsRow re-tags without converting the amount', () => {
+    useBudgetStore.getState().addSavingsRow({ saved: 526, currency: 'EUR' })
+    const id = useBudgetStore.getState().savings[0]!.id
+    useBudgetStore.getState().updateSavingsRow(id, { currency: 'USD' })
+    expect(useBudgetStore.getState().savings[0]).toMatchObject({ saved: 526, currency: 'USD' })
+  })
+
   it('updateCategory can re-tag; other edits keep the tag', () => {
     useBudgetStore.getState().addCategory({ name: 'Rent', budget: 1, spent: 0, done: false, currency: 'EUR' })
     const id = useBudgetStore.getState().categories[0]!.id

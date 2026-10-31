@@ -11,6 +11,8 @@ import ConfirmModal from '../ui/ConfirmModal/ConfirmModal'
 import Segmented, { type SegmentedOption } from '../ui/Segmented/Segmented'
 import Toggle from '../ui/Toggle/Toggle'
 import SavingsTable from './SavingsTable'
+import SavingsRowModal from './SavingsRowModal'
+import type { SavingsRow } from '../../types'
 import SavingsChart from './SavingsChart'
 import styles from './SavingsTab.module.css'
 
@@ -23,6 +25,11 @@ export default function SavingsTab() {
   const view = useUiPrefsStore(s => s.savingsView)
   const setView = useUiPrefsStore(s => s.setSavingsView)
   const [finalizeOpen, setFinalizeOpen] = useState(false)
+  // The row editor: `row` is a snapshot taken on open (null → adding a row).
+  const [rowEditor, setRowEditor] = useState<{ open: boolean; row: SavingsRow | null }>({
+    open: false,
+    row: null,
+  })
   // The reset-spent choice is a synced preference (follows the user across
   // devices), pre-filled here and editable in the dialog.
   const resetSpent = useBudgetStore(s => s.resetSpentOnFinalize)
@@ -34,9 +41,8 @@ export default function SavingsTab() {
   const bank = display.bank
   const money = useMoney()
 
-  const handleAddRow = () => {
-    useBudgetStore.getState().addSavingsRow()
-  }
+  const openRowEditor = (row: SavingsRow | null) => setRowEditor({ open: true, row })
+  const closeRowEditor = () => setRowEditor(e => ({ ...e, open: false }))
 
   // The same formula finalizeMonth applies — shown in the dialog as a preview.
   const month = currentMonthKey()
@@ -62,17 +68,19 @@ export default function SavingsTab() {
         />
       </div>
 
-      {view === 'table' ? <SavingsTable /> : <SavingsChart />}
+      {view === 'table' ? <SavingsTable onEdit={openRowEditor} /> : <SavingsChart />}
 
       <div className={`${styles.savingsActions} ${styles.savingsActionsBottom}`}>
         <Button variant="primary" onClick={() => setFinalizeOpen(true)}>
           Finalize month
         </Button>
-        <Button onClick={handleAddRow}>
+        <Button onClick={() => openRowEditor(null)}>
           <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
           <span>Add row</span>
         </Button>
       </div>
+
+      <SavingsRowModal open={rowEditor.open} row={rowEditor.row} onClose={closeRowEditor} />
 
       <ConfirmModal
         open={finalizeOpen}

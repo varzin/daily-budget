@@ -1,0 +1,30 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.amount {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The amount with its currency picker beside it (as in Settings → Budget). */
+.amountRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+.errorRow {
+  font-size: 12px;
+  color: var(--danger);
+}
