@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { X } from 'lucide-react'
 import { useBudgetStore } from '../../store/budgetStore'
 import { showToast } from '../../store/toastStore'
@@ -8,6 +8,7 @@ import { live } from '../../lib/utils'
 import { useMoney } from '../../lib/useMoney'
 import { money as moneyFor, type Money } from '../../lib/currency'
 import { useDisplayBudget, useThresholdScale } from '../../lib/useDisplayBudget'
+import type { SavingsRow } from '../../types'
 import styles from './SavingsTable.module.css'
 
 // Tier boundaries are absolute amounts, calibrated in EUR and scaled into the
@@ -33,103 +34,16 @@ const indClassFor = (tier: SavedIndicator): string => {
   }
 }
 
-/**
- * Parse a signed-decimal draft. Returns null for in-progress states that aren't
- * yet a number ("-", ".", "-.") so the store isn't clobbered mid-typing; an
- * empty field commits 0.
- */
-function parseSigned(raw: string): number | null {
-  const s = raw.trim()
-  if (s === '') return 0
-  if (s === '-' || s === '.' || s === '-.') return null
-  const n = Number(s)
-  return Number.isFinite(n) ? n : null
+/** Signed amount with its currency symbol: "€526", "−€90", "$211.02". */
+function signedMoney(n: number, m: Money): string {
+  return `${n < 0 ? '−' : ''}${m.symbol}${m.fmtAmount(Math.abs(n))}`
 }
 
-/**
- * Money input for the savings table that accepts negative amounts (an overspend
- * month is a valid, now-possible value). A controlled `type="number"` can't hold
- * a leading "-" — the browser reports it as empty — so we keep a local string
- * draft while editing and commit parseable values to the store. Uses the full
- * keyboard on mobile because the decimal keypad has no minus key (same tradeoff
- * as MathField, see CLAUDE.md a11y notes).
- */
-function SavedInput({
-  value,
-  onCommit,
-  className,
-  ariaLabel,
-}: {
-  value: number
-  onCommit: (n: number) => void
-  className?: string
-  ariaLabel?: string
-}) {
-  const [draft, setDraft] = useState<string>(() => String(value))
-  const [editing, setEditing] = useState(false)
-
-  // Reflect external changes (e.g. Finalize overwrote this row) when not editing,
-  // so the draft never fights the user mid-typing.
-  useEffect(() => {
-    if (!editing) setDraft(String(value))
-  }, [value, editing])
-
-  return (
-    <input
-      className={className}
-      type="text"
-      inputMode="text"
-      aria-label={ariaLabel}
-      value={draft}
-      onFocus={() => setEditing(true)}
-      onChange={e => {
-        const raw = e.target.value
-        setDraft(raw)
-        const n = parseSigned(raw)
-        if (n !== null) onCommit(n)
-      }}
-      onBlur={() => {
-        setEditing(false)
-        setDraft(String(value))
-      }}
-    />
-  )
-}
-
-/** "2026-08" → "Aug 2026" in the device locale (the compact mobile label). */
-function shortMonth(month: string): string {
+/** "2026-08" → "August 2026" / "Aug 2026" in the device locale. */
+function monthLabel(month: string, style: 'long' | 'short'): string {
   const [y, m] = month.split('-').map(Number)
   if (!y || !m) return 'Set month'
-  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
-}
-
-/**
- * Native month picker. On narrow screens the native control (wide, with its
- * own calendar icon) is laid invisibly over a compact "Aug 2026" label, so a
- * tap still opens the system picker but the column stays narrow.
- */
-function MonthInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <span className={styles.month}>
-      <span className={styles.monthText} aria-hidden="true">{shortMonth(value)}</span>
-      <input
-        className={`${styles.savingsInput} ${styles.monthInput}`}
-        type="month"
-        aria-label="Month"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        onClick={e => {
-          // Desktop Chrome edits month segments in place; when the field is
-          // the invisible overlay, open the picker instead.
-          try {
-            if (getComputedStyle(e.currentTarget).opacity === '0') e.currentTarget.showPicker()
-          } catch {
-            /* showPicker unsupported — the native tap behaviour applies */
-          }
-        }}
-      />
-    </span>
-  )
+  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: style, year: 'numeric' })
 }
 
 function IndicatorCell({
@@ -142,7 +56,7 @@ function IndicatorCell({
   money: Money
 }) {
   return (
-    <span className={styles.indicatorWrap} tabIndex={0}>
+    <span className={styles.indicatorWrap} tabIndex={0} onClick={e => e.stopPropagation()}>
       <span className={`${styles.indicator} ${indClassFor(tier)}`} />
       <span className={styles.indicatorTooltip} role="tooltip">
         {INDICATOR_TIERS.map(t => (
@@ -156,11 +70,16 @@ function IndicatorCell({
   )
 }
 
-export default function SavingsTable() {
+/**
+ * The savings history. A row reads like a category row: tapping it opens
+ * `onEdit` (month, amount and its currency in one modal); the month cell holds
+ * the row's focusable button.
+ */
+export default function SavingsTable({ onEdit }: { onEdit: (row: SavingsRow) => void }) {
   const allSavings = useBudgetStore(s => s.savings)
   const savings = useMemo(() => live(allSavings), [allSavings])
   // "Balance at end" and the tiers read the rows converted into the display
-  // currency; the editable "Saved this month" stays in each row's own one.
+  // currency; "Saved this month" stays in each row's own one.
   const display = useDisplayBudget()
   const displaySavings = useMemo(() => live(display.savings), [display.savings])
   const balances = useMemo(() => computeBalances(displaySavings), [displaySavings])
@@ -176,12 +95,6 @@ export default function SavingsTable() {
     )
   }
 
-  const onMonthChange = (id: string, value: string) => {
-    useBudgetStore.getState().updateSavingsRow(id, { month: value })
-  }
-  const onSavedCommit = (id: string, saved: number) => {
-    useBudgetStore.getState().updateSavingsRow(id, { saved })
-  }
   // Delete immediately with an Undo toast instead of a blocking confirm —
   // the delete is a tombstone, so undo simply restores the row.
   const onDelete = (id: string, month: string) => {
@@ -215,34 +128,37 @@ export default function SavingsTable() {
           {savings.map((row, i) => {
             const tier = savedIndicator(displaySavings[i]?.saved ?? row.saved, thresholds)
             const balance = balances[i] ?? 0
-            const foreign = row.currency !== money.code
             return (
-              <tr key={row.id}>
+              <tr key={row.id} className={styles.row} onClick={() => onEdit(row)}>
                 <td>
                   <IndicatorCell tier={tier} thresholds={thresholds} money={money} />
                 </td>
                 <td>
-                  <MonthInput value={row.month} onChange={v => onMonthChange(row.id, v)} />
+                  <button
+                    type="button"
+                    className={styles.monthBtn}
+                    aria-label={`Edit ${monthLabel(row.month, 'long')}`}
+                    onClick={e => {
+                      e.stopPropagation()
+                      onEdit(row)
+                    }}
+                  >
+                    <span className={styles.long}>{monthLabel(row.month, 'long')}</span>
+                    <span className={styles.short} aria-hidden="true">{monthLabel(row.month, 'short')}</span>
+                  </button>
                 </td>
-                <td className={styles.savedCell}>
-                  {foreign && (
-                    <span className={styles.rowCurrency} title={row.currency}>
-                      {moneyFor(row.currency).symbol}
-                    </span>
-                  )}
-                  <SavedInput
-                    className={`${styles.savingsInput} ${styles.savedInput}`}
-                    ariaLabel="Saved this month"
-                    value={row.saved}
-                    onCommit={n => onSavedCommit(row.id, n)}
-                  />
+                <td className={styles.savedCell} title={row.currency}>
+                  {signedMoney(row.saved, moneyFor(row.currency))}
                 </td>
                 <td className={styles.savingsBankCell}>{money.symbol}{money.fmt(balance)}</td>
                 <td className={styles.delCell}>
                   <button
                     type="button"
                     className={styles.rowDel}
-                    onClick={() => onDelete(row.id, row.month)}
+                    onClick={e => {
+                      e.stopPropagation()
+                      onDelete(row.id, row.month)
+                    }}
                     aria-label="Delete row"
                   >
                     <X size={16} strokeWidth={2} aria-hidden="true" />
